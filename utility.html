@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Utility Tools | PHOENIX (IAM)</title>
+  <script>window.SKIP_META = true;</script>
+  <script>
+    // Suppress noisy extension/MetaMask RPC messages that don't affect functionality
+    window.addEventListener('error', function(e){
+      const m = (e && e.message) || '';
+      if (m.includes('Could not establish connection') || m.includes('getEnabledChains') || m.includes('isDefaultWallet') || m.includes('Internal JSON-RPC error')) {
+        e.preventDefault();
+        return false;
+      }
+    });
+    window.addEventListener('unhandledrejection', function(e){
+      const r = e && e.reason;
+      const msg = (r && (r.message || r)) || '';
+      if (typeof msg === 'string' && (msg.includes('Could not establish connection') || msg.includes('getEnabledChains') || msg.includes('isDefaultWallet') || msg.includes('Internal JSON-RPC error'))) {
+        e.preventDefault();
+        return false;
+      }
+    });
+  </script>
+  
+  <!-- Load ethers.js version 6 from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.1/dist/ethers.umd.min.js"></script>
+  
+  <!-- Main scripts for wallet connection -->
+  <script src="js/config.js"></script>
+  <script src="js/auto-wallet-connect.js"></script>
+  
+  <style>
+    body {
+      background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #2d3748 100%);
+      color: #e2e8f0;
+      font-family: 'Noto Sans Arabic', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    
+    .back-btn {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      background: linear-gradient(135deg, #a786ff, #00ff88);
+      color: #181c2a;
+      text-decoration: none;
+      padding: 0.7rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(167, 134, 255, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .back-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(167, 134, 255, 0.3);
+    }
+    
+    .utility-container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    
+    .utility-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .utility-card {
+      background: linear-gradient(135deg, rgba(35,41,70,0.8) 0%, rgba(45,55,72,0.8) 100%);
+      border: 1px solid rgba(0,255,136,0.2);
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 16px rgba(0,255,136,0.1);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(10px);
+    }
+    
+    .utility-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(0,255,136,0.2);
+      border-color: rgba(0,255,136,0.4);
+    }
+    
+    .utility-card h3 {
+      font-size: 1.3rem;
+      margin: 0 0 0.8rem 0;
+      color: #00ff88;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .utility-card .icon {
+      font-size: 1.5rem;
+    }
+    
+    .utility-btn {
+      background: linear-gradient(45deg, #00ff88, #00cc6a);
+      color: #1a202c;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+      flex: 1;
+    }
+    
+    .utility-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0,255,136,0.3);
+    }
+    
+    .utility-btn.secondary {
+      background: linear-gradient(45deg, #a786ff, #8b5cf6);
+      color: white;
+    }
+    
+    .calculator-section {
+      background: rgba(0,255,136,0.05);
+      border-radius: 8px;
+      padding: 1rem;
+      border: 1px solid rgba(0,255,136,0.1);
+    }
+    
+    .calculator-input {
+      width: 100%;
+      padding: 0.8rem;
+      border: 1px solid rgba(0,255,136,0.3);
+      border-radius: 8px;
+      background: rgba(26,32,44,0.8);
+      color: #e2e8f0;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      box-sizing: border-box;
+    }
+    
+    .calculator-input:focus {
+      outline: none;
+      border-color: #00ff88;
+      box-shadow: 0 0 0 3px rgba(0,255,136,0.1);
+    }
+    
+    .calculator-result {
+      background: rgba(0,255,136,0.1);
+      border: 1px solid rgba(0,255,136,0.2);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+      color: #e2e8f0;
+      font-family: 'Fira Mono', monospace;
+      word-break: break-all;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-left: 0.5rem;
+    }
+    
+    .status-online {
+      background: #00ff88;
+      box-shadow: 0 0 10px rgba(0,255,136,0.5);
+    }
+    
+    .status-offline {
+      background: #ff4757;
+      box-shadow: 0 0 10px rgba(255,71,87,0.5);
+    }
+    
+    @media (max-width: 768px) {
+      .utility-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .utility-actions {
+        flex-direction: column;
+      }
+      
+      .utility-header h1 {
+        font-size: 2rem;
+      }
+    }
+    
+    /* Animation keyframes */
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
+    }
+    /* Back Button */
+    .back-btn {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      background: linear-gradient(135deg, #a786ff, #00ff88);
+      color: #0a0f1c;
+      border: none;
+      padding: 0.6rem 1rem;
+      border-radius: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 0.9rem;
+      z-index: 1000;
+    }
+    
+    .back-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(167, 134, 255, 0.3);
+    }
+    
+  </style>
+</head>
+<body>
+    
+    <!-- Back Button -->
+    <a href="index.html" class="back-btn">← Back</a>
+
+    <div class="utility-grid">      <!-- Address and Index Conversion -->
+       <div class="utility-card">
+         <h3><span class="icon">🔄</span>Address and Index Conversion</h3>
+         <div class="calculator-section">
+           <div style="margin-bottom: 1rem;">
+             <h5 style="color: #a786ff; margin-bottom: 0.5rem;">📊 Index to Address</h5>
+             <input type="number" class="calculator-input" id="index-input" placeholder="User index number" min="0">
+             <button class="utility-btn" onclick="convertIndexToAddress()" style="width: 100%;">Convert</button>
+             <div class="calculator-result" id="index-result" style="display: none;"></div>
+           </div>
+           <div>
+             <h5 style="color: #a786ff; margin-bottom: 0.5rem;">👤 Address to Index</h5>
+             <input type="text" class="calculator-input" id="address-input" placeholder="Wallet address (0x...)" style="direction: ltr;">
+             <button class="utility-btn" onclick="convertAddressToIndex()" style="width: 100%;">Convert</button>
+             <div class="calculator-result" id="address-result" style="display: none;"></div>
+           </div>
+         </div>
+       </div>
+
+       <!-- Single User Lookup -->
+       <div class="utility-card">
+         <h3><span class="icon">👤</span>Single User Lookup</h3>
+         <div class="calculator-section">
+           <div style="margin-bottom: 1rem;">
+             <h5 style="color: #a786ff; margin-bottom: 0.5rem;">📊 Enter User Index</h5>
+             <input type="number" class="calculator-input" id="user-index-input" placeholder="Enter user index number" min="1">
+             <button class="utility-btn" onclick="showSingleUser()" style="width: 100%;">Show User Info</button>
+             <div class="calculator-result" id="user-result" style="display: none;"></div>
+           </div>
+         </div>
+       </div>
+
+      <!-- IAM ↔ DAI Converter (on-chain estimate) -->
+      <div class="utility-card" dir="ltr">
+        <h3><span class="icon">💱</span>IAM ↔ DAI Converter (on-chain estimate)</h3>
+        <div class="calculator-section">
+          <div style="display:flex; flex-direction:column; gap:.75rem;">
+            <div style="flex:1; min-width:220px;">
+              <label for="conv-iam" style="color:#a0aec0; font-size:.9rem; display:flex; align-items:center; justify-content:space-between; gap:.5rem;">
+                <span>IAM</span>
+                <button id="conv-iam-max" type="button" class="utility-btn" style="padding:.25rem .6rem; border-radius:6px; font-size:.8rem; line-height:1; background:linear-gradient(45deg,#334155,#1f2937); color:#e2e8f0;">Max</button>
+              </label>
+              <input id="conv-iam" type="number" inputmode="decimal" class="calculator-input" placeholder="Enter IAM amount" min="0" step="0.000000000000000001" style="direction:ltr; text-align:left;">
+            </div>
+            <div style="flex:1; min-width:220px;">
+              <label for="conv-dai" style="color:#a0aec0; font-size:.9rem; display:flex; align-items:center; justify-content:space-between; gap:.5rem;">
+                <span>DAI</span>
+                <button id="conv-dai-max" type="button" class="utility-btn" style="padding:.25rem .6rem; border-radius:6px; font-size:.8rem; line-height:1; background:linear-gradient(45deg,#334155,#1f2937); color:#e2e8f0;">Max</button>
+              </label>
+              <input id="conv-dai" type="number" inputmode="decimal" class="calculator-input" placeholder="Enter DAI amount" min="0" step="0.000000000000000001" style="direction:ltr; text-align:left;">
+            </div>
+          </div>
+          <div class="calculator-result" id="conv-result" style="display:none; text-align:left;"></div>
+          <small style="color:#a0aec0; display:block; margin-top:.5rem;">
+            Uses contract estimateBuy/estimateSell for accuracy. Connect wallet if required.
+          </small>
+        </div>
+      </div>
+
+      <!-- Voting System for Indexes -->
+      <div class="utility-card" dir="ltr">
+        <h3><span class="icon">🗳️</span>Vote by Index</h3>
+        <div class="calculator-section">
+          <div style="display:flex; flex-direction:column; gap:.75rem; align-items:stretch;">
+            <div style="flex:1; min-width:220px;">
+              <label for="vote-index-input" style="color:#a0aec0; font-size:.9rem;">User Index</label>
+              <input id="vote-index-input" type="number" inputmode="numeric" class="calculator-input" placeholder="e.g. 123" min="1" step="1" style="direction:ltr; text-align:left;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:.5rem; width:100%;">
+              <button class="utility-btn" onclick="window.voteForIndex(true)">👍 Like</button>
+              <button class="utility-btn secondary" onclick="window.voteForIndex(false)">👎 Dislike</button>
+            </div>
+          </div>
+          <div class="calculator-result" id="vote-result" style="display:none; text-align:right;"></div>
+          <small style="color:#a0aec0; display:block; margin-top:.5rem;">Connect your wallet to vote. You cannot vote for yourself.</small>
+        </div>
+      </div>
+
+      <!-- Voting System by Address -->
+      <div class="utility-card" dir="ltr">
+        <h3><span class="icon">🗳️</span>Vote by Address</h3>
+        <div class="calculator-section">
+          <div style="display:flex; flex-direction:column; gap:.75rem; align-items:stretch;">
+            <div style="flex:1; min-width:260px;">
+              <label for="vote-address-input" style="color:#a0aec0; font-size:.9rem;">User Address (0x...)</label>
+              <input id="vote-address-input" type="text" class="calculator-input" placeholder="0x..." style="direction:ltr; text-align:left;">
+            </div>
+            <div style="display:flex; flex-direction:column; gap:.5rem; width:100%;">
+              <button class="utility-btn" onclick="window.voteFromAddressCard(true)">👍 Like</button>
+              <button class="utility-btn secondary" onclick="window.voteFromAddressCard(false)">👎 Dislike</button>
+            </div>
+          </div>
+          <div class="calculator-result" id="vote-address-result" style="display:none; text-align:right;"></div>
+          <small style="color:#a0aec0; display:block; margin-top:.5rem;">Address must be valid and wallet connected.</small>
+        </div>
+      </div>
+
+      <!-- Vote Status Viewer -->
+      <div class="utility-card" dir="ltr">
+        <h3><span class="icon">📊</span>User Vote Status</h3>
+        <div class="calculator-section">
+          <div style="display:flex; flex-direction:column; gap:.75rem; align-items:stretch;">
+            <div style="flex:1; min-width:260px;">
+              <label for="vote-status-input" style="color:#a0aec0; font-size:.9rem;">Index or Address</label>
+              <input id="vote-status-input" type="text" class="calculator-input" placeholder="e.g. 123 or 0x..." style="direction:ltr; text-align:left;">
+            </div>
+            <div style="width:100%;">
+              <button class="utility-btn" style="width:100%;" onclick="window.showVoteStatus()">Show Status</button>
+            </div>
+          </div>
+          <div class="calculator-result" id="vote-status-result" style="display:none; text-align:right;"></div>
+          <small style="color:#a0aec0; display:block; margin-top:.5rem;">Displays likes, dislikes, your vote, and net score.</small>
+        </div>
+      </div>
+
+
+    </div>
+
+
+
+  <script>
+    // Contract address - using new contract by default
+    const UTILITY_IAM_ADDRESS = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D'; // New contract
+    
+    // Set global contract address if not already set
+    if (!window.IAM_ADDRESS) {
+        window.IAM_ADDRESS = UTILITY_IAM_ADDRESS;
+    }
+
+    // Show status message
+    function showStatus(message, type = 'info') {
+        // Create a temporary status message
+        const statusEl = document.createElement('div');
+        statusEl.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? 'rgba(0, 255, 136, 0.9)' : type === 'error' ? 'rgba(255, 68, 68, 0.9)' : 'rgba(167, 134, 255, 0.9)'};
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+            z-index: 9999;
+            font-size: 13px;
+            max-width: 300px;
+            backdrop-filter: blur(8px);
+            border: 1px solid ${type === 'success' ? 'rgba(0, 255, 136, 0.3)' : type === 'error' ? 'rgba(255, 68, 68, 0.3)' : 'rgba(167, 134, 255, 0.3)'};
+            animation: slideIn 0.3s ease;
+        `;
+        
+        const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+        statusEl.innerHTML = `${icon} ${message}`;
+        
+        document.body.appendChild(statusEl);
+        
+        setTimeout(() => {
+            if (statusEl.parentElement) {
+                statusEl.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => statusEl.remove(), 300);
+            }
+        }, 3000);
+    }
+
+    // Convert index to address
+    window.convertIndexToAddress = async function() {
+       const index = parseInt(document.getElementById('index-input').value);
+       
+       if (!index || index < 1) {
+         showStatus('Please enter a valid index (minimum 1)', 'error');
+         return;
+       }
+       
+       const resultDiv = document.getElementById('index-result');
+       resultDiv.innerHTML = 'Converting...';
+       resultDiv.style.display = 'block';
+       
+       try {
+         // Use shared wallet connection
+         if (!window.connectWallet) {
+           throw new Error('Wallet connection not available');
+         }
+         
+         const connection = await window.connectWallet();
+         if (!connection || !connection.contract) {
+           throw new Error('Contract connection failed');
+         }
+         
+         const { contract } = connection;
+         console.log(`🔄 Converting index ${index} to address...`);
+         
+         // Try the indexToAddress function
+         let address;
+         try {
+           address = await contract.indexToAddress(index);
+           console.log(`✅ Got address from indexToAddress: ${address}`);
+         } catch (indexError) {
+           console.log(`❌ indexToAddress failed: ${indexError.message}`);
+           // Fallback: try to find address by checking if the index exists in the system
+           console.log(`🔄 Trying fallback method...`);
+           
+           // Check if the index is within reasonable bounds first
+           try {
+             const totalUsers = await contract.wallets();
+             console.log(`📊 Total users in system: ${totalUsers}`);
+             
+             if (index > Number(totalUsers)) {
+               throw new Error(`Index ${index} is greater than total users (${totalUsers})`);
+             }
+             
+             // Try to get the address using a different approach
+             // Some contracts might have the address stored differently
+             try {
+               // Try calling indexToAddress with BigInt
+               address = await contract.indexToAddress(BigInt(index));
+               console.log(`✅ Got address using BigInt: ${address}`);
+             } catch (bigIntError) {
+               console.log(`❌ BigInt approach also failed: ${bigIntError.message}`);
+               throw new Error(`Cannot convert index ${index} to address. The index might not exist or the function is not available.`);
+             }
+           } catch (fallbackError) {
+             console.log(`❌ Fallback method failed: ${fallbackError.message}`);
+             throw new Error(`Index to address conversion failed: ${fallbackError.message}`);
+           }
+         }
+         
+         if (!address || address === '0x0000000000000000000000000000000000000000') {
+           resultDiv.innerHTML = `
+             <strong>Result:</strong><br>
+             Index: ${index}<br>
+             <span style="color: #ffa502;">No user found at this index</span>
+           `;
+         } else {
+           resultDiv.innerHTML = `
+             <strong>Result:</strong><br>
+             Index: ${index}<br>
+             Address: ${address}<br>
+             <button onclick="copyToClipboard('${address}')" style="background: #00ff88; color: #1a202c; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; margin-top: 0.5rem;">Copy Address</button>
+           `;
+         }
+       } catch (error) {
+         console.error('❌ Index to address conversion error:', error);
+         resultDiv.innerHTML = `
+           <strong>Error:</strong><br>
+           ${error.message}<br>
+           <small style="color: #a0aec0;">Please check if the index exists and try again</small>
+         `;
+       }
+     }
+
+    // Convert address to index
+    window.convertAddressToIndex = async function() {
+       const address = document.getElementById('address-input').value.trim();
+       
+       if (!address || !address.startsWith('0x')) {
+         showStatus('Please enter a valid address', 'error');
+         return;
+       }
+       
+       const resultDiv = document.getElementById('address-result');
+       resultDiv.innerHTML = 'Converting...';
+       resultDiv.style.display = 'block';
+       
+       try {
+         // Use shared wallet connection
+         if (!window.connectWallet) {
+           throw new Error('Wallet connection not available');
+         }
+         
+         const connection = await window.connectWallet();
+         if (!connection || !connection.contract) {
+           throw new Error('Contract connection failed');
+         }
+         
+         const { contract } = connection;
+         const userData = await contract.users(address);
+         const index = userData.index;
+         
+         if (index && index > 0) {
+           resultDiv.innerHTML = `
+             <strong>Result:</strong><br>
+             Address: ${address}<br>
+             Index: ${index.toString()}<br>
+             <button onclick="copyToClipboard('${index.toString()}')" style="background: #00ff88; color: #1a202c; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; margin-top: 0.5rem;">Copy Index</button>
+           `;
+         } else {
+           resultDiv.innerHTML = `
+             <strong>Result:</strong><br>
+             Address: ${address}<br>
+             <span style="color: #ffa502;">This address is not registered in the system</span>
+           `;
+         }
+       } catch (error) {
+         resultDiv.innerHTML = `
+           <strong>Error:</strong><br>
+           ${error.message}<br>
+           <small style="color: #a0aec0;">Please connect your wallet to use this feature</small>
+         `;
+       }
+     }
+
+    // Show single user by index
+    window.showSingleUser = async function() {
+       const userIndex = parseInt(document.getElementById('user-index-input').value);
+       
+       if (!userIndex || userIndex < 1) {
+         showStatus('Please enter a valid index (minimum 1)', 'error');
+         return;
+       }
+       
+       const resultDiv = document.getElementById('user-result');
+       resultDiv.innerHTML = 'Loading user...';
+       resultDiv.style.display = 'block';
+       
+       try {
+         // Use shared wallet connection
+         if (!window.connectWallet) {
+           throw new Error('Wallet connection not available');
+         }
+         
+         const connection = await window.connectWallet();
+         if (!connection || !connection.contract) {
+           throw new Error('Contract connection failed');
+         }
+         
+         const { contract } = connection;
+         
+         console.log(`🔄 Fetching user at index ${userIndex}...`);
+         
+         // Get user address by index
+         const address = await contract.indexToAddress(userIndex);
+         
+         if (!address || address === '0x0000000000000000000000000000000000000000') {
+           resultDiv.innerHTML = `
+             <strong>User Not Found:</strong><br>
+             No user found at index ${userIndex}<br>
+             <small style="color: #a0aec0;">This index may not exist yet</small>
+           `;
+           return;
+         }
+         
+         console.log(`✅ User found at index ${userIndex}: ${address}`);
+         
+         // Check if current user is in the downline of the target user
+         console.log('🔄 Checking if current user is in downline...');
+         const isInDownline = await checkIfInDownline(contract, address);
+         
+         if (!isInDownline) {
+           resultDiv.innerHTML = `
+             <div style="color: #ff6b6b; text-align: center; padding: 1rem;">
+               ❌ Access Denied<br>
+               <strong>This user is not part of your downline</strong><br>
+               <small style="color: #a0aec0;">You can only view users who are in your referral network</small>
+             </div>
+           `;
+           return;
+         }
+         
+         console.log('✅ User is in downline, proceeding to show complete user data...');
+         
+         // Get complete user data from contract
+         const userData = await contract.users(address);
+         const balance = await contract.balanceOf(address);
+         const voteStatus = await contract.getVoteStatus(address);
+         
+         console.log('📊 Complete user data:', userData);
+         
+         // Format user data for display
+         const formatBigInt = (value) => {
+           if (typeof value === 'bigint') {
+             return value.toString();
+           }
+           return value || '0';
+         };
+         
+         const formatTimestamp = (timestamp) => {
+           if (!timestamp || timestamp === 0n) return 'Never';
+           const date = new Date(Number(timestamp) * 1000);
+           return date.toLocaleString();
+         };
+         
+         const formatEther = (value) => {
+           if (typeof value === 'bigint') {
+             return ethers.formatUnits(value, 18);
+           }
+           return value || '0';
+         };
+         
+         // Display complete user information
+         resultDiv.innerHTML = `
+           <div style="color: #00ff88; text-align: center; padding: 1rem; margin-bottom: 1rem;">
+             ✅ User Information for Index ${userIndex}
+           </div>
+           
+           <div style="display: grid; gap: 1rem; max-height: 500px; overflow-y: auto;">
+             
+             <!-- Basic Info -->
+             <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 10px; padding: 1rem;">
+               <h4 style="color: #00ff88; margin: 0 0 0.5rem 0; font-size: 1.1rem;">📊 Basic Information</h4>
+               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                 <div><strong>Index:</strong> ${formatBigInt(userData.index)}</div>
+                 <div><strong>Address:</strong> ${address.substring(0, 6)}...${address.substring(38)}</div>
+                 <div><strong>IAM Balance:</strong> ${parseFloat(formatEther(balance)).toFixed(6)} IAM</div>
+                 <div><strong>Registration Time:</strong> ${formatTimestamp(userData.upgradeTime)}</div>
+               </div>
+             </div>
+             
+             <!-- Binary Points -->
+             <div style="background: rgba(167, 134, 255, 0.1); border: 1px solid rgba(167, 134, 255, 0.2); border-radius: 10px; padding: 1rem;">
+               <h4 style="color: #a786ff; margin: 0 0 0.5rem 0; font-size: 1.1rem;">⭐ Binary Points</h4>
+               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                 <div><strong>Total Points:</strong> ${formatBigInt(userData.binaryPoints)}</div>
+                 <div><strong>Point Cap:</strong> ${formatBigInt(userData.binaryPointCap)}</div>
+                 <div><strong>Points Claimed:</strong> ${formatBigInt(userData.binaryPointsClaimed)}</div>
+                 <div><strong>Unclaimed Points:</strong> ${formatBigInt(userData.binaryPoints - userData.binaryPointsClaimed)}</div>
+               </div>
+             </div>
+             
+             <!-- Referral System -->
+             <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2); border-radius: 10px; padding: 1rem;">
+               <h4 style="color: #ffc107; margin: 0 0 0.5rem 0; font-size: 1.1rem;">🌳 Referral System</h4>
+               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                 <div><strong>Left Points:</strong> ${formatBigInt(userData.leftPoints)}</div>
+                 <div><strong>Right Points:</strong> ${formatBigInt(userData.rightPoints)}</div>
+                 <div><strong>Total Purchased:</strong> ${formatBigInt(userData.totalPurchasedKind)}</div>
+                 <div><strong>Referral Claimed:</strong> ${formatBigInt(userData.refclimed)}</div>
+               </div>
+             </div>
+             
+             <!-- Monthly Rewards -->
+             <div style="background: rgba(255, 71, 87, 0.1); border: 1px solid rgba(255, 71, 87, 0.2); border-radius: 10px; padding: 1rem;">
+               <h4 style="color: #ff4757; margin: 0 0 0.5rem 0; font-size: 1.1rem;">💰 Monthly Rewards</h4>
+               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                 <div><strong>Total Monthly Rewarded:</strong> ${formatBigInt(userData.totalMonthlyRewarded)}</div>
+                 <div><strong>Last Monthly Claim:</strong> ${formatTimestamp(userData.lastMonthlyClaim)}</div>
+                 <div><strong>Deposited Amount:</strong> ${parseFloat(formatEther(userData.depositedAmount)).toFixed(6)} IAM</div>
+                 <div><strong>Last Claim Time:</strong> ${formatTimestamp(userData.lastClaimTime)}</div>
+               </div>
+             </div>
+             
+             <!-- Voting Status -->
+             <div style="background: rgba(0, 123, 255, 0.1); border: 1px solid rgba(0, 123, 255, 0.2); border-radius: 10px; padding: 1rem;">
+               <h4 style="color: #007bff; margin: 0 0 0.5rem 0; font-size: 1.1rem;">🗳️ Voting Status</h4>
+               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
+                 <div><strong>Total Likes:</strong> ${formatBigInt(voteStatus[0] || 0)}</div>
+                 <div><strong>Total Dislikes:</strong> ${formatBigInt(voteStatus[1] || 0)}</div>
+                 <div><strong>Net Score:</strong> ${Number(voteStatus[0] || 0) - Number(voteStatus[1] || 0)}</div>
+                 <div><strong>Your Vote:</strong> ${voteStatus[2] === 1 ? '👍 Liked' : voteStatus[2] === 2 ? '👎 Disliked' : '❌ No Vote'}</div>
+               </div>
+             </div>
+             
+             <!-- Action Buttons -->
+             <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+               <button onclick="copyToClipboard('${address}')" style="
+                 background: #a786ff; color: white; border: none; padding: 0.5rem 1rem; 
+                 border-radius: 5px; cursor: pointer; font-size: 0.8rem; flex: 1;
+               ">Copy Address</button>
+               <button onclick="copyToClipboard('${userIndex}')" style="
+                 background: #00ff88; color: #1a202c; border: none; padding: 0.5rem 1rem; 
+                 border-radius: 5px; cursor: pointer; font-size: 0.8rem; flex: 1;
+               ">Copy Index</button>
+             </div>
+             
+           </div>
+         `;
+       } catch (error) {
+         console.error('Error fetching user:', error);
+         resultDiv.innerHTML = `
+           <strong>Error:</strong><br>
+           ${error.message}<br>
+           <small style="color: #a0aec0;">To use this feature, please connect your wallet</small>
+         `;
+       }
+     }
+
+    // Show mobile user popup using existing system
+    window.showMobileUserPopup = async function(address, index) {
+       console.log('🔄 showMobileUserPopup called with:', { address, index });
+       
+       try {
+         if (window.connectWallet && typeof window.connectWallet === 'function') {
+           console.log('🔄 Connecting wallet...');
+           await window.connectWallet();
+           
+           if (window.contractConfig && window.contractConfig.contract) {
+             console.log('🔄 Getting contract...');
+             const contract = new ethers.Contract(window.IAM_ADDRESS, window.IAM_ABI, window.contractConfig.signer);
+             
+             console.log('🔄 Fetching user data...');
+             // Get user data
+             const userData = await contract.users(address);
+             const balance = await contract.balanceOf(address);
+             const voteStatus = await contract.getVoteStatus(address);
+             
+             console.log('📊 User data:', userData);
+             
+             // Check if mobile user popup is available
+             if (window.mobileUserPopup && typeof window.mobileUserPopup.show === 'function') {
+               console.log('🔄 Using mobile user popup...');
+               
+               // Prepare user object for mobile popup
+               const user = {
+                 index: index,
+                 binaryPoints: userData.binaryPoints || 0,
+                 binaryPointCap: userData.binaryPointCap || 0,
+                 totalMonthlyRewarded: userData.totalMonthlyRewarded || 0,
+                 binaryPointsClaimed: userData.binaryPointsClaimed || 0,
+                 refclimed: userData.refclimed || '0',
+                 depositedAmount: userData.depositedAmount || '0',
+                 leftPoints: userData.leftPoints || 0,
+                 rightPoints: userData.rightPoints || 0
+               };
+               
+               console.log('👤 Prepared user object:', user);
+               await window.mobileUserPopup.show(address, user);
+               console.log('✅ Mobile user popup should be visible now');
+               
+             } else {
+               console.log('⚠️ Mobile user popup not available, using fallback popup...');
+               showFallbackPopup(address, index, userData, balance, voteStatus);
+             }
+             
+           } else {
+             throw new Error('Contract not available');
+           }
+         } else {
+           throw new Error('Wallet not connected');
+         }
+       } catch (error) {
+         console.error('❌ Error in showMobileUserPopup:', error);
+         alert('Error loading user data: ' + error.message);
+       }
+     }
+
+    // Fallback popup function
+    function showFallbackPopup(address, index, userData, balance, voteStatus) {
+       console.log('🔄 Creating fallback popup...');
+       
+       const balanceFormatted = parseFloat(ethers.formatUnits(balance, 18)).toFixed(6);
+       
+       // Create popup modal
+       const popup = document.createElement('div');
+       popup.style.cssText = `
+         position: fixed;
+         top: 0;
+         left: 0;
+         width: 100%;
+         height: 100%;
+         background: rgba(0, 0, 0, 0.8);
+         display: flex;
+         justify-content: center;
+         align-items: center;
+         z-index: 10000;
+         backdrop-filter: blur(5px);
+       `;
+       
+       popup.innerHTML = `
+         <div style="
+           background: linear-gradient(135deg, rgba(35,41,70,0.95), rgba(24,28,42,0.95));
+           border: 1px solid rgba(167, 134, 255, 0.3);
+           border-radius: 20px;
+           padding: 2rem;
+           max-width: 500px;
+           width: 90%;
+           max-height: 80vh;
+           overflow-y: auto;
+           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+           position: relative;
+         ">
+           <button onclick="this.closest('.popup').remove()" style="
+             position: absolute;
+             top: 1rem;
+             right: 1rem;
+             background: rgba(255, 71, 87, 0.2);
+             border: 1px solid rgba(255, 71, 87, 0.3);
+             color: #ff4757;
+             border-radius: 50%;
+             width: 30px;
+             height: 30px;
+             cursor: pointer;
+             font-size: 1.2rem;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+           ">×</button>
+           
+           <div style="text-align: center; margin-bottom: 2rem;">
+             <div style="font-size: 3rem; margin-bottom: 1rem;">👤</div>
+             <h3 style="color: #00ff88; margin: 0; font-size: 1.5rem;">User Information</h3>
+           </div>
+           
+           <div style="space-y: 1rem;">
+             <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+               <div style="color: #00ff88; font-weight: bold; margin-bottom: 0.5rem;">Index</div>
+               <div style="color: #e2e8f0; font-family: monospace; font-size: 1.2rem;">${index}</div>
+             </div>
+             
+             <div style="background: rgba(167, 134, 255, 0.1); border: 1px solid rgba(167, 134, 255, 0.2); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+               <div style="color: #a786ff; font-weight: bold; margin-bottom: 0.5rem;">Wallet Address</div>
+               <div style="color: #e2e8f0; font-family: monospace; font-size: 0.9rem; word-break: break-all;">${address}</div>
+               <button onclick="copyToClipboard('${address}')" style="
+                 background: #a786ff;
+                 color: white;
+                 border: none;
+                 padding: 0.5rem 1rem;
+                 border-radius: 5px;
+                 cursor: pointer;
+                 margin-top: 0.5rem;
+                 font-size: 0.8rem;
+               ">Copy Address</button>
+             </div>
+             
+             <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+               <div style="color: #00ff88; font-weight: bold; margin-bottom: 0.5rem;">IAM Balance</div>
+               <div style="color: #e2e8f0; font-family: monospace; font-size: 1.2rem;">${balanceFormatted} IAM</div>
+             </div>
+             
+             <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
+               <div style="color: #ffc107; font-weight: bold; margin-bottom: 0.5rem;">Referrer</div>
+               <div style="color: #e2e8f0; font-family: monospace; font-size: 0.9rem; word-break: break-all;">${userData.referrer || 'No referrer'}</div>
+             </div>
+             
+             <div style="background: ${voteStatus ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 71, 87, 0.1)'}; border: 1px solid ${voteStatus ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 71, 87, 0.2)'}; border-radius: 10px; padding: 1rem;">
+               <div style="color: ${voteStatus ? '#00ff88' : '#ff4757'}; font-weight: bold; margin-bottom: 0.5rem;">Vote Status</div>
+               <div style="color: #e2e8f0; font-size: 1.1rem;">${voteStatus ? '✅ Yes' : '❌ No'}</div>
+             </div>
+           </div>
+         </div>
+       `;
+       
+       popup.className = 'popup';
+       document.body.appendChild(popup);
+       
+       // Close popup when clicking outside
+       popup.addEventListener('click', function(e) {
+         if (e.target === popup) {
+           popup.remove();
+         }
+       });
+       
+       console.log('✅ Fallback popup created and should be visible now');
+     }
+
+    // Copy to clipboard
+    window.copyToClipboard = function(text) {
+       navigator.clipboard.writeText(text).then(() => {
+         alert('Copied!');
+       }).catch(() => {
+         // Fallback for older browsers
+         const textArea = document.createElement('textarea');
+         textArea.value = text;
+         document.body.appendChild(textArea);
+         textArea.select();
+         document.execCommand('copy');
+         document.body.removeChild(textArea);
+         alert('Copied!');
+       });
+     }
+
+    // Update status time
+    window.updateStatusTime = function() {
+       const now = new Date();
+       const timeString = now.toLocaleString('en-US');
+       const statusTimeElement = document.getElementById('status-time');
+       if (statusTimeElement) {
+         statusTimeElement.textContent = timeString;
+       }
+     }
+
+
+    // Vote for user by index
+    window.voteForIndex = async function(isLike) {
+       const input = document.getElementById('vote-index-input');
+       const res = document.getElementById('vote-result');
+       if (!input || !res) return;
+       
+       const index = parseInt(input.value);
+       if (!index || index < 1) {
+         res.style.display = 'block';
+         res.style.background = 'rgba(255,68,68,0.1)';
+         res.style.borderColor = 'rgba(255,68,68,0.2)';
+         res.textContent = '⚠️ Please enter a valid index';
+         return;
+       }
+       
+       try {
+         res.style.display = 'block';
+         res.style.background = 'rgba(167,134,255,0.1)';
+         res.style.borderColor = 'rgba(167,134,255,0.2)';
+         res.textContent = '⏳ Sending vote...';
+         
+         const connection = await window.connectWallet();
+         if (!connection || !connection.contract) {
+           throw new Error('Contract connection failed');
+         }
+         
+         const { contract, address: currentAddress } = connection;
+         const address = await contract.indexToAddress(index);
+         
+         if (!address || address === '0x0000000000000000000000000000000000000000') {
+           throw new Error('No user found at this index');
+         }
+         
+         // Check if user is trying to vote for themselves
+         if (currentAddress && currentAddress.toLowerCase() === address.toLowerCase()) {
+           res.style.background = 'rgba(255,68,68,0.1)';
+           res.style.borderColor = 'rgba(255,68,68,0.2)';
+           res.textContent = '❌ Cannot vote for yourself';
+           return;
+         }
+         
+         const tx = await contract.voteUser(address, isLike);
+         await tx.wait();
+         
+         res.style.background = 'rgba(0,255,136,0.1)';
+         res.style.borderColor = 'rgba(0,255,136,0.2)';
+         res.textContent = isLike ? '✅ Like registered' : '✅ Dislike registered';
+       } catch (e) {
+         res.style.display = 'block';
+         res.style.background = 'rgba(255,68,68,0.1)';
+         res.style.borderColor = 'rgba(255,68,68,0.2)';
+         res.textContent = '❌ Error: ' + (e?.message || 'Voting error');
+       }
+     }
+
+     // Card animations
+     document.addEventListener('DOMContentLoaded', async function() {
+       const cards = document.querySelectorAll('.utility-card');
+       cards.forEach((card, index) => {
+         card.style.opacity = '0';
+         card.style.transform = 'translateY(20px)';
+         setTimeout(() => {
+           card.style.transition = 'all 0.5s ease';
+           card.style.opacity = '1';
+           card.style.transform = 'translateY(0)';
+         }, index * 100);
+       });
+       
+       // Contract is set to new contract by default
+       console.log('✅ Using contract:', window.IAM_ADDRESS);
+       
+       updateStatusTime();
+       setInterval(updateStatusTime, 60000); // Update every minute
+       
+       // Auto-connect wallet on page load (silent)
+       try {
+         console.log('🔄 Auto-connecting wallet...');
+         if (window.connectWallet) {
+           const connection = await window.connectWallet();
+           if (connection && connection.address) {
+             console.log('✅ Wallet auto-connected:', connection.address);
+           } else {
+             console.log('⚠️ Wallet not connected');
+           }
+         } else {
+           console.log('⚠️ Wallet connection not available');
+         }
+       } catch (error) {
+         console.log('⚠️ Auto-connect failed:', error.message);
+       }
+     
+     // Test mobile user popup availability
+     setTimeout(() => {
+       console.log('🔍 Testing mobile user popup availability...');
+       console.log('window.mobileUserPopup:', !!window.mobileUserPopup);
+       if (window.mobileUserPopup) {
+         console.log('✅ Mobile user popup is available');
+         // Hide popup initially
+         hidePopupInitially();
+       } else {
+         console.log('❌ Mobile user popup is not available');
+       }
+     }, 2000);
+  
+      // Initialize IAM ↔ DAI converter
+      try {
+        setupIamDaiConverter();
+        console.log('✅ IAM ↔ DAI converter initialized');
+      } catch (e) {
+        console.warn('⚠️ Failed to initialize IAM ↔ DAI converter:', e);
+      }
+  });
+   
+   // Test function for mobile user popup
+   window.testMobilePopup = function() {
+     console.log('🧪 Testing mobile user popup...');
+     
+     if (!window.mobileUserPopup) {
+       console.log('❌ Mobile user popup not available');
+       alert('Mobile user popup not loaded');
+       return;
+     }
+     
+     // Test with sample data
+     const testAddress = '0x1234567890123456789012345678901234567890';
+     const testUser = {
+       index: 1,
+       binaryPoints: 1000000,
+       binaryPointCap: 2000000,
+       totalMonthlyRewarded: 500000,
+       binaryPointsClaimed: 750000,
+       refclimed: '1000000000000000000000',
+       depositedAmount: '5000000000000000000000',
+       leftPoints: 800000,
+       rightPoints: 700000
+     };
+     
+     console.log('🔄 Showing test popup...');
+     window.mobileUserPopup.show(testAddress, testUser);
+     
+     // Fix popup positioning after showing
+     setTimeout(() => {
+       fixPopupPositioning();
+     }, 1000);
+     
+     console.log('✅ Test popup should be visible now');
+   };
+   
+   // Function to fix popup positioning
+   window.fixPopupPositioning = function() {
+     console.log('🔧 Fixing popup positioning...');
+     
+     const popup = document.getElementById('user-popup');
+     if (popup) {
+       popup.style.maxHeight = '90vh';
+       popup.style.overflowY = 'auto';
+       popup.style.position = 'fixed';
+       popup.style.bottom = '0';
+       popup.style.left = '0';
+       popup.style.right = '0';
+       popup.style.top = '10vh';
+       popup.style.transform = 'translateY(0)';
+       popup.style.zIndex = '10000';
+       popup.style.borderRadius = '20px 20px 0 0';
+       
+       // Make sure content is scrollable
+       const terminalOutput = popup.querySelector('.terminal-output');
+       if (terminalOutput) {
+         terminalOutput.style.maxHeight = 'calc(90vh - 150px)';
+         terminalOutput.style.overflowY = 'auto';
+       }
+       
+       console.log('✅ Popup positioning fixed');
+     } else {
+       console.log('❌ Popup not found');
+     }
+   };
+   
+   // Test popup directly
+   window.testPopupDirectly = function() {
+     console.log('🧪 Testing popup directly...');
+     
+     // Create a simple test popup
+     const popup = document.createElement('div');
+     popup.id = 'test-popup';
+     popup.style.cssText = `
+       position: fixed;
+       top: 0;
+       left: 0;
+       width: 100%;
+       height: 100%;
+       background: rgba(0, 0, 0, 0.8);
+       display: flex;
+       justify-content: center;
+       align-items: center;
+       z-index: 10000;
+       backdrop-filter: blur(5px);
+     `;
+     
+     popup.innerHTML = `
+       <div style="
+         background: linear-gradient(135deg, rgba(35,41,70,0.95), rgba(24,28,42,0.95));
+         border: 1px solid rgba(167, 134, 255, 0.3);
+         border-radius: 20px;
+         padding: 2rem;
+         max-width: 500px;
+         width: 90%;
+         max-height: 80vh;
+         overflow-y: auto;
+         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+         position: relative;
+       ">
+         <button onclick="this.closest('#test-popup').remove()" style="
+           position: absolute;
+           top: 1rem;
+           right: 1rem;
+           background: rgba(255, 71, 87, 0.2);
+           border: 1px solid rgba(255, 71, 87, 0.3);
+           color: #ff4757;
+           border-radius: 50%;
+           width: 30px;
+           height: 30px;
+           cursor: pointer;
+           font-size: 1.2rem;
+           display: flex;
+           align-items: center;
+           justify-content: center;
+         ">×</button>
+         
+         <div style="text-align: center; margin-bottom: 2rem;">
+           <div style="font-size: 3rem; margin-bottom: 1rem;">🧪</div>
+           <h3 style="color: #00ff88; margin: 0; font-size: 1.5rem;">Test Popup</h3>
+         </div>
+         
+         <div style="color: #e2e8f0; text-align: center;">
+           <p>This is a test popup to verify that popups work on this page.</p>
+           <p style="color: #a786ff; margin-top: 1rem;">If you can see this, the popup system is working!</p>
+         </div>
+       </div>
+     `;
+     
+     document.body.appendChild(popup);
+     
+     // Close popup when clicking outside
+     popup.addEventListener('click', function(e) {
+       if (e.target === popup) {
+         popup.remove();
+       }
+     });
+     
+     console.log('✅ Test popup created');
+   };
+   
+   // Hide popup initially
+   window.hidePopupInitially = function() {
+     console.log('🔧 Hiding popup initially...');
+     
+     const popup = document.getElementById('user-popup');
+     if (popup) {
+       popup.style.display = 'none';
+       popup.style.visibility = 'hidden';
+       popup.style.opacity = '0';
+       popup.style.transform = 'translateY(100%)';
+       popup.classList.remove('active');
+       console.log('✅ Popup hidden initially');
+     }
+     
+     const backdrop = document.querySelector('.popup-backdrop');
+     if (backdrop) {
+       backdrop.style.display = 'none';
+       backdrop.style.opacity = '0';
+     }
+   };
+   
+   // Show popup properly
+   window.showPopupProperly = function() {
+     console.log('🔧 Showing popup properly...');
+     
+     const popup = document.getElementById('user-popup');
+     if (popup) {
+       popup.style.display = 'block';
+       popup.style.visibility = 'visible';
+       popup.style.opacity = '1';
+       popup.style.transform = 'translateY(0)';
+       popup.classList.add('active');
+       console.log('✅ Popup shown properly');
+     }
+     
+     const backdrop = document.querySelector('.popup-backdrop');
+     if (backdrop) {
+       backdrop.style.display = 'block';
+       backdrop.style.opacity = '0.5';
+     }
+   };
+   
+   // Manual function to check and fix popup visibility
+   window.checkPopupVisibility = function() {
+     console.log('🔍 Checking popup visibility...');
+     
+     const popup = document.getElementById('user-popup');
+     if (popup) {
+       const rect = popup.getBoundingClientRect();
+       console.log('📍 Popup position:', rect);
+       console.log('📍 Popup styles:', {
+         display: popup.style.display,
+         visibility: popup.style.visibility,
+         opacity: popup.style.opacity,
+         transform: popup.style.transform,
+         zIndex: popup.style.zIndex,
+         position: popup.style.position
+       });
+       
+       // Force visibility
+       popup.style.display = 'block';
+       popup.style.visibility = 'visible';
+       popup.style.opacity = '1';
+       popup.style.transform = 'translateY(0)';
+       popup.style.zIndex = '99999';
+       popup.style.position = 'fixed';
+       popup.style.bottom = '0';
+       popup.style.left = '0';
+       popup.style.right = '0';
+       popup.style.top = '20vh';
+       popup.style.height = '80vh';
+       popup.style.maxHeight = '80vh';
+       popup.style.overflowY = 'auto';
+       popup.style.background = 'linear-gradient(135deg, #232946 0%, #181c2a 100%)';
+       popup.style.borderRadius = '20px 20px 0 0';
+       popup.style.boxShadow = '0 -8px 32px rgba(0, 0, 0, 0.3)';
+       popup.classList.add('active');
+       
+       console.log('✅ Popup visibility forced');
+       
+       // Scroll to popup
+       popup.scrollIntoView({ behavior: 'smooth', block: 'end' });
+       
+     } else {
+       console.log('❌ No popup found');
+     }
+   };
+  </script>
+  
+  
+  <!-- Fix mobile popup positioning -->
+  <style>
+    #user-popup {
+      height: 80vh !important;
+      max-height: 80vh !important;
+      overflow-y: auto !important;
+      position: fixed !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      top: 20vh !important;
+      transform: translateY(100%) !important;
+      z-index: 99999 !important;
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      background: linear-gradient(135deg, #232946 0%, #181c2a 100%) !important;
+      border-radius: 20px 20px 0 0 !important;
+      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3) !important;
+      transition: all 0.3s ease !important;
+    }
+    
+    #user-popup.active {
+      transform: translateY(0) !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+    
+    .popup-content {
+      max-height: calc(90vh - 80px) !important;
+      overflow-y: auto !important;
+    }
+    
+    .terminal-container {
+      height: 100% !important;
+      max-height: 100% !important;
+      overflow-y: auto !important;
+      display: flex !important;
+      flex-direction: column !important;
+    }
+    
+    .terminal-body {
+      height: calc(100% - 60px) !important;
+      max-height: calc(100% - 60px) !important;
+      overflow-y: auto !important;
+      flex: 1 !important;
+    }
+    
+    .terminal-output {
+      height: calc(100% - 40px) !important;
+      max-height: calc(100% - 40px) !important;
+      overflow-y: auto !important;
+    }
+    
+    /* Ensure popup is always visible */
+    @media (max-width: 768px) {
+      #user-popup {
+        max-height: 95vh !important;
+        top: 5vh !important;
+        bottom: 0 !important;
+        transform: translateY(0) !important;
+        z-index: 99999 !important;
+      }
+    }
+    
+    /* Force popup visibility */
+    #user-popup.active {
+      transform: translateY(0) !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      display: block !important;
+    }
+  </style>
+  
+  
+  <script>
+
+    // Helper function to check if a user is in downline using binary tree traversal
+    window.isUserInDownline = async function(contract, targetIndex, currentIndex) {
+      if (targetIndex <= currentIndex) {
+        return false;
+      }
+      
+      let checkIndex = targetIndex;
+      const maxDepth = 100;
+      let depth = 0;
+      
+      while (checkIndex > currentIndex && depth < maxDepth) {
+        checkIndex = checkIndex / 2n;
+        depth++;
+        
+        if (checkIndex === currentIndex) {
+          return true;
+        }
+      }
+      
+      return false;
+    };
+
+    // Function to check if current user is in the downline of target user
+    window.checkIfInDownline = async function(contract, targetAddress) {
+      try {
+        // Get current user's address from connection
+        const connection = await window.connectWallet();
+        const currentAddress = connection.address;
+        console.log('🔍 Current user address:', currentAddress);
+        console.log('🔍 Target user address:', targetAddress);
+        
+        // If same address, allow access
+        if (currentAddress.toLowerCase() === targetAddress.toLowerCase()) {
+          console.log('✅ Same user, allowing access');
+          return true;
+        }
+        
+        // Get current user's data
+        const currentUserData = await contract.users(currentAddress);
+        const currentUserIndex = currentUserData.index;
+        
+        if (!currentUserIndex || currentUserIndex === 0n) {
+          console.log('❌ Current user not registered');
+          return false;
+        }
+        
+        // Get target user's data
+        const targetUserData = await contract.users(targetAddress);
+        const targetUserIndex = targetUserData.index;
+        
+        if (!targetUserIndex || targetUserIndex === 0n) {
+          console.log('❌ Target user not registered');
+          return false;
+        }
+        
+        console.log('🔍 Current user index:', currentUserIndex.toString());
+        console.log('🔍 Target user index:', targetUserIndex.toString());
+        
+        // Check if current user is in the downline of target user using binary tree traversal
+        // The target index must be greater than current user index
+        if (targetUserIndex <= currentUserIndex) {
+          console.log('❌ Target index must be greater than current user index');
+          return false;
+        }
+        
+        console.log('🔍 Using binary tree traversal to check downline...');
+        console.log('🔍 Current user index:', currentUserIndex.toString());
+        console.log('🔍 Target user index:', targetUserIndex.toString());
+        
+        // Binary tree traversal: divide target index by 2 until we reach current user index
+        let checkIndex = targetUserIndex;
+        const maxDepth = 100; // Prevent infinite loops
+        let depth = 0;
+        
+        while (checkIndex > currentUserIndex && depth < maxDepth) {
+          // Divide by 2 (integer division)
+          checkIndex = checkIndex / 2n;
+          depth++;
+          
+          console.log(`🔍 Level ${depth}: checking index ${checkIndex.toString()}`);
+          
+          // If we found current user index in the path, user is in downline
+          if (checkIndex === currentUserIndex) {
+            console.log('✅ Current user is in downline of target user');
+            return true;
+          }
+        }
+        
+        console.log('❌ Current user is not in downline of target user');
+        return false;
+        
+      } catch (error) {
+        console.error('❌ Error checking downline:', error);
+        return false;
+      }
+    };
+
+    // ===== IAM ↔ DAI Converter (on-chain) =====
+    function debounce(fn, ms){ let t; return function(){ clearTimeout(t); const a=arguments; t=setTimeout(()=>fn.apply(this,a), ms); } }
+
+    async function getReadonlyContract() {
+      try {
+        if (window.contractConfig && window.contractConfig.contract) return window.contractConfig.contract;
+        if (typeof window.ethereum !== 'undefined') {
+          const provider = new ethers.BrowserProvider(window.ethereum, 'any');
+          const net = await provider.getNetwork().catch(()=>null);
+          const runner = provider; // runner is enough for read-only
+          if (window.IAM_ADDRESS && window.IAM_ABI) {
+            return new ethers.Contract(window.IAM_ADDRESS, window.IAM_ABI, runner);
+          }
+        }
+        // Fallback: public RPC (readonly). Replace with your network RPC if needed.
+        const rpc = (window.RPC_URL) ? window.RPC_URL : 'https://polygon-rpc.com';
+        const provider = new ethers.JsonRpcProvider(rpc);
+        return new ethers.Contract(window.IAM_ADDRESS, window.IAM_ABI, provider);
+      } catch (_) {
+        throw new Error('No provider available');
+      }
+    }
+
+    async function ensureContract() {
+      // Prefer connected contract; otherwise use readonly
+      try { return await getReadonlyContract(); } catch (e) { throw e; }
+    }
+
+    async function estimateDaiFromIamAmount(iamStr){
+      const contract = await ensureContract();
+      let iamWei;
+      try { iamWei = ethers.parseUnits(String(iamStr||'0').trim() || '0', 18); } catch { iamWei = 0n; }
+      if (iamWei <= 0n) return '0';
+      try {
+        if (typeof contract.estimateSell === 'function') {
+          const daiWei = await contract.estimateSell(iamWei);
+          return ethers.formatUnits(daiWei, 18);
+        }
+      } catch (_) {}
+      try {
+        const priceWei = await contract.getTokenPrice();
+        const daiWei = (iamWei * priceWei) / 10n**18n;
+        return ethers.formatUnits(daiWei, 18);
+      } catch (e) {
+        throw new Error('Price fetch failed');
+      }
+    }
+
+    async function estimateIamFromDaiAmount(daiStr){
+      const contract = await ensureContract();
+      let daiWei;
+      try { daiWei = ethers.parseUnits(String(daiStr||'0').trim() || '0', 18); } catch { daiWei = 0n; }
+      if (daiWei <= 0n) return '0';
+      try {
+        if (typeof contract.estimateBuy === 'function') {
+          const iamWei = await contract.estimateBuy(daiWei);
+          return ethers.formatUnits(iamWei, 18);
+        }
+      } catch (_) {}
+      try {
+        const priceWei = await contract.getTokenPrice();
+        const iamWei = (daiWei * 10n**18n) / priceWei;
+        return ethers.formatUnits(iamWei, 18);
+      } catch (e) {
+        throw new Error('Price fetch failed');
+      }
+    }
+
+    function setupIamDaiConverter(){
+      const iamInput = document.getElementById('conv-iam');
+      const daiInput = document.getElementById('conv-dai');
+      const result = document.getElementById('conv-result');
+      const btnMaxIam = document.getElementById('conv-iam-max');
+      const btnMaxDai = document.getElementById('conv-dai-max');
+      const btnIamToDai = document.getElementById('btn-iam-to-dai');
+      const btnDaiToIam = document.getElementById('btn-dai-to-iam');
+      if (!iamInput || !daiInput || !result) return;
+
+      const setResult = (msg, ok=true)=>{
+        result.style.display = msg ? 'block' : 'none';
+        result.style.background = ok ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)';
+        result.style.borderColor = ok ? 'rgba(0,255,136,0.2)' : 'rgba(255,68,68,0.2)';
+        result.textContent = msg;
+      };
+
+      const setResultLines = (inLabel, inValue, outLabel, outValue, ok=true) => {
+        const hasContent = (inValue !== '' && outValue !== '');
+        result.style.display = hasContent ? 'block' : 'none';
+        result.style.background = ok ? 'rgba(0,255,136,0.1)' : 'rgba(255,68,68,0.1)';
+        result.style.borderColor = ok ? 'rgba(0,255,136,0.2)' : 'rgba(255,68,68,0.2)';
+        result.innerHTML = hasContent ? `<div>${inLabel}: ${inValue}</div><div>${outLabel}: ${outValue}</div>` : '';
+      };
+
+      const onIamChange = debounce(async ()=>{
+        const v = iamInput.value.trim();
+        if (!v){ setResult(''); return; }
+        try {
+          const out = await estimateDaiFromIamAmount(v);
+          if (document.activeElement !== daiInput) daiInput.value = out;
+          setResultLines('IAM', v, 'DAI', out, true);
+        } catch(e){ setResult(e.message||'Conversion error', false); }
+      }, 250);
+
+      const onDaiChange = debounce(async ()=>{
+        const v = daiInput.value.trim();
+        if (!v){ setResult(''); return; }
+        try {
+          const out = await estimateIamFromDaiAmount(v);
+          if (document.activeElement !== iamInput) iamInput.value = out;
+          setResultLines('DAI', v, 'IAM', out, true);
+        } catch(e){ setResult(e.message||'Conversion error', false); }
+      }, 250);
+
+      iamInput.addEventListener('input', onIamChange);
+      daiInput.addEventListener('input', onDaiChange);
+
+      // Fetch wallet balances and set Max
+      async function fetchBalances() {
+        try {
+          if (!window.connectWallet) return { iam: null, dai: null };
+          const { contract, provider, address } = await window.connectWallet();
+          let iamBal = null, daiBal = null;
+          try {
+            if (contract && typeof contract.balanceOf === 'function') {
+              const b = await contract.balanceOf(address);
+              iamBal = Number(ethers.formatUnits(b, 18));
+            }
+          } catch(_) {}
+          try {
+            const daiAddr = window.DAI_ADDRESS || (window.contractConfig && window.contractConfig.DAI_ADDRESS);
+            if (provider && daiAddr) {
+              const minimalDaiAbi = [{"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}];
+              const Dai = new ethers.Contract(daiAddr, minimalDaiAbi, provider);
+              const d = await Dai.balanceOf(address);
+              daiBal = Number(ethers.formatUnits(d, 18));
+            }
+          } catch(_) {}
+          return { iam: iamBal, dai: daiBal };
+        } catch { return { iam: null, dai: null }; }
+      }
+
+      async function setMaxIam() {
+        const { iam } = await fetchBalances();
+        if (iam === null || isNaN(iam)) return;
+        iamInput.value = iam.toString();
+        iamInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      async function setMaxDai() {
+        const { dai } = await fetchBalances();
+        if (dai === null || isNaN(dai)) return;
+        daiInput.value = dai.toString();
+        daiInput.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      if (btnMaxIam) btnMaxIam.addEventListener('click', setMaxIam);
+      if (btnMaxDai) btnMaxDai.addEventListener('click', setMaxDai);
+
+      if (btnIamToDai) btnIamToDai.onclick = async ()=>{
+        const v = iamInput.value.trim();
+        if (!v){ setResult(''); return; }
+        try { const out = await estimateDaiFromIamAmount(v); daiInput.value = out; setResultLines('IAM', v, 'DAI', out, true); }
+        catch(e){ setResult(e.message||'Conversion error', false); }
+      };
+      if (btnDaiToIam) btnDaiToIam.onclick = async ()=>{
+        const v = daiInput.value.trim();
+        if (!v){ setResult(''); return; }
+        try { const out = await estimateIamFromDaiAmount(v); iamInput.value = out; setResultLines('DAI', v, 'IAM', out, true); }
+        catch(e){ setResult(e.message||'Conversion error', false); }
+      };
+    }
+
+    // Voting helpers for utility page
+    window.voteFromAddressCard = async function(isLike){
+      const input = document.getElementById('vote-address-input');
+      const res = document.getElementById('vote-address-result');
+      if (!input || !res) return;
+      const address = (input.value||'').trim();
+      if (!address || !address.startsWith('0x') || address.length < 42){
+        res.style.display='block';
+        res.style.background='rgba(255,68,68,0.1)';
+        res.style.borderColor='rgba(255,68,68,0.2)';
+        res.textContent='⚠️ Please enter a valid address';
+        return;
+      }
+      try{
+        res.style.display='block';
+        res.style.background='rgba(167,134,255,0.1)';
+        res.style.borderColor='rgba(167,134,255,0.2)';
+        res.textContent='⏳ Sending vote...';
+        
+        const connection = await window.connectWallet();
+        if (!connection || !connection.contract) {
+          throw new Error('Contract connection failed');
+        }
+        
+        const { address: currentAddress } = connection;
+        
+        // Check if user is trying to vote for themselves
+        if (currentAddress && currentAddress.toLowerCase() === address.toLowerCase()) {
+          res.style.background = 'rgba(255,68,68,0.1)';
+          res.style.borderColor = 'rgba(255,68,68,0.2)';
+          res.textContent = '❌ Cannot vote for yourself';
+          return;
+        }
+        
+        const tx = await connection.contract.voteUser(address, isLike);
+        await tx.wait();
+        
+        res.style.background='rgba(0,255,136,0.1)';
+        res.style.borderColor='rgba(0,255,136,0.2)';
+        res.textContent = isLike ? '✅ Like registered' : '✅ Dislike registered';
+      }catch(e){
+        res.style.display='block';
+        res.style.background='rgba(255,68,68,0.1)';
+        res.style.borderColor='rgba(255,68,68,0.2)';
+        res.textContent='❌ Error: ' + (e?.message||'Voting error');
+      }
+    }
+
+    window.showVoteStatus = async function(){
+      const input = document.getElementById('vote-status-input');
+      const res = document.getElementById('vote-status-result');
+      if (!input || !res) return;
+      const raw = (input.value||'').trim();
+      if (!raw){ res.style.display='none'; return; }
+      try{
+        const connection = await window.connectWallet();
+        if (!connection || !connection.contract) {
+          throw new Error('Contract connection failed');
+        }
+        const contract = connection.contract;
+        // Determine if raw is index or address
+        let address = raw;
+        if (!raw.startsWith('0x')){
+          const idx = parseInt(raw, 10);
+          if (!idx || idx <= 0) throw new Error('Invalid index');
+          address = await contract.indexToAddress(idx);
+        }
+        if (!address || address === '0x0000000000000000000000000000000000000000'){
+          throw new Error('No user found for this input');
+        }
+        const vs = await contract.getVoteStatus(address);
+        const totalLikes = (vs[0] ?? 0).toString();
+        const totalDislikes = (vs[1] ?? 0).toString();
+        const myVote = Number(vs[2] ?? 0);
+        const myVoteText = myVote === 1 ? 'Liked' : myVote === 2 ? 'Disliked' : 'No vote';
+        const net = (Number(totalLikes) - Number(totalDislikes)).toString();
+        res.style.display='block';
+        res.style.background='rgba(0,255,136,0.1)';
+        res.style.borderColor='rgba(0,255,136,0.2)';
+        res.innerHTML = `<div>Address: ${address}</div><div>Likes: ${totalLikes} | Dislikes: ${totalDislikes}</div><div>Your vote: ${myVoteText}</div><div>Net score: ${net}</div>`;
+      }catch(e){
+        res.style.display='block';
+        res.style.background='rgba(255,68,68,0.1)';
+        res.style.borderColor='rgba(255,68,68,0.2)';
+        res.textContent='❌ Error: ' + (e?.message||'Status error');
+      }
+    }
+  </script>
+  
+</body>
+</html> 

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ownership</title>
+  <script>
+    // Suppress noisy extension RPC errors (non-blocking)
+    window.addEventListener('error', function(e){
+      const m = (e && e.message) || '';
+      if (m.includes('getEnabledChains') || m.includes('isDefaultWallet') || m.includes('Internal JSON-RPC error')) { e.preventDefault(); return false; }
+    });
+    window.addEventListener('unhandledrejection', function(e){
+      const msg = (e && e.reason && (e.reason.message||e.reason)) || '';
+      if (typeof msg === 'string' && (msg.includes('getEnabledChains') || msg.includes('isDefaultWallet') || msg.includes('Internal JSON-RPC error'))) { e.preventDefault(); return false; }
+    });
+  </script>
+  <link rel="stylesheet" href="css/transfer-ownership.css?v=20250808-1">
+  
+  <!-- Theme override to match main site -->
+  <style id="transfer-theme-override">
+    body.transfer-ownership-page {
+      background: linear-gradient(135deg, #232946 0%, #181c2a 100%);
+      color: #e0e6f7;
+      font-family: 'Vazirmatn', 'Noto Sans Arabic', Tahoma, sans-serif;
+      margin: 0;
+      min-height: 100vh;
+    }
+    .transfer-ownership-container {
+      max-width: 900px;
+      width: 100%;
+      margin: 4.5rem auto 2rem auto;
+      background: rgba(35,41,70,0.96);
+      border: 2px solid #a786ff33;
+      border-radius: 18px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+      padding: 2rem 1.4rem;
+      backdrop-filter: blur(10px) saturate(130%);
+    }
+    .page-title {
+      color: #00ff88;
+      font-weight: 800;
+      letter-spacing: .3px;
+      text-shadow: 0 2px 8px rgba(0,255,136,0.25);
+      text-align: center;
+      margin: 0 0 .35rem 0;
+    }
+    .subtext {
+      color: #b8c1ec;
+      text-align: center;
+      margin-bottom: 1.3rem;
+    }
+
+    /* Cards */
+    .card {
+      background: rgba(24,28,42,0.6);
+      border: 1px solid rgba(167,134,255,0.25);
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      padding: 1rem 1.1rem;
+      margin-bottom: 1rem;
+      color: #e0e6f7;
+    }
+    .warning-card { background: rgba(255,68,68,0.06); border-color: rgba(255,68,68,0.25); }
+    .tips-card { background: rgba(0,255,136,0.06); border-color: rgba(0,255,136,0.25); }
+
+    /* Inputs */
+    .form-group label { color: #a786ff; font-weight: 700; }
+    .text-input {
+      width: 100%;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(167,134,255,0.35);
+      color: #ffffff;
+      border-radius: 12px;
+      padding: .75rem .9rem;
+      outline: none;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .text-input::placeholder { color: #b8c1ec99; }
+    .text-input:focus {
+      border-color: #00ff88;
+      box-shadow: 0 0 0 3px rgba(0,255,136,0.15);
+    }
+    .input-row { display: flex; gap: .5rem; align-items: center; }
+    .btn-icon {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(167,134,255,0.35);
+      color: #a786ff;
+      border-radius: 10px;
+      padding: .6rem .7rem;
+      cursor: pointer;
+      transition: background .2s, color .2s, transform .1s;
+    }
+    .btn-icon:hover { background: rgba(167,134,255,0.12); color: #fff; }
+    .btn-icon:active { transform: translateY(1px); }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(90deg, #00ff88, #a786ff);
+      color: #181c2a;
+      border: none;
+      border-radius: 12px;
+      padding: .9rem 1.4rem;
+      font-weight: 800;
+      letter-spacing: .3px;
+      box-shadow: 0 4px 16px rgba(0,255,136,0.25);
+      cursor: pointer;
+      transition: transform .1s, box-shadow .2s, opacity .2s;
+      width: 100%;
+      margin-top: .6rem;
+    }
+    .btn-primary:hover { box-shadow: 0 6px 18px rgba(0,255,136,0.35); }
+    .btn-primary:disabled { opacity: .6; cursor: not-allowed; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid rgba(167,134,255,0.45);
+      color: #e0e6f7;
+      border-radius: 10px;
+      padding: .7rem 1.2rem;
+      cursor: pointer;
+      transition: background .2s, color .2s;
+    }
+    .btn-outline:hover { background: rgba(167,134,255,0.12); color: #fff; }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #ff4444, #cc3333);
+      border: none;
+      color: #fff;
+      border-radius: 10px;
+      padding: .8rem 1.2rem;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(255,68,68,0.25);
+      transition: transform .1s, box-shadow .2s;
+    }
+    .btn-danger:hover { box-shadow: 0 6px 16px rgba(255,68,68,0.35); }
+
+    .hint { color: #b8c1ec; margin-top: .35rem; }
+    .hint.valid { color: #00ff88; }
+    .hint.error { color: #ff6b6b; }
+
+    .status { margin-top: .8rem; min-height: 1.2rem; }
+    .status.success { color: #00ff88; }
+    .status.error { color: #ff6b6b; }
+    .status.loading { color: #a786ff; }
+
+    /* Modal */
+    .modal-overlay { 
+      position: fixed; inset: 0; 
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      display: none; align-items: center; justify-content: center;
+      z-index: 10000;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal {
+      background: linear-gradient(135deg,#232946,#181c2a);
+      border: 2px solid #a786ff33;
+      border-radius: 16px;
+      color: #fff;
+      width: min(560px, 92vw);
+      padding: 1.2rem 1rem;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.35);
+    }
+    .modal h3 { color: #00ff88; margin-top: 0; }
+    .modal-warning { color: #ffb84d; font-weight: 700; }
+    .modal-actions { display: flex; gap: .6rem; justify-content: flex-end; margin-top: .8rem; }
+
+    /* Responsive */
+    @media (max-width: 680px) {
+      .transfer-ownership-container { padding: 1.2rem .9rem; margin-top: 5.2rem; }
+      .input-row { gap: .4rem; }
+      .btn-primary { padding: .85rem 1.1rem; }
+      .card { padding: .85rem .9rem; }
+    }
+    
+    /* Back button */
+    .back-button {
+      position: fixed;
+      top: 2rem;
+      left: 2rem;
+      background: linear-gradient(135deg, #a786ff, #00ff88);
+      color: #0a0f1c;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 25px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+      z-index: 1000;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .back-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(167, 134, 255, 0.4);
+    }
+    
+    @media (max-width: 768px) {
+      .back-button {
+        top: 1rem;
+        left: 1rem;
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+      }
+    }
+    
+  </style>
+</head>
+<body class="transfer-ownership-page">
+  
+  <!-- Back Button -->
+  <a href="index.html" class="back-button">
+    ← Back to Dashboard
+  </a>
+
+  <div class="transfer-ownership-container">
+    <h2 class="page-title">Ownership</h2>
+    <div class="subtext">Please carefully enter the new owner's address</div>
+
+    <!-- Wallet Connection Status -->
+    <div class="card" id="connectionStatus">
+      <b>🔗 Connection Status:</b><br>
+      <div id="walletConnectionInfo" style="color: #ffc107;">⏳ Checking wallet connection...</div>
+    </div>
+
+
+
+    <div class="card warning-card">
+      <b>Important Warning:</b><br>
+      By transferring ownership, all access and control of this position will be transferred to the new address and you will no longer have any access to this account.<br>
+      This operation is irreversible. Please ensure the destination address is correct before proceeding.<br>
+      <b>Recommendation:</b> Carefully check the destination address multiple times. If there's an error, recovery is not possible.
+    </div>
+    <form id="transferOwnershipForm">
+      <div class="form-group">
+        <label for="newOwnerAddress">New Owner Address</label>
+        <div class="input-row">
+          <input type="text" id="newOwnerAddress" class="text-input" placeholder="Example: 0x..." autocomplete="off" required>
+          <button type="button" id="pasteAddressBtn" class="btn-icon">📋 Paste</button>
+        </div>
+        <div class="hint" id="addressHint"></div>
+      </div>
+      <button type="submit" id="transferOwnershipBtn" class="btn-primary" disabled>Ownership</button>
+      <div class="status" id="transferOwnershipStatus"></div>
+    </form>
+  </div>
+
+  <!-- Confirmation Modal -->
+  <div class="modal-overlay" id="confirmModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+             <h3 id="confirmTitle">Confirm Ownership Transfer</h3>
+       <p>Ownership of this position will be transferred to the following address:</p>
+       <p id="confirmAddressText" style="direction:ltr; text-align:right; font-family:monospace; font-weight:700;">-</p>
+       <p class="modal-warning">This operation is irreversible</p>
+       <div class="form-group">
+         <label for="confirmAddressInput">To confirm, please re-enter the destination address</label>
+         <div class="input-row">
+           <input type="text" id="confirmAddressInput" class="text-input" placeholder="0x..." autocomplete="off">
+           <button type="button" id="pasteConfirmBtn" class="btn-icon">📋 Paste</button>
+         </div>
+         <div class="hint" id="confirmHint"></div>
+       </div>
+       <div class="modal-actions">
+         <button type="button" class="btn-outline" id="cancelConfirmBtn">Cancel</button>
+         <button type="button" class="btn-danger" id="confirmTransferBtn">Confirm and Transfer</button>
+       </div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+  <script src="js/config.js"></script>
+  <script>
+    // Reduce RPC noise on this page
+    window.SKIP_META = true;
+  </script>
+  <script src="js/auto-wallet-connect.js"></script>
+  <script>
+         // Check wallet connection status
+     async function checkWalletConnection() {
+       try {
+         const connectionInfoEl = document.getElementById('walletConnectionInfo');
+         
+         if (!window.contractConfig || !window.contractConfig.contract || !window.contractConfig.signer) {
+           if (connectionInfoEl) {
+             connectionInfoEl.innerHTML = '<span style="color: #ff4444;">❌ Wallet not connected. Please connect your wallet first.</span>';
+           }
+           return false;
+         }
+         
+         if (connectionInfoEl) {
+           connectionInfoEl.innerHTML = '<span style="color: #00ff88;">✅ Wallet connected successfully</span>';
+         }
+         
+         console.log('✅ Wallet connection verified');
+         return true;
+       } catch (error) {
+         console.warn('Error checking wallet connection:', error);
+         return false;
+       }
+     }
+
+    async function transferIndexOwnership(newOwner, statusEl, btn) {
+      if (!window.contractConfig || !window.contractConfig.contract) {
+        statusEl.textContent = '❌ Wallet connection not established.';
+        return;
+      }
+      if (!newOwner || !/^0x[a-fA-F0-9]{40}$/.test(newOwner)) {
+        statusEl.textContent = '❌ Destination address is not valid.';
+        return;
+      }
+      btn.disabled = true;
+      statusEl.className = 'status loading';
+      statusEl.textContent = '⏳ Transferring ownership...';
+      try {
+        // Ensure signer and contract are present
+        if (!window.contractConfig.signer || !window.contractConfig.contract) {
+          await window.connectWallet?.();
+        }
+
+        const c = window.contractConfig.contract;
+        const signer = window.contractConfig.signer;
+        const currentAddr = window.contractConfig.address || await signer.getAddress();
+
+        // Resolve caller's index if needed (prefer users(address); avoid addressToIndex to reduce RPC noise)
+        let callerIndex = null;
+        try {
+          if (typeof c.users === 'function') {
+            const u = await c.users(currentAddr);
+            if (u && u.index !== undefined && BigInt(u.index) > 0n) callerIndex = BigInt(u.index);
+          }
+        } catch(_) {}
+
+        // Try multiple known signatures in order
+        let tx;
+        // 1) transferIndexOwnership(address)
+        if (!tx && typeof c.transferIndexOwnership === 'function') {
+          tx = await c.transferIndexOwnership(newOwner);
+        }
+        if (!tx) {
+          try {
+            const fn = c.getFunction?.('transferIndexOwnership(address)');
+            if (fn) tx = await fn(newOwner);
+          } catch(_) {}
+        }
+        // 2) transferOwnership(address)
+        if (!tx && typeof c.transferOwnership === 'function') {
+          tx = await c.transferOwnership(newOwner);
+        }
+        if (!tx) {
+          try {
+            const fn = c.getFunction?.('transferOwnership(address)');
+            if (fn) tx = await fn(newOwner);
+          } catch(_) {}
+        }
+        // 3) transferPositionOwnership(uint256,address)
+        if (!tx && callerIndex !== null) {
+          try {
+            const fn = c.getFunction?.('transferPositionOwnership(uint256,address)');
+            if (fn) tx = await fn(callerIndex, newOwner);
+          } catch(_) {}
+        }
+        // 4) transferOwnershipOf(uint256,address)
+        if (!tx && callerIndex !== null) {
+          try {
+            const fn = c.getFunction?.('transferOwnershipOf(uint256,address)');
+            if (fn) tx = await fn(callerIndex, newOwner);
+          } catch(_) {}
+        }
+        // 5) transferIndexOwnership(uint256,address)
+        if (!tx && callerIndex !== null) {
+          try {
+            const fn = c.getFunction?.('transferIndexOwnership(uint256,address)');
+            if (fn) tx = await fn(callerIndex, newOwner);
+          } catch(_) {}
+        }
+        if (!tx) throw new Error('Transfer ownership function not available in this contract');
+
+        statusEl.className = 'status loading';
+        statusEl.textContent = '⏳ Waiting for transaction confirmation in your wallet...';
+        await tx.wait();
+        statusEl.className = 'status success';
+        statusEl.textContent = '✅ Ownership transfer completed successfully!';
+        
+        // Check connection after successful transfer
+        setTimeout(checkWalletConnection, 2000);
+      } catch (error) {
+        let msg = error && error.message ? error.message : error;
+        statusEl.className = 'status error';
+        if (error.code === 4001 || msg.includes('user denied')) {
+          msg = '❌ Transaction was cancelled by user.';
+        } else if (msg.includes('network')) {
+          msg = '❌ Network error! Check your internet connection or blockchain network.';
+        } else if (msg.includes('insufficient funds')) {
+          msg = '❌ Insufficient balance to pay transaction fee.';
+        } else if (msg.includes('invalid address')) {
+          msg = '❌ Destination address is invalid.';
+        } else if (msg.includes('not allowed') || msg.includes('only owner')) {
+          msg = '❌ Only the current owner can perform the transfer.';
+        } else if (msg.includes('Transfer ownership function not available')) {
+          msg = '❌ Transfer ownership function is not available in this contract version.';
+        } else if (msg.includes('revert')) {
+          msg = '❌ Transaction failed. Please check your permissions and try again.';
+        } else {
+          msg = '❌ Error in ownership transfer: ' + msg;
+        }
+        statusEl.textContent = msg;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    
+
+    
+    // Live address validation and button state management
+    const newOwnerInput = document.getElementById('newOwnerAddress');
+    const addressHint = document.getElementById('addressHint');
+    const submitBtn = document.getElementById('transferOwnershipBtn');
+    function validateAddressInput() {
+      const v = newOwnerInput.value.trim();
+      const ok = /^0x[a-fA-F0-9]{40}$/.test(v);
+      if (!v) {
+        addressHint.textContent = '';
+        addressHint.className = 'hint';
+        submitBtn.disabled = true;
+        return false;
+      }
+      if (ok) {
+        addressHint.textContent = '✅ Address is valid';
+        addressHint.className = 'hint valid';
+        submitBtn.disabled = false;
+        return true;
+      }
+      addressHint.textContent = '❌ Address is invalid. Correct format: 0x... (42 characters)';
+      addressHint.className = 'hint error';
+      submitBtn.disabled = true;
+      return false;
+    }
+    newOwnerInput.addEventListener('input', validateAddressInput);
+
+    // Paste button functionality
+    const pasteAddressBtn = document.getElementById('pasteAddressBtn');
+    pasteAddressBtn.addEventListener('click', async function() {
+      try {
+        const clipboardText = await navigator.clipboard.readText();
+        if (clipboardText && clipboardText.trim()) {
+          newOwnerInput.value = clipboardText.trim();
+          validateAddressInput(); // Trigger validation
+          addressHint.textContent = '✅ Address pasted successfully';
+          addressHint.className = 'hint valid';
+        } else {
+          addressHint.textContent = '❌ No text found in clipboard';
+          addressHint.className = 'hint error';
+        }
+      } catch (error) {
+        console.log('Error reading clipboard:', error);
+        addressHint.textContent = '❌ Unable to access clipboard. Please paste manually.';
+        addressHint.className = 'hint error';
+      }
+    });
+
+    // Confirmation modal
+    let pendingTargetAddress = null;
+    const modal = document.getElementById('confirmModal');
+    const confirmAddressText = document.getElementById('confirmAddressText');
+    const confirmInput = document.getElementById('confirmAddressInput');
+    const confirmHint = document.getElementById('confirmHint');
+    const cancelConfirmBtn = document.getElementById('cancelConfirmBtn');
+    const confirmTransferBtn = document.getElementById('confirmTransferBtn');
+    const pasteConfirmBtn = document.getElementById('pasteConfirmBtn');
+
+    let previouslyFocusedElement = null;
+    function openConfirmModal(targetAddress) {
+      pendingTargetAddress = targetAddress;
+      confirmAddressText.textContent = targetAddress;
+      confirmInput.value = '';
+      confirmHint.textContent = '';
+      confirmHint.className = 'hint';
+      previouslyFocusedElement = document.activeElement;
+      modal.classList.add('show');
+      modal.setAttribute('aria-hidden', 'false');
+      setTimeout(() => confirmInput.focus(), 50);
+    }
+    function closeConfirmModal() {
+      // Move focus out of hidden content before hiding (a11y fix)
+      const fallbackFocus = document.getElementById('transferOwnershipBtn');
+      if (modal.contains(document.activeElement)) {
+        if (fallbackFocus) fallbackFocus.focus(); else document.body.focus();
+      }
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      // Restore focus to triggering control if available
+      if (previouslyFocusedElement && typeof previouslyFocusedElement.focus === 'function') {
+        previouslyFocusedElement.focus();
+      } else if (fallbackFocus) {
+        fallbackFocus.focus();
+      }
+    }
+    cancelConfirmBtn.addEventListener('click', closeConfirmModal);
+    
+    // Paste button for confirmation modal
+    pasteConfirmBtn.addEventListener('click', async function() {
+      try {
+        const clipboardText = await navigator.clipboard.readText();
+        if (clipboardText && clipboardText.trim()) {
+          confirmInput.value = clipboardText.trim();
+          confirmHint.textContent = '✅ Address pasted successfully';
+          confirmHint.className = 'hint valid';
+        } else {
+          confirmHint.textContent = '❌ No text found in clipboard';
+          confirmHint.className = 'hint error';
+        }
+      } catch (error) {
+        console.log('Error reading clipboard:', error);
+        confirmHint.textContent = '❌ Unable to access clipboard. Please paste manually.';
+        confirmHint.className = 'hint error';
+      }
+    });
+    
+    confirmTransferBtn.addEventListener('click', async function() {
+      const entered = (confirmInput.value || '').trim();
+      if (!pendingTargetAddress) return;
+      if (entered.toLowerCase() !== pendingTargetAddress.toLowerCase()) {
+        confirmHint.textContent = '❌ Entered address does not match';
+        confirmHint.className = 'hint error';
+        return;
+      }
+      closeConfirmModal();
+      const statusEl = document.getElementById('transferOwnershipStatus');
+      const btn = document.getElementById('transferOwnershipBtn');
+      statusEl.className = 'status';
+      await transferIndexOwnership(pendingTargetAddress, statusEl, btn);
+      pendingTargetAddress = null;
+    });
+
+    // Form submission → Open confirmation modal
+    document.getElementById('transferOwnershipForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const newOwner = newOwnerInput.value.trim();
+      const statusEl = document.getElementById('transferOwnershipStatus');
+      statusEl.className = 'status';
+      if (!/^0x[a-fA-F0-9]{40}$/.test(newOwner)) {
+        statusEl.className = 'status error';
+        statusEl.textContent = '❌ Destination address is not valid.';
+        return;
+      }
+      openConfirmModal(newOwner);
+    });
+
+    // Auto update when page loads
+    document.addEventListener('DOMContentLoaded', async function() {
+      console.log('🚀 Ownership page loaded');
+      
+      // Try to connect wallet automatically
+      try {
+        if (window.connectWallet) {
+          console.log('🔗 Attempting wallet connection...');
+          await window.connectWallet();
+          console.log('✅ Wallet connected successfully');
+          checkWalletConnection();
+        }
+      } catch (error) {
+        console.warn('⚠️ Wallet connection failed:', error);
+      }
+      
+      // Check wallet connection status
+      if (window.contractConfig && window.contractConfig.contract) {
+        checkWalletConnection();
+      } else {
+        // Wait for wallet connection
+        const checkConnection = setInterval(() => {
+          if (window.contractConfig && window.contractConfig.contract) {
+            checkWalletConnection();
+            clearInterval(checkConnection);
+          }
+        }, 1000);
+        
+        // Stop checking after 15 seconds
+        setTimeout(() => clearInterval(checkConnection), 15000);
+      }
+      
+      // Initial validation
+      validateAddressInput();
+      
+      console.log('✅ Ownership page initialized');
+    });
+  </script>
+  
+  
+  
+</body>
+</html> 

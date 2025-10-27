@@ -1,0 +1,3998 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Network Tree - IAM</title>
+    
+    <!-- Error handling for extension connections -->
+    <script>
+        // Suppress extension connection errors
+        window.addEventListener('error', function(e) {
+            if (e.message && e.message.includes('Could not establish connection')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Suppress unhandled promise rejections
+        window.addEventListener('unhandledrejection', function(e) {
+            if (e.reason && e.reason.message && e.reason.message.includes('Could not establish connection')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+    </script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <style>
+        /* Professional Tree Theme Overrides */
+        .modern-theme {
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%);
+            color: #ffffff;
+            font-family: 'Noto Sans Arabic', sans-serif;
+        }
+        
+        .modern-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modern-btn {
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #1a202c;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 255, 136, 0.3);
+        }
+        
+        .modern-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+        }
+        
+        .connect-wallet-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 10px 20px;
+        }
+        
+        .connect-wallet-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .connect-wallet-btn:active {
+            transform: translateY(0);
+        }
+        
+        .connect-wallet-btn.connected {
+            background: linear-gradient(135deg, #00cc6a, #00ff88);
+            color: #1a202c;
+        }
+        
+        .connect-wallet-btn.connecting {
+            background: linear-gradient(135deg, #ffa500, #ff8c00);
+            color: #1a202c;
+            cursor: not-allowed;
+        }
+        
+        .connect-wallet-btn.error {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: #ffffff;
+        }
+        
+        .file-manager-container {
+            margin-top: 2rem;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+        
+        .file-manager-title {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .file-icon {
+            margin-left: 0.5rem;
+            font-size: 1.2em;
+        }
+        
+        /* Mobile responsive for buttons */
+        @media (max-width: 768px) {
+            .back-btn {
+                top: 10px;
+                left: 10px;
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+            
+            .connect-wallet-btn {
+                top: 10px;
+                right: 10px;
+                padding: 8px 16px;
+                font-size: 12px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .back-btn {
+                top: 5px;
+                left: 5px;
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            
+            .connect-wallet-btn {
+                top: 5px;
+                right: 5px;
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+        }
+        
+        /* Tree container auto-expansion */
+        #tree-view {
+            width: auto !important;
+            height: auto !important;
+            min-width: 100%;
+            min-height: 100%;
+            max-width: none !important;
+            max-height: none !important;
+            overflow: visible !important;
+            padding: 1rem;
+            box-sizing: border-box;
+        }
+        
+        /* Tree container responsive sizing */
+        .tree-container {
+            width: auto !important;
+            height: auto !important;
+            min-width: 100%;
+            min-height: 100%;
+            max-width: none !important;
+            max-height: none !important;
+            overflow: visible !important;
+            display: block;
+            position: relative;
+        }
+        
+        /* Mobile responsive tree container */
+        @media (max-width: 768px) {
+            #tree-view {
+                width: auto !important;
+                height: auto !important;
+                min-width: 100vw;
+                min-height: 100vh;
+                max-width: none !important;
+                max-height: none !important;
+                overflow: visible !important;
+                padding: 0.5rem;
+            }
+            
+            .flat-tree-node {
+                width: fit-content;
+                min-width: fit-content;
+                max-width: 90vw;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+        }
+        
+        /* Tablet responsive tree container */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            #tree-view {
+                width: auto !important;
+                height: auto !important;
+                min-width: 100%;
+                min-height: 100%;
+                max-width: none !important;
+                max-height: none !important;
+                overflow: visible !important;
+                padding: 1rem;
+            }
+        }
+        
+        /* Desktop responsive tree container */
+        @media (min-width: 1025px) {
+            #tree-view {
+                width: auto !important;
+                height: auto !important;
+                min-width: 100%;
+                min-height: 100%;
+                max-width: none !important;
+                max-height: none !important;
+                overflow: visible !important;
+                padding: 2rem;
+            }
+        }
+        
+        /* Distinct level-based color system for tree nodes */
+        .flat-tree-node {
+            transition: all 0.3s ease;
+            border-radius: 8px;
+            margin-bottom: 0.4rem;
+            position: relative;
+            overflow: hidden;
+            width: fit-content;
+            min-width: fit-content;
+            max-width: none;
+        }
+        
+        /* Level 0 - Root (Bright Cyan) */
+        .flat-tree-node[data-depth="0"] {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(0, 200, 255, 0.1));
+            border: 3px solid #00ffff;
+            box-shadow: 0 4px 12px rgba(0, 255, 255, 0.3);
+            color: #00ffff;
+        }
+        
+        /* Level 1 - Bright Green */
+        .flat-tree-node[data-depth="1"] {
+            background: linear-gradient(135deg, rgba(0, 255, 136, 0.18), rgba(0, 255, 100, 0.09));
+            border: 3px solid #00ff88;
+            box-shadow: 0 3px 10px rgba(0, 255, 136, 0.25);
+            color: #00ff88;
+        }
+        
+        /* Level 2 - Bright Yellow */
+        .flat-tree-node[data-depth="2"] {
+            background: linear-gradient(135deg, rgba(255, 255, 0, 0.16), rgba(255, 200, 0, 0.08));
+            border: 3px solid #ffff00;
+            box-shadow: 0 3px 8px rgba(255, 255, 0, 0.2);
+            color: #ffff00;
+        }
+        
+        /* Level 3 - Bright Orange */
+        .flat-tree-node[data-depth="3"] {
+            background: linear-gradient(135deg, rgba(255, 165, 0, 0.14), rgba(255, 140, 0, 0.07));
+            border: 3px solid #ffa500;
+            box-shadow: 0 2px 6px rgba(255, 165, 0, 0.18);
+            color: #ffa500;
+        }
+        
+        /* Level 4 - Bright Red */
+        .flat-tree-node[data-depth="4"] {
+            background: linear-gradient(135deg, rgba(255, 0, 0, 0.12), rgba(255, 50, 50, 0.06));
+            border: 3px solid #ff0000;
+            box-shadow: 0 2px 5px rgba(255, 0, 0, 0.15);
+            color: #ff0000;
+        }
+        
+        /* Level 5 - Bright Magenta */
+        .flat-tree-node[data-depth="5"] {
+            background: linear-gradient(135deg, rgba(255, 0, 255, 0.1), rgba(255, 50, 255, 0.05));
+            border: 3px solid #ff00ff;
+            box-shadow: 0 2px 4px rgba(255, 0, 255, 0.12);
+            color: #ff00ff;
+        }
+        
+        /* Level 6 - Bright Blue */
+        .flat-tree-node[data-depth="6"] {
+            background: linear-gradient(135deg, rgba(0, 0, 255, 0.08), rgba(50, 50, 255, 0.04));
+            border: 3px solid #0000ff;
+            box-shadow: 0 1px 3px rgba(0, 0, 255, 0.1);
+            color: #0000ff;
+        }
+        
+        /* Level 7 - Bright Purple */
+        .flat-tree-node[data-depth="7"] {
+            background: linear-gradient(135deg, rgba(128, 0, 255, 0.06), rgba(150, 50, 255, 0.03));
+            border: 3px solid #8000ff;
+            box-shadow: 0 1px 3px rgba(128, 0, 255, 0.08);
+            color: #8000ff;
+        }
+        
+        /* Level 8 - Bright Pink */
+        .flat-tree-node[data-depth="8"] {
+            background: linear-gradient(135deg, rgba(255, 192, 203, 0.08), rgba(255, 150, 200, 0.04));
+            border: 3px solid #ffc0cb;
+            box-shadow: 0 1px 2px rgba(255, 192, 203, 0.06);
+            color: #ffc0cb;
+        }
+        
+        /* Level 9 - Bright Lime */
+        .flat-tree-node[data-depth="9"] {
+            background: linear-gradient(135deg, rgba(50, 255, 50, 0.06), rgba(100, 255, 100, 0.03));
+            border: 3px solid #32ff32;
+            box-shadow: 0 1px 2px rgba(50, 255, 50, 0.05);
+            color: #32ff32;
+        }
+        
+        /* Level 10 - Bright Teal */
+        .flat-tree-node[data-depth="10"] {
+            background: linear-gradient(135deg, rgba(0, 255, 200, 0.05), rgba(50, 255, 220, 0.025));
+            border: 3px solid #00ffc8;
+            box-shadow: 0 1px 2px rgba(0, 255, 200, 0.04);
+            color: #00ffc8;
+        }
+        
+        /* Level 11 - Bright Gold */
+        .flat-tree-node[data-depth="11"] {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.05), rgba(255, 200, 50, 0.025));
+            border: 3px solid #ffd700;
+            box-shadow: 0 1px 2px rgba(255, 215, 0, 0.04);
+            color: #ffd700;
+        }
+        
+        /* Level 12 - Bright Coral */
+        .flat-tree-node[data-depth="12"] {
+            background: linear-gradient(135deg, rgba(255, 127, 80, 0.05), rgba(255, 150, 100, 0.025));
+            border: 3px solid #ff7f50;
+            box-shadow: 0 1px 2px rgba(255, 127, 80, 0.04);
+            color: #ff7f50;
+        }
+        
+        /* Level 13 - Bright Indigo */
+        .flat-tree-node[data-depth="13"] {
+            background: linear-gradient(135deg, rgba(75, 0, 130, 0.05), rgba(100, 50, 150, 0.025));
+            border: 3px solid #4b0082;
+            box-shadow: 0 1px 2px rgba(75, 0, 130, 0.04);
+            color: #4b0082;
+        }
+        
+        /* Level 14 - Bright Turquoise */
+        .flat-tree-node[data-depth="14"] {
+            background: linear-gradient(135deg, rgba(64, 224, 208, 0.05), rgba(100, 240, 220, 0.025));
+            border: 3px solid #40e0d0;
+            box-shadow: 0 1px 2px rgba(64, 224, 208, 0.04);
+            color: #40e0d0;
+        }
+        
+        /* Level 15 - Bright Violet */
+        .flat-tree-node[data-depth="15"] {
+            background: linear-gradient(135deg, rgba(238, 130, 238, 0.05), rgba(255, 150, 255, 0.025));
+            border: 3px solid #ee82ee;
+            box-shadow: 0 1px 2px rgba(238, 130, 238, 0.04);
+            color: #ee82ee;
+        }
+        
+        /* Level 16+ - Dynamic colors for deeper levels */
+        .flat-tree-node[data-depth="16"],
+        .flat-tree-node[data-depth="17"],
+        .flat-tree-node[data-depth="18"],
+        .flat-tree-node[data-depth="19"],
+        .flat-tree-node[data-depth="20"] {
+            background: linear-gradient(135deg, rgba(200, 200, 200, 0.04), rgba(180, 180, 180, 0.02));
+            border: 3px solid #c8c8c8;
+            box-shadow: 0 1px 1px rgba(200, 200, 200, 0.03);
+            color: #c8c8c8;
+        }
+        
+        /* Level 21+ - Minimal visibility with distinct colors */
+        .flat-tree-node[data-depth="21"],
+        .flat-tree-node[data-depth="22"],
+        .flat-tree-node[data-depth="23"],
+        .flat-tree-node[data-depth="24"],
+        .flat-tree-node[data-depth="25"] {
+            background: linear-gradient(135deg, rgba(150, 150, 150, 0.03), rgba(130, 130, 130, 0.015));
+            border: 3px solid #969696;
+            box-shadow: 0 1px 1px rgba(150, 150, 150, 0.02);
+            color: #969696;
+        }
+        
+        /* Level indicators */
+        .flat-tree-node::before {
+            content: attr(data-depth);
+            position: absolute;
+            top: 0px;
+            right: 0px;
+            font-size: 10px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.6);
+            padding: 2px 4px;
+            border-radius: 0px 0px 0px 3px;
+            z-index: 10;
+        }
+        
+        /* Hover effects for all levels */
+        .flat-tree-node:hover {
+            transform: translateX(3px) scale(1.02);
+            box-shadow: 0 6px 16px rgba(0, 255, 136, 0.3);
+            z-index: 10;
+        }
+        
+        /* Active/expanded state */
+        .flat-tree-node.expanded {
+            border-left: 6px solid currentColor;
+            transform: translateX(2px);
+        }
+        
+        /* Level separator lines */
+        .flat-tree-node[data-depth="0"]::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00ffff, transparent);
+        }
+        
+        .flat-tree-node[data-depth="1"]::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #00ff88, transparent);
+        }
+        
+        .flat-tree-node[data-depth="2"]::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #ffff00, transparent);
+        }
+        
+        .flat-tree-node[data-depth="3"]::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #ffa500, transparent);
+        }
+        
+        .flat-tree-node[data-depth="4"]::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #ff0000, transparent);
+        }
+        
+        .flat-tree-node[data-depth="5"]::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #ff00ff, transparent);
+        }
+
+        /* ===== Modern theme enhancements (non-intrusive, CSS-only) ===== */
+        :root {
+            --iam-bg-1: #0a0a0f;
+            --iam-bg-2: #121229;
+            --iam-accent: #00ff88;
+            --iam-accent-2: #00d4ff;
+            --iam-surface: rgba(255,255,255,0.06);
+            --iam-border: rgba(0,255,136,0.25);
+            --iam-shadow: 0 8px 32px rgba(0,0,0,0.35);
+        }
+
+        .modern-theme {
+            background: radial-gradient(1200px 800px at 20% -10%, rgba(0,212,255,0.12), transparent 60%),
+                        radial-gradient(1000px 700px at 110% 10%, rgba(0,255,136,0.10), transparent 55%),
+                        linear-gradient(135deg, var(--iam-bg-1) 0%, var(--iam-bg-2) 100%);
+            min-height: 100vh;
+        }
+
+        /* Subtle animated accent glow */
+        @keyframes ambientGlow {
+            0% { box-shadow: 0 0 0 rgba(0,255,136,0.15); }
+            50% { box-shadow: 0 0 24px rgba(0,255,136,0.18); }
+            100% { box-shadow: 0 0 0 rgba(0,255,136,0.15); }
+        }
+
+        .modern-card {
+            background: var(--iam-surface);
+            border: 1px solid var(--iam-border);
+            box-shadow: var(--iam-shadow);
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+        }
+        .modern-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 14px 40px rgba(0,0,0,0.45);
+            border-color: rgba(0,255,136,0.4);
+        }
+
+        /* Buttons */
+        .modern-btn {
+            background: linear-gradient(135deg, var(--iam-accent), #00cc6a);
+            color: #0f1720;
+            letter-spacing: 0.2px;
+        }
+        .modern-btn:focus { outline: none; box-shadow: 0 0 0 3px rgba(0,255,136,0.25); }
+
+        /* Tree nodes visual refresh without changing structure */
+        .tree-node.flat-tree-node {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.06);
+            backdrop-filter: blur(6px);
+        }
+        .tree-node-content {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+        .tree-node-content:hover {
+            background: rgba(0,255,136,0.06);
+            transform: translateX(2px);
+        }
+        
+        /* Empty node styles */
+        .empty-node {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.1), rgba(255, 152, 0, 0.1)) !important;
+            border: 2px dashed rgba(255, 193, 7, 0.5) !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+        }
+        
+        .empty-node:hover {
+            background: linear-gradient(135deg, rgba(255, 193, 7, 0.2), rgba(255, 152, 0, 0.2)) !important;
+            border-color: rgba(255, 193, 7, 0.8) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3) !important;
+        }
+        
+        .empty-label {
+            color: #ffc107 !important;
+            font-weight: 600 !important;
+        }
+        
+        .empty-info {
+            color: #ff9800 !important;
+            font-weight: 500 !important;
+            cursor: pointer !important;
+        }
+        
+        .empty-info:hover {
+            color: #ff5722 !important;
+        }
+        .tree-expand-btn {
+            background: linear-gradient(135deg, rgba(0,255,136,0.85), rgba(0,212,255,0.85));
+            border: none;
+            color: #0b1320;
+            width: 22px;
+            height: 22px;
+            line-height: 22px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .tree-expand-btn:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,255,136,0.25); }
+
+        .index-display {
+            font-weight: 700;
+            color: var(--iam-accent);
+            text-shadow: 0 0 8px rgba(0,255,136,0.2);
+        }
+
+        .tree-node-label {
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.6);
+            color: #ffffff !important;
+        }
+
+        .star-rating {
+            font-weight: 700;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(255,215,0,0.6);
+            transition: all 0.3s ease;
+            font-size: 12px;
+            margin-top: 0px;
+            text-align: center;
+            color: #ffd700 !important;
+        }
+
+        .star-rating:hover {
+            transform: scale(1.1);
+            text-shadow: 2px 2px 6px rgba(0,0,0,0.9), 0 0 12px rgba(255,215,0,0.8);
+        }
+
+        .tree-node-info {
+            font-weight: 600;
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8), 0 0 6px rgba(0,0,0,0.6);
+            color: #ffffff !important;
+        }
+
+
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { height: 10px; width: 10px; }
+        ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, rgba(0,255,136,0.5), rgba(0,212,255,0.5)); border-radius: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
+
+        /* Modal polish */
+        #user-typewriter-modal > div {
+            animation: ambientGlow 4s ease-in-out infinite;
+        }
+        #user-typewriter-title { letter-spacing: 0.3px; }
+        #user-typewriter-content { color: #cfeee2; }
+        
+    </style>
+    
+    <!-- Load ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.10.0/dist/ethers.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+</head>
+<body class="modern-theme">
+    
+    <!-- User Typewriter Modal -->
+    <div id="user-typewriter-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:2000;align-items:center;justify-content:center;">
+        <div style="width:90%;max-width:680px;background:rgba(10,10,10,0.9);border:1px solid rgba(0,255,136,0.25);border-radius:12px;backdrop-filter:blur(8px);padding:16px;color:#e6fff5;box-shadow:0 10px 30px rgba(0,0,0,0.4);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div id="user-typewriter-title" style="font-weight:700;color:#00ff88;text-align:left;">User Details</div>
+                <button id="user-typewriter-close" style="background:transparent;border:none;color:#00ff88;font-size:20px;cursor:pointer;">✕</button>
+            </div>
+            <div id="user-typewriter-content" style="font-family:monospace;font-size:13px;line-height:1.5;white-space:pre-wrap;min-height:140px;text-align:left;direction:ltr;"></div>
+            <style>
+                /* Color only the values (after colon) in green */
+                #user-typewriter-content .kv { color: #00ff88; }
+                #user-typewriter-content .key { color: #e6fff5; }
+                @media (max-width: 768px) {
+                    #user-typewriter-content { font-size: 11px; line-height: 1.4; }
+                    #user-typewriter-title { font-size: 14px; }
+                    #user-typewriter-modal > div { width: 95%; padding: 12px; }
+                }
+            </style>
+        </div>
+    </div>
+    <!-- Back Button -->
+    <a href="index.html" class="back-btn modern-btn" aria-label="Back to Dashboard" title="Back to Dashboard">
+        ← Back
+    </a>
+    
+    <div id="main-network" class="page-section expandable-container modern-card" style="width:100vw;max-width:none;margin:0;left:0;right:0;padding:0.5rem 0;">
+        <div class="expand-header">
+            <h2 style="color: #00ff88; margin: 0; font-family: 'Montserrat', sans-serif; font-weight: 700;">🌐 Network</h2>
+        </div>
+        <div class="expand-content">
+            <div class="network-container modern-card" style="max-width: 1200px; margin: 0 auto; padding: 1rem;">
+                <!-- Network Stats -->
+                <div id="network-stats" class="network-user-info-container"></div>
+                
+
+                <!-- File Manager Style Tree Display -->
+                <div id="file-manager-tree">
+                    <div class="file-manager-container">
+                        <!-- File Manager Header -->
+                        <div class="file-manager-header">
+                            <div class="file-manager-title">
+                                <span class="file-icon">🌳</span>
+                                <span style="font-family: 'Montserrat', sans-serif; font-weight: 700; color: #00ff88;">Tree Manager</span>
+                            </div>
+
+                        </div>
+                        
+                        <!-- File Manager Content -->
+                        <div class="file-manager-content">
+                            <div class="file-manager-main">
+                                <div class="file-manager-breadcrumb" id="breadcrumb">
+                                    <span class="breadcrumb-item active">🏠 Root</span>
+                                </div>
+                                
+                                <div class="file-manager-tree-view" id="tree-view">
+                                    <!-- Tree structure will be rendered here -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/auto-wallet-connect.js"></script>
+    <!-- <script src="js/auto-wallet-connect.js"></script> -->
+            <script src="js/network.js?v=20250809-36"></script>
+    <script>
+        // Provide missing helpers expected by this page
+        window.getIndexByAddress = async function(contract, address) {
+            if (!contract || !address) return 0n;
+            try {
+                if (typeof contract.addressToIndex === 'function') {
+                    const idx = await contract.addressToIndex(address);
+                    if (idx && BigInt(idx) !== 0n) return BigInt(idx);
+                }
+            } catch {}
+            try {
+                if (typeof contract.getFunction === 'function') {
+                    const fn = contract.getFunction('getIndexByAddress(address)');
+                    if (fn) {
+                        const idx = await fn(address);
+                        if (idx && BigInt(idx) !== 0n) return BigInt(idx);
+                    }
+                }
+            } catch {}
+            try {
+                if (typeof contract.users === 'function') {
+                    const u = await contract.users(address);
+                    if (u && (u.index !== undefined)) return BigInt(u.index);
+                }
+            } catch {}
+            return 0n;
+        };
+
+        // Add missing getAddressByIndex function
+        window.getAddressByIndex = async function(contract, index) {
+            if (!contract || !index) return '0x0000000000000000000000000000000000000000';
+            try {
+                if (typeof contract.indexToAddress === 'function') {
+                    const address = await contract.indexToAddress(index);
+                    return address || '0x0000000000000000000000000000000000000000';
+                }
+            } catch (error) {
+                console.error('Error getting address for index:', index, error);
+            }
+            return '0x0000000000000000000000000000000000000000';
+        };
+    </script>
+    
+    <script>
+        // Pyramid Tree Data
+        let pyramidData = {
+            root: {
+                id: 1,
+                index: 'Connected Wallet',
+                expanded: false,
+                children: [
+                    { id: 2, index: '2', expanded: false, children: [] },
+                    { id: 3, index: '3', expanded: false, children: [] }
+                ]
+            }
+        };
+
+        // Detect if running on mobile
+        function isMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                   window.innerWidth <= 768;
+        }
+
+        // Detect MetaMask on mobile
+        function detectMetaMask() {
+            console.log('🔍 Detecting MetaMask...');
+            console.log('📱 Is mobile:', isMobile());
+            
+            // Check for standard ethereum provider
+            if (window.ethereum) {
+                console.log('✅ Standard ethereum provider found');
+                return window.ethereum;
+            }
+            
+            // Check for mobile MetaMask via web3
+            if (window.web3 && window.web3.currentProvider) {
+                console.log('📱 Mobile MetaMask detected via web3.currentProvider');
+                return window.web3.currentProvider;
+            }
+            
+            // Check for mobile MetaMask via web3
+            if (window.web3) {
+                console.log('📱 Mobile MetaMask detected via web3');
+                return window.web3;
+            }
+            
+            // Check for injected provider
+            if (window.ethereum && window.ethereum.isMetaMask) {
+                console.log('✅ MetaMask injected provider found');
+                return window.ethereum;
+            }
+            
+            // Check for mobile-specific providers
+            if (isMobile()) {
+                console.log('📱 Checking mobile-specific providers...');
+                
+                // Check for Trust Wallet
+                if (window.ethereum && window.ethereum.isTrust) {
+                    console.log('✅ Trust Wallet detected');
+                    return window.ethereum;
+                }
+                
+                // Check for Coinbase Wallet
+                if (window.ethereum && window.ethereum.isCoinbaseWallet) {
+                    console.log('✅ Coinbase Wallet detected');
+                    return window.ethereum;
+                }
+                
+                // Check for any ethereum provider
+                if (window.ethereum) {
+                    console.log('✅ Generic ethereum provider found on mobile');
+                    return window.ethereum;
+                }
+            }
+            
+            console.log('❌ No MetaMask detected');
+            return null;
+        }
+
+        // Connect to wallet and get real data
+        async function connectWalletAndLoadData() {
+            try {
+                console.log('🔗 Connecting to wallet...');
+                
+                // Check if wallet is already connected
+                if (window.contractConfig && window.contractConfig.contract) {
+                    console.log('✅ Wallet already connected');
+                    
+                    // Ensure userAddress is set
+                    if (!window.contractConfig.userAddress && window.ethereum?.selectedAddress) {
+                        window.contractConfig.userAddress = window.ethereum.selectedAddress;
+                        console.log('✅ User address set from provider:', window.contractConfig.userAddress);
+                    }
+                    
+                    return true;
+                }
+                
+                // Detect MetaMask provider
+                const ethereumProvider = detectMetaMask();
+                if (!ethereumProvider) {
+                    console.log('❌ No MetaMask provider detected');
+                    return false;
+                }
+                
+                // Set ethereum provider
+                if (!window.ethereum) {
+                    window.ethereum = ethereumProvider;
+                    console.log('✅ Ethereum provider set');
+                }
+                
+                // Try to connect wallet
+                if (window.connectWallet) {
+                    console.log('🔄 Calling connectWallet function...');
+                    await window.connectWallet();
+                    console.log('✅ Wallet connected successfully');
+                    
+                    // Ensure userAddress is set after connection
+                    if (!window.contractConfig.userAddress && window.ethereum?.selectedAddress) {
+                        window.contractConfig.userAddress = window.ethereum.selectedAddress;
+                        console.log('✅ User address set after connection:', window.contractConfig.userAddress);
+                    }
+                    
+                    return true;
+                } else {
+                    console.log('❌ connectWallet function not available, trying direct connection...');
+                    
+                    // Try direct connection
+                    try {
+                        console.log('🔄 Attempting direct connection...');
+                        
+                        // Check if already connected
+                        if (window.ethereum.selectedAddress) {
+                            console.log('✅ Wallet already connected:', window.ethereum.selectedAddress);
+                            
+                            // Set up contract config if not exists
+                            if (!window.contractConfig) {
+                                window.contractConfig = {};
+                            }
+                            window.contractConfig.userAddress = window.ethereum.selectedAddress;
+                            
+                            // Try to get contract from other sources
+                            if (window.contractConfig.contract) {
+                                console.log('✅ Contract already available');
+                                return true;
+                            }
+                            
+                            // Try to create contract
+                            if (window.ethereum && window.contractConfig.contractAddress && window.contractConfig.contractABI) {
+                                const provider = new ethers.BrowserProvider(window.ethereum);
+                                const signer = await provider.getSigner();
+                                window.contractConfig.contract = new ethers.Contract(
+                                    window.contractConfig.contractAddress,
+                                    window.contractConfig.contractABI,
+                                    signer
+                                );
+                                console.log('✅ Contract created successfully');
+                                return true;
+                            }
+                            
+                            console.log('⚠️ Contract not available, but wallet connected');
+                            return true;
+                        }
+                        
+                        // Request connection
+                        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        if (accounts && accounts.length > 0) {
+                            console.log('✅ Direct wallet connection successful');
+                            
+                            // Set up contract config if not exists
+                            if (!window.contractConfig) {
+                                window.contractConfig = {};
+                            }
+                            window.contractConfig.userAddress = accounts[0];
+                            
+                            // Try to get contract from other sources
+                            if (window.contractConfig.contract) {
+                                console.log('✅ Contract already available');
+                                return true;
+                            }
+                            
+                            // Try to create contract
+                            if (window.ethereum && window.contractConfig.contractAddress && window.contractConfig.contractABI) {
+                                const provider = new ethers.BrowserProvider(window.ethereum);
+                                const signer = await provider.getSigner();
+                                window.contractConfig.contract = new ethers.Contract(
+                                    window.contractConfig.contractAddress,
+                                    window.contractConfig.contractABI,
+                                    signer
+                                );
+                                console.log('✅ Contract created successfully');
+                                return true;
+                            }
+                            
+                            console.log('⚠️ Contract not available, but wallet connected');
+                            return true;
+                        }
+                    } catch (directError) {
+                        console.log('❌ Direct connection failed:', directError.message);
+                        
+                        // Check if it's a user rejection
+                        if (directError.code === 4001 || directError.message.includes('User rejected')) {
+                            console.log('👤 User rejected connection');
+                            return false;
+                        }
+                        
+                        // Check if it's a mobile-specific error
+                        if (directError.message.includes('Please install MetaMask')) {
+                            console.log('📱 MetaMask not installed on mobile');
+                            return false;
+                        }
+                    }
+                    
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error connecting wallet:', error);
+                return false;
+            }
+        }
+
+        // Get real wallet data
+        async function getRealWalletData() {
+            try {
+                if (!window.contractConfig || !window.contractConfig.contract) {
+                    console.log('❌ Contract not available');
+                    return null;
+                }
+
+                const contract = window.contractConfig.contract;
+                const userAddress = window.contractConfig.userAddress;
+                
+                if (!userAddress) {
+                    console.log('❌ User address not available, trying to get from signer...');
+                    // Try to get address from signer first
+                    if (window.contractConfig.signer && window.contractConfig.signer.address) {
+                        const signerAddress = window.contractConfig.signer.address;
+                        console.log('✅ Got address from signer:', signerAddress);
+                        window.contractConfig.userAddress = signerAddress;
+                    } else if (window.ethereum && window.ethereum.selectedAddress) {
+                        const providerAddress = window.ethereum.selectedAddress;
+                        console.log('✅ Got address from provider:', providerAddress);
+                        window.contractConfig.userAddress = providerAddress;
+                    } else {
+                        console.log('❌ No address available from signer or provider');
+                        return null;
+                    }
+                }
+
+                console.log('📡 Fetching real wallet data...');
+                
+                // Use the updated userAddress
+                const currentUserAddress = window.contractConfig.userAddress;
+                console.log('📍 Using address:', currentUserAddress);
+                
+                // Get user's index (IAM ID)
+                const userIndex = await window.getIndexByAddress(contract, currentUserAddress);
+                console.log('🔍 Raw userIndex:', userIndex);
+                console.log('🔍 userIndex type:', typeof userIndex);
+                console.log('🔍 userIndex === 0n:', userIndex === 0n);
+                console.log('🔍 userIndex == 0:', userIndex == 0);
+                console.log('🔍 !userIndex:', !userIndex);
+                
+                if (!userIndex || userIndex === 0n || userIndex == 0 || userIndex.toString() === '0') {
+                    console.log('❌ User not registered - returning null');
+                    return null;
+                }
+                
+                console.log('✅ User is registered with index:', userIndex.toString());
+                
+                // Get user's children using getUserTree
+                let children = [];
+                try {
+                    const userTree = await contract.getUserTree(currentUserAddress);
+                    console.log('✅ User tree data:', userTree);
+                    
+                    // userTree returns [leftAddress, rightAddress, activated, ...]
+                    const leftAddress = userTree[0];
+                    const rightAddress = userTree[1];
+                    const activated = userTree[2];
+                    
+                    if (activated) {
+                        // Get indices for left and right children
+                        if (leftAddress && leftAddress !== '0x0000000000000000000000000000000000000000') {
+                            const leftIndex = await window.getIndexByAddress(contract, leftAddress);
+                            if (leftIndex && leftIndex > 0n) {
+                                children.push(leftIndex);
+                            }
+                        }
+                        
+                        if (rightAddress && rightAddress !== '0x0000000000000000000000000000000000000000') {
+                            const rightIndex = await window.getIndexByAddress(contract, rightAddress);
+                            if (rightIndex && rightIndex > 0n) {
+                                children.push(rightIndex);
+                            }
+                        }
+                    }
+                    } catch (error) {
+                    console.log('⚠️ getUserTree failed, trying getLeftChild/getRightChild...');
+                    try {
+                        // Try using getLeftChild and getRightChild
+                        const leftChildIndex = await contract.getLeftChild(userIndex);
+                        const rightChildIndex = await contract.getRightChild(userIndex);
+                        
+                        if (leftChildIndex && leftChildIndex > 0n) {
+                            children.push(leftChildIndex);
+                        }
+                        if (rightChildIndex && rightChildIndex > 0n) {
+                            children.push(rightChildIndex);
+                        }
+                    } catch (error2) {
+                        console.log('⚠️ getLeftChild/getRightChild also failed, using empty children');
+                        children = [];
+                    }
+                }
+                console.log('✅ User children indices:', children);
+                
+                // Update pyramid data with real data
+                pyramidData.root.index = userIndex.toString();
+                
+                if (children && children.length > 0) {
+                    pyramidData.root.children = children.map((child, index) => ({
+                        id: index + 2,
+                        index: child.toString(),
+                        expanded: false,
+                        children: []
+                    }));
+                }
+                
+                console.log('✅ Real wallet data loaded:', pyramidData);
+                return pyramidData;
+
+            } catch (error) {
+                console.error('❌ Error fetching real wallet data:', error);
+                return null;
+            }
+        }
+
+                // Calculate star rating based on binaryPointsClaimed
+        function calculateStarRating(binaryPointsClaimed) {
+            if (!binaryPointsClaimed || binaryPointsClaimed === '0' || binaryPointsClaimed === 0) {
+                return 0;
+            }
+            
+            const points = parseInt(binaryPointsClaimed.toString());
+            if (points >= 10000) return 5;
+            if (points >= 1000) return 4;
+            if (points >= 100) return 3;
+            if (points >= 10) return 2;
+            if (points >= 1) return 1;
+            return 0;
+        }
+
+        // Create star display element
+        function createStarDisplay(starRating) {
+            const starContainer = document.createElement('span');
+            starContainer.className = 'star-rating';
+            starContainer.style.color = '#ffd700';
+            
+            if (starRating > 0) {
+                const stars = '★'.repeat(starRating);
+                starContainer.textContent = stars;
+                starContainer.title = `${starRating} star${starRating > 1 ? 's' : ''} (${starRating === 1 ? '1+' : starRating === 2 ? '10+' : starRating === 3 ? '100+' : starRating === 4 ? '1000+' : '10000+'} points)`;
+            } else {
+                starContainer.textContent = '';
+            }
+            
+            return starContainer;
+        }
+
+        // Update star ratings for all visible nodes
+        async function updateAllNodeStarRatings() {
+            try {
+                const starElements = document.querySelectorAll('.star-rating');
+                console.log(`🔄 Updating star ratings for ${starElements.length} nodes`);
+                
+                for (const starElement of starElements) {
+                    const nodeId = starElement.id.replace('star-', '');
+                    const node = findNode(pyramidData.root, parseInt(nodeId));
+                    if (node) {
+                        await updateNodeStarRating(nodeId, node.index);
+                    }
+                }
+            } catch (error) {
+                console.log('⚠️ Error updating all star ratings:', error);
+            }
+        }
+
+        // Update star rating for a specific node
+        async function updateNodeStarRating(nodeId, nodeIndex) {
+            try {
+                if (!window.contractConfig || !window.contractConfig.contract) {
+                    console.log('⚠️ Contract not available for star rating');
+                    return;
+                }
+
+                const contract = window.contractConfig.contract;
+                let userAddress = null;
+                
+                // Get user address by index using the existing function
+                try {
+                    userAddress = await window.getAddressByIndex(contract, nodeIndex);
+                } catch (error) {
+                    console.log(`⚠️ Could not get address for index ${nodeIndex}:`, error);
+                    return;
+                }
+
+                if (!userAddress || userAddress === '0x0000000000000000000000000000000000000000') {
+                    console.log(`⚠️ No valid address for index ${nodeIndex}`);
+                    return;
+                }
+
+                // Get user data
+                let userData = null;
+                try {
+                    if (typeof contract.getUserByAddress === 'function') {
+                        userData = await contract.getUserByAddress(userAddress);
+                    } else if (typeof contract.users === 'function') {
+                        userData = await contract.users(userAddress);
+                    }
+                } catch (error) {
+                    console.log(`⚠️ Could not get user data for address ${userAddress}:`, error);
+                    return;
+                }
+
+                if (userData && userData.binaryPointsClaimed) {
+                    const starRating = calculateStarRating(userData.binaryPointsClaimed);
+                    const starElement = document.getElementById(`star-${nodeId}`);
+                    if (starElement) {
+                        const newStarDisplay = createStarDisplay(starRating);
+                        starElement.innerHTML = newStarDisplay.innerHTML;
+                        starElement.title = newStarDisplay.title;
+                        console.log(`✅ Updated star rating for node ${nodeId}: ${starRating} stars`);
+                    }
+                } else {
+                    console.log(`⚠️ No binaryPointsClaimed data for node ${nodeId}`);
+                }
+            } catch (error) {
+                console.log(`⚠️ Error updating star rating for node ${nodeId}:`, error);
+            }
+        }
+
+        // Create pyramid node - Only render direct children (lazy loading)
+        function createPyramidNode(node, level = 0) {
+            const nodeDiv = document.createElement('div');
+            nodeDiv.className = 'pyramid-node';
+            nodeDiv.style.marginLeft = `${level * 20}px`;
+            
+            // Set data-index for color determination (odd/even)
+            const nodeIndex = parseInt(node.index);
+            nodeDiv.setAttribute('data-index', nodeIndex);
+            nodeDiv.setAttribute('data-odd-even', nodeIndex % 2 === 0 ? 'even' : 'odd');
+            
+            // Create button container
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'pyramid-button';
+            
+            // Set data-index-length based on index length
+            const indexLength = node.index.toString().length;
+            buttonContainer.setAttribute('data-index-length', indexLength);
+            
+            // Expand button
+            const expandBtn = document.createElement('button');
+            expandBtn.className = 'expand-btn';
+            
+            // Always set normal state (loading is handled in toggleNode)
+            expandBtn.setAttribute('data-loading', 'false');
+            expandBtn.textContent = node.expanded ? '▼' : '▶';
+            
+            expandBtn.onclick = () => toggleNode(node.id);
+            
+            // Index display
+            const indexDisplay = document.createElement('span');
+            indexDisplay.className = 'index-display';
+            indexDisplay.textContent = 'IAM ' + node.index;
+            indexDisplay.style.cursor = 'pointer';
+            indexDisplay.onclick = (e) => {
+                e.stopPropagation();
+                showUserPopup(node);
+            };
+            
+            // Create star rating display (initially empty, will be updated when user data is loaded)
+            const starDisplay = createStarDisplay(0);
+            starDisplay.id = `star-${node.id}`;
+            
+            // Create a container for index and stars
+            const indexContainer = document.createElement('div');
+            indexContainer.style.display = 'flex';
+            indexContainer.style.flexDirection = 'column';
+            indexContainer.style.alignItems = 'center';
+            indexContainer.style.gap = '4px';
+            
+            indexContainer.appendChild(indexDisplay);
+            indexContainer.appendChild(starDisplay);
+            
+            buttonContainer.appendChild(expandBtn);
+            buttonContainer.appendChild(indexContainer);
+            nodeDiv.appendChild(buttonContainer);
+            
+            // Update star rating asynchronously
+            updateNodeStarRating(node.id, node.index);
+            
+            // Children container - Only render direct children (lazy loading)
+            if (node.children && node.children.length > 0 && node.expanded) {
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'children-container';
+                childrenContainer.style.display = 'block';
+                
+                // Only render direct children - grandchildren will be loaded when their parent is expanded
+                node.children.forEach(child => {
+                    const childNode = createPyramidNode(child, level + 1);
+                    childrenContainer.appendChild(childNode);
+                });
+                
+                nodeDiv.appendChild(childrenContainer);
+            }
+            
+            return nodeDiv;
+        }
+
+        // Toggle node expansion
+        async function toggleNode(nodeId) {
+            const node = findNode(pyramidData.root, nodeId);
+            if (node) {
+                // Find the expand button for this node
+                const expandBtn = document.querySelector(`[onclick="toggleNode(${nodeId})"]`);
+                
+                // If expanding and no children loaded yet, show loading
+                if (!node.expanded && (!node.children || node.children.length === 0)) {
+                    if (expandBtn) {
+                        expandBtn.setAttribute('data-loading', 'true');
+                        expandBtn.innerHTML = '<div class="loading-spinner"></div>';
+                    }
+                    
+                    // Load children (only direct children - lazy loading)
+                    await loadNodeChildren(node);
+                    
+                    // Hide loading for parent
+                    if (expandBtn) {
+                        expandBtn.setAttribute('data-loading', 'false');
+                    }
+                    
+                    // Don't set loading state for children - only the clicked button shows loading
+                } else if (!node.expanded && node.children && node.children.length > 0) {
+                    // If children already exist but node is collapsed, just expand
+                    // No need to load children again
+                } else if (node.expanded) {
+                    // If collapsing, reset loading state for all children
+                    resetChildrenLoading(node);
+                }
+                
+                node.expanded = !node.expanded;
+                
+                // Re-render the network lists to show/hide children
+                renderNetworkLists();
+            }
+        }
+
+        // Load children for a specific node - Only direct children (lazy loading)
+        async function loadNodeChildren(node) {
+            try {
+                if (!window.contractConfig || !window.contractConfig.contract) {
+                    console.log('❌ Contract not available for loading children');
+                    // Reset loading state on error
+                    const expandBtn = document.querySelector(`[onclick="toggleNode(${node.id})"]`);
+                    if (expandBtn) {
+                        expandBtn.setAttribute('data-loading', 'false');
+                        expandBtn.textContent = '▶';
+                    }
+                    return;
+                }
+
+                const contract = window.contractConfig.contract;
+                
+                // Use node index directly (no IAM prefix)
+                const iamId = node.index;
+                console.log(`📡 Loading children for IAM ID: ${iamId}`);
+                
+                // Get children from contract using correct methods
+                let children = [];
+                try {
+                    // Convert IAM ID to address first
+                    const childAddress = await window.getAddressByIndex(contract, iamId);
+                    if (!childAddress || childAddress === '0x0000000000000000000000000000000000000000') {
+                        console.log(`⚠️ No address found for IAM ID ${iamId}`);
+                        return;
+                    }
+                    
+                    // Get user tree for this child
+                    const userTree = await contract.getUserTree(childAddress);
+                    console.log(`✅ User tree for ${node.index}:`, userTree);
+                    
+                    const leftAddress = userTree[0];
+                    const rightAddress = userTree[1];
+                    const activated = userTree[2];
+                    
+                    if (activated) {
+                        // Get indices for left and right children
+                        if (leftAddress && leftAddress !== '0x0000000000000000000000000000000000000000') {
+                            const leftIndex = await window.getIndexByAddress(contract, leftAddress);
+                            if (leftIndex && leftIndex > 0n) {
+                                children.push(leftIndex);
+                            }
+                        }
+                        
+                        if (rightAddress && rightAddress !== '0x0000000000000000000000000000000000000000') {
+                            const rightIndex = await window.getIndexByAddress(contract, rightAddress);
+                            if (rightIndex && rightIndex > 0n) {
+                                children.push(rightIndex);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log(`⚠️ getUserTree failed for ${iamId}, trying getLeftChild/getRightChild...`);
+                    try {
+                        // Try using getLeftChild and getRightChild
+                        const leftChildIndex = await contract.getLeftChild(iamId);
+                        const rightChildIndex = await contract.getRightChild(iamId);
+                        
+                        if (leftChildIndex && leftChildIndex > 0n) {
+                            children.push(leftChildIndex);
+                        }
+                        if (rightChildIndex && rightChildIndex > 0n) {
+                            children.push(rightChildIndex);
+                        }
+                    } catch (error2) {
+                        console.log(`⚠️ getLeftChild/getRightChild also failed for ${iamId}`);
+                        children = [];
+                    }
+                }
+                console.log(`✅ Children indices for ${node.index}:`, children);
+                
+                if (children && children.length > 0) {
+                    node.children = children.map((child, index) => ({
+                        id: node.id * 10 + index + 1,
+                        index: child.toString(),
+                        expanded: false,
+                        children: [], // Will be loaded when this child is expanded
+                        loading: false // Children don't have loading state
+                    }));
+                    
+                    console.log(`✅ Created ${node.children.length} children for node ${node.index}`);
+                } else {
+                    // Create empty nodes for left and right positions
+                    const nodeIndex = parseInt(node.index);
+                    const leftIndex = nodeIndex * 2;
+                    const rightIndex = nodeIndex * 2 + 1;
+                    
+                    node.children = [
+                        {
+                            id: `empty_node_${leftIndex}`,
+                            index: leftIndex.toString(),
+                            address: null,
+                            type: 'empty',
+                            expanded: false,
+                            children: [],
+                            hasChildren: false,
+                            parentIndex: nodeIndex,
+                            position: 'left'
+                        },
+                        {
+                            id: `empty_node_${rightIndex}`,
+                            index: rightIndex.toString(),
+                            address: null,
+                            type: 'empty',
+                            expanded: false,
+                            children: [],
+                            hasChildren: false,
+                            parentIndex: nodeIndex,
+                            position: 'right'
+                        }
+                    ];
+                    
+                    console.log(`📝 Created 2 empty children for node ${node.index}`);
+                }
+                
+            } catch (error) {
+                console.error(`❌ Error loading children for ${node.index}:`, error);
+                // Reset loading state on error
+                const expandBtn = document.querySelector(`[onclick="toggleNode(${node.id})"]`);
+                if (expandBtn) {
+                    expandBtn.setAttribute('data-loading', 'false');
+                    expandBtn.textContent = '▶';
+                }
+                // No need to reset children loading state since they don't have it
+            }
+        }
+
+        // Reset loading state for all children of a node (simplified)
+        function resetChildrenLoading(node) {
+            // No longer needed since children don't have loading state
+            // Only the clicked button shows loading
+        }
+
+        // Show user popup for a specific node
+        async function showUserPopup(node) {
+            try {
+                console.log('🔄 Showing user details for node:', node.index);
+
+                // Get user address by index
+                let userAddress = null;
+                if (window.contractConfig && window.contractConfig.contract) {
+                    try {
+                        userAddress = await window.getAddressByIndex(window.contractConfig.contract, node.index);
+                        console.log('✅ User address found:', userAddress);
+                    } catch (error) {
+                        console.warn('⚠️ Could not get address for index:', node.index, error);
+                    }
+                }
+
+                // Get user data
+                let userData = null;
+                if (userAddress && window.contractConfig && window.contractConfig.contract) {
+                    try {
+                        const contract = window.contractConfig.contract;
+                        if (typeof contract.getUserByAddress === 'function') {
+                            userData = await contract.getUserByAddress(userAddress);
+                        } else if (typeof contract.users === 'function') {
+                            userData = await contract.users(userAddress);
+                        }
+                        console.log('✅ User data found:', userData);
+                    } catch (error) {
+                        console.warn('⚠️ Could not get user data for address:', userAddress, error);
+                    }
+                }
+
+                const details = buildUserDetails(userData, node.index, userAddress);
+                showTypewriterUserModal(details);
+                
+                // Update star rating for this node
+                if (userData && userData.binaryPointsClaimed) {
+                    const starRating = calculateStarRating(userData.binaryPointsClaimed);
+                    const starElement = document.getElementById(`star-${node.id}`);
+                    if (starElement) {
+                        const newStarDisplay = createStarDisplay(starRating);
+                        starElement.innerHTML = newStarDisplay.innerHTML;
+                        starElement.title = newStarDisplay.title;
+                    }
+                }
+                // append USD lines for token fields (raw userData preferred for precision)
+                buildUserUsdLines(details).then(lines => { if (lines.length) appendTypewriterLines(lines); });
+                // Append placeholders immediately so we can update them reliably
+                appendTypewriterLines([
+                    'IAM >> <span class="key">leftAddress:</span> <span class="kv">⏳ waiting...</span>',
+                    'IAM >> <span class="key">rightAddress:</span> <span class="kv">⏳ waiting...</span>',
+                    'IAM >> <span class="key">leftWalletsCount:</span> <span class="kv">⏳ calculating...</span>',
+                    'IAM >> <span class="key">rightWalletsCount:</span> <span class="kv">⏳ calculating...</span>'
+                ]);
+                if (window.contractConfig && window.contractConfig.contract) {
+                    // Defer heavy calls to allow UI to render placeholders first
+                    setTimeout(async () => {
+                        try {
+                            const rootIdx = parseInt(node.index, 10);
+                            const { leftAddress, rightAddress } = await getChildAddresses(window.contractConfig.contract, rootIdx);
+                            if (leftAddress) updateTypewriterLineStartsWith('IAM >> <span class="key">leftAddress:</span>', `IAM >> <span class=\"key\">leftAddress:</span> <span class=\"kv\">${shortenAddress(leftAddress)}</span>`);
+                            if (rightAddress) updateTypewriterLineStartsWith('IAM >> <span class="key">rightAddress:</span>', `IAM >> <span class=\"key\">rightAddress:</span> <span class=\"kv\">${shortenAddress(rightAddress)}</span>`);
+
+                            const { leftCount, rightCount } = await computeLeftRightCounts(window.contractConfig.contract, rootIdx);
+                            updateTypewriterLineStartsWith('IAM >> <span class="key">leftWalletsCount:</span>', `IAM >> <span class=\"key\">leftWalletsCount:</span> <span class=\"kv\">${leftCount}</span>`);
+                            updateTypewriterLineStartsWith('IAM >> <span class="key">rightWalletsCount:</span>', `IAM >> <span class=\"key\">rightWalletsCount:</span> <span class=\"kv\">${rightCount}</span>`);
+                        } catch (_) {}
+                    }, 0);
+                }
+
+            } catch (error) {
+                console.error('❌ Error showing user popup:', error);
+                
+                const fallback = { 'IAM Index': String(node.index || 0), Note: 'No data available' };
+                showTypewriterUserModal(fallback);
+            }
+        }
+
+        // Find node by ID - Recursive search through all loaded nodes
+        function findNode(node, id) {
+            if (node.id === id) return node;
+            
+            if (node.children && node.children.length > 0) {
+                for (let child of node.children) {
+                    const found = findNode(child, id);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        // Render file manager tree
+        function renderPyramidTree() {
+            console.log('🔄 Rendering file manager tree...');
+            
+            // Initialize file manager
+            initializeFileManager();
+            
+            // Only load tree data if wallet is connected and registration check is complete
+            if (window.contractConfig && window.contractConfig.contract && window.contractConfig.userAddress && registrationCheckComplete) {
+                loadFileManagerTree();
+            } else {
+                console.log('⚠️ Wallet not connected or registration check not complete, showing empty state');
+                showEmptyTree();
+            }
+        }
+
+        // File Manager Data
+        let fileManagerData = {
+            currentPath: ['root'],
+            expandedNodes: new Set(),
+            treeData: {},
+            networks: []
+        };
+        
+        // Registration check flag
+        let registrationCheckComplete = false;
+
+        // Initialize file manager
+        function initializeFileManager() {
+            console.log('🔧 Initializing file manager...');
+            
+            // Setup event listeners
+            setupFileManagerEvents();
+            
+            // Initialize breadcrumb
+            updateBreadcrumb();
+        }
+
+        // Setup file manager event listeners
+        function setupFileManagerEvents() {
+            // No action buttons needed
+        }
+
+
+
+        // Update breadcrumb
+        function updateBreadcrumb() {
+            const breadcrumb = document.getElementById('breadcrumb');
+            if (!breadcrumb) return;
+            
+            const path = fileManagerData.currentPath;
+            breadcrumb.innerHTML = path.map((item, index) => {
+                const isLast = index === path.length - 1;
+                return `
+                    <span class="breadcrumb-item ${isLast ? 'active' : ''}" data-path="${path.slice(0, index + 1).join('/')}">
+                        ${index === 0 ? '🏠' : '📁'} ${item}
+                    </span>
+                    ${!isLast ? '<span class="breadcrumb-separator">/</span>' : ''}
+                `;
+            }).join('');
+            
+            // Add click listeners to breadcrumb items
+            breadcrumb.querySelectorAll('.breadcrumb-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const newPath = item.dataset.path.split('/');
+                    navigateToPath(newPath);
+                });
+            });
+        }
+
+        // Navigate to specific path
+        function navigateToPath(path) {
+            fileManagerData.currentPath = path;
+            updateBreadcrumb();
+            renderTreeView();
+        }
+
+        // Load file manager tree data
+        async function loadFileManagerTree() {
+            console.log('📁 Loading file manager tree data...');
+            
+            try {
+                if (!window.contractConfig || !window.contractConfig.contract) {
+                    console.log('⚠️ No contract connection, showing empty state');
+                    showEmptyTree();
+                    return;
+                }
+                
+                // Check if user is registered first
+                const userAddress = window.contractConfig.userAddress;
+                if (!userAddress) {
+                    console.log('❌ No user address available');
+                    showEmptyTree();
+                    return;
+                }
+                
+                // Check if user is registered
+                const contract = window.contractConfig.contract;
+                console.log('🔍 Checking user registration for address:', userAddress);
+                const userIndex = await window.getIndexByAddress(contract, userAddress);
+                console.log('🔍 User index result:', userIndex);
+                console.log('🔍 userIndex type:', typeof userIndex);
+                console.log('🔍 userIndex === 0n:', userIndex === 0n);
+                console.log('🔍 userIndex == 0:', userIndex == 0);
+                console.log('🔍 !userIndex:', !userIndex);
+                
+                if (!userIndex || userIndex === 0n || userIndex == 0 || userIndex.toString() === '0') {
+                    console.log('❌ User not registered, showing registration message');
+                    registrationCheckComplete = true;
+                    showUnregisteredUserMessage();
+                    return;
+                }
+                
+                console.log('✅ User is registered, loading tree...');
+                registrationCheckComplete = true;
+                
+                // Load root node
+                await loadRootNode();
+                
+            // Render tree view
+            renderTreeView();
+            
+            // Update star ratings for all visible nodes
+            setTimeout(() => {
+                updateAllNodeStarRatings();
+            }, 1000);
+                
+            } catch (error) {
+                console.error('❌ Error loading file manager tree:', error);
+                console.log('🔍 Error details:', error.message);
+                registrationCheckComplete = true;
+                showUnregisteredUserMessage(); // Show unregistered message instead of error
+            }
+        }
+
+        // Load root node
+        async function loadRootNode() {
+            const contract = window.contractConfig.contract;
+            const userAddress = window.contractConfig.userAddress;
+            
+            if (!userAddress) {
+                throw new Error('No user address available');
+            }
+            
+            // Get user info
+            const user = await contract.users(userAddress);
+            const userIndex = user.index ? user.index.toString() : '1';
+            
+            // Create root node
+            fileManagerData.treeData = {
+                id: 'root',
+                index: userIndex,
+                address: userAddress,
+                type: 'root',
+                expanded: false,
+                children: [],
+                hasChildren: true
+            };
+            
+            console.log('✅ Root node loaded:', fileManagerData.treeData);
+        }
+
+        // Render tree view - Flat structure with auto-expansion
+        function renderTreeView() {
+            const treeView = document.getElementById('tree-view');
+            if (!treeView) return;
+            
+            if (!fileManagerData.treeData || Object.keys(fileManagerData.treeData).length === 0) {
+                showEmptyTree();
+                return;
+            }
+            
+            treeView.innerHTML = '';
+            
+            // Render all nodes in flat structure
+            renderFlatTree(fileManagerData.treeData, treeView, 0);
+            
+            // Auto-expand container after rendering
+            setTimeout(() => {
+                autoExpandTreeContainer();
+            }, 100);
+        }
+        
+        // Auto-expand tree container based on content
+        function autoExpandTreeContainer() {
+            const treeView = document.getElementById('tree-view');
+            if (!treeView) return;
+            
+            // Get all tree nodes
+            const treeNodes = treeView.querySelectorAll('.flat-tree-node');
+            if (treeNodes.length === 0) return;
+            
+            // Calculate required dimensions
+            let maxWidth = 0;
+            let totalHeight = 0;
+            let maxDepth = 0;
+            
+            treeNodes.forEach(node => {
+                const rect = node.getBoundingClientRect();
+                const depth = parseInt(node.getAttribute('data-depth') || '0');
+                
+                // Calculate width including depth offset
+                const nodeWidth = rect.width + (depth * 1.5 * 16); // 1.5rem * 16px
+                maxWidth = Math.max(maxWidth, nodeWidth);
+                
+                // Calculate total height
+                totalHeight += rect.height + 0.4 * 16; // margin-bottom
+                
+                // Track max depth
+                maxDepth = Math.max(maxDepth, depth);
+            });
+            
+            // Add padding and margins
+            const padding = 2 * 16; // 2rem padding
+            const requiredWidth = maxWidth + padding;
+            const requiredHeight = totalHeight + padding;
+            
+            // Apply dynamic sizing
+            treeView.style.width = `${Math.max(requiredWidth, window.innerWidth)}px`;
+            treeView.style.height = `${Math.max(requiredHeight, window.innerHeight)}px`;
+            treeView.style.minWidth = `${requiredWidth}px`;
+            treeView.style.minHeight = `${requiredHeight}px`;
+            
+            console.log(`📏 Tree container resized: ${requiredWidth}x${requiredHeight}px (depth: ${maxDepth})`);
+            
+            // Also resize parent containers
+            const parentContainer = treeView.closest('.expand-content');
+            if (parentContainer) {
+                parentContainer.style.width = 'auto';
+                parentContainer.style.height = 'auto';
+                parentContainer.style.overflow = 'visible';
+            }
+            
+            const expandableContainer = treeView.closest('.expandable-container');
+            if (expandableContainer) {
+                expandableContainer.style.width = 'auto';
+                expandableContainer.style.height = 'auto';
+                expandableContainer.style.overflow = 'visible';
+            }
+        }
+
+        // Global depth tracking
+        let maxDepthReached = 0;
+        
+        // Test function to check current depth
+        window.checkTreeDepth = function() {
+            console.log(`📊 Current maximum depth reached: ${maxDepthReached}`);
+            console.log(`📊 Total expanded nodes: ${fileManagerData.expandedNodes.size}`);
+            console.log(`📊 Expanded nodes:`, Array.from(fileManagerData.expandedNodes));
+            return maxDepthReached;
+        };
+        
+        // Test function to expand all nodes to maximum depth
+        window.expandAllNodes = async function() {
+            console.log('🚀 Expanding all nodes to maximum depth...');
+            const startTime = Date.now();
+            
+            // Get all nodes that have children but are not expanded
+            const nodesToExpand = [];
+            function collectExpandableNodes(node) {
+                if (node.hasChildren && !fileManagerData.expandedNodes.has(node.id)) {
+                    nodesToExpand.push(node);
+                }
+                if (node.children) {
+                    node.children.forEach(child => collectExpandableNodes(child));
+                }
+            }
+            
+            if (fileManagerData.treeData) {
+                collectExpandableNodes(fileManagerData.treeData);
+            }
+            
+            console.log(`📋 Found ${nodesToExpand.length} nodes to expand`);
+            
+            // Expand nodes in batches
+            for (let i = 0; i < nodesToExpand.length; i++) {
+                const node = nodesToExpand[i];
+                console.log(`🔄 Expanding node ${node.id} (${i + 1}/${nodesToExpand.length})`);
+                
+                // Add to expanded set
+                fileManagerData.expandedNodes.add(node.id);
+                
+                // Load children if not already loaded
+                if (!node.children || node.children.length === 0) {
+                    await loadNodeChildren(node, 0);
+                }
+                
+                // No delay - unlimited tree expansion speed
+                // Removed delay for faster tree expansion
+            }
+            
+            const endTime = Date.now();
+            console.log(`✅ Expansion completed in ${endTime - startTime}ms`);
+            console.log(`📊 Final maximum depth: ${maxDepthReached}`);
+        };
+        
+        // Test function to check specific node at level 9
+        window.testLevel9Nodes = async function() {
+            console.log('🔍 Testing level 9 nodes...');
+            
+            // Find all nodes at level 9
+            const level9Nodes = [];
+            function findLevel9Nodes(node, depth = 0) {
+                if (depth === 9) {
+                    level9Nodes.push(node);
+                }
+                if (node.children) {
+                    node.children.forEach(child => findLevel9Nodes(child, depth + 1));
+                }
+            }
+            
+            if (fileManagerData.treeData) {
+                findLevel9Nodes(fileManagerData.treeData);
+            }
+            
+            console.log(`📊 Found ${level9Nodes.length} nodes at level 9`);
+            
+            // Test each level 9 node
+            for (let i = 0; i < level9Nodes.length; i++) {
+                const node = level9Nodes[i];
+                console.log(`🧪 Testing node ${node.id} (index: ${node.index}) at level 9`);
+                
+                // Try to load children
+                await loadNodeChildren(node, 9);
+                
+                // Check if children were loaded
+                if (node.children && node.children.length > 0) {
+                    console.log(`✅ Node ${node.id} has ${node.children.length} children`);
+                } else {
+                    console.log(`❌ Node ${node.id} has no children`);
+                }
+                
+                // No delay - unlimited testing speed
+                // Removed delay for faster testing
+            }
+        };
+        
+        // Test function to check contract calls for specific index
+        window.testContractCall = async function(index) {
+            console.log(`🧪 Testing contract call for index ${index}`);
+            
+            if (!window.contractConfig || !window.contractConfig.contract) {
+                console.log('❌ Contract not available');
+                return;
+            }
+            
+            try {
+                const contract = window.contractConfig.contract;
+                const nodeIndex = parseInt(index);
+                
+                console.log(`📞 Calling getLeftAddress(${nodeIndex})...`);
+                const leftAddress = await contract.getLeftAddress(nodeIndex);
+                console.log(`📍 Left address: ${leftAddress}`);
+                
+                console.log(`📞 Calling getRightAddress(${nodeIndex})...`);
+                const rightAddress = await contract.getRightAddress(nodeIndex);
+                console.log(`📍 Right address: ${rightAddress}`);
+                
+                const leftValid = leftAddress !== '0x0000000000000000000000000000000000000000';
+                const rightValid = rightAddress !== '0x0000000000000000000000000000000000000000';
+                
+                console.log(`🔍 Left valid: ${leftValid}, Right valid: ${rightValid}`);
+                
+                if (leftValid) {
+                    console.log(`✅ Left child exists at index ${nodeIndex * 2}`);
+                }
+                if (rightValid) {
+                    console.log(`✅ Right child exists at index ${nodeIndex * 2 + 1}`);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error testing contract call:', error);
+            }
+        };
+        
+        // Test function to check mathematical relationship and depth limits
+        window.testDepthMath = function() {
+            console.log('🧮 Testing mathematical relationship for tree depth...');
+            
+            // Calculate theoretical maximum depth based on index
+            const maxIndex = 1000000; // Test with large number
+            const maxDepth = Math.floor(Math.log2(maxIndex));
+            
+            console.log(`📊 Theoretical maximum depth for index ${maxIndex}: ${maxDepth}`);
+            
+            // Test index calculation for different levels
+            for (let level = 0; level <= 20; level++) {
+                const maxIndexAtLevel = Math.pow(2, level + 1) - 1;
+                const minIndexAtLevel = Math.pow(2, level);
+                
+                console.log(`📊 Level ${level}: Index range ${minIndexAtLevel} - ${maxIndexAtLevel}`);
+                
+                // Check if we're hitting any limits
+                if (maxIndexAtLevel > 1000000) {
+                    console.log(`⚠️ Level ${level} might hit practical limits (index > 1M)`);
+                }
+            }
+            
+            // Test specific indices that might be problematic
+            const testIndices = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536];
+            testIndices.forEach(index => {
+                const level = Math.floor(Math.log2(index));
+                console.log(`📊 Index ${index} is at level ${level}`);
+            });
+        };
+        
+        // Test function to check if there's a 50% rendering limit
+        window.test50PercentLimit = async function() {
+            console.log('🔍 Testing for 50% rendering limit...');
+            
+            // Find all nodes at different levels
+            const levelCounts = {};
+            function countNodesByLevel(node, depth = 0) {
+                if (!levelCounts[depth]) levelCounts[depth] = 0;
+                levelCounts[depth]++;
+                
+                if (node.children) {
+                    node.children.forEach(child => countNodesByLevel(child, depth + 1));
+                }
+            }
+            
+            if (fileManagerData.treeData) {
+                countNodesByLevel(fileManagerData.treeData);
+            }
+            
+            console.log('📊 Node counts by level:');
+            Object.keys(levelCounts).forEach(level => {
+                const count = levelCounts[level];
+                const expectedCount = Math.pow(2, parseInt(level));
+                const percentage = (count / expectedCount) * 100;
+                
+                console.log(`📊 Level ${level}: ${count} nodes (expected: ${expectedCount}, ${percentage.toFixed(1)}%)`);
+                
+                if (percentage < 50) {
+                    console.log(`⚠️ Level ${level} has less than 50% of expected nodes!`);
+                }
+            });
+        };
+        
+        // Force unlimited expansion - bypass all limits
+        window.forceUnlimitedExpansion = async function() {
+            console.log('🚀 FORCING UNLIMITED EXPANSION - BYPASSING ALL LIMITS...');
+            
+            let expansionCount = 0;
+            let maxIterations = 1000; // Prevent infinite loops
+            
+            while (expansionCount < maxIterations) {
+                expansionCount++;
+                console.log(`🔄 FORCE EXPANSION ITERATION ${expansionCount}`);
+                
+                // Find all nodes that can be expanded
+                const expandableNodes = [];
+                function findExpandableNodes(node) {
+                    if (node.hasChildren && !fileManagerData.expandedNodes.has(node.id)) {
+                        expandableNodes.push(node);
+                    }
+                    if (node.children) {
+                        node.children.forEach(child => findExpandableNodes(child));
+                    }
+                }
+                
+                if (fileManagerData.treeData) {
+                    findExpandableNodes(fileManagerData.treeData);
+                }
+                
+                console.log(`📋 Found ${expandableNodes.length} expandable nodes in iteration ${expansionCount}`);
+                
+                if (expandableNodes.length === 0) {
+                    console.log('✅ No more nodes to expand - tree fully expanded!');
+                    break;
+                }
+                
+                // Force expand all nodes
+                for (let i = 0; i < expandableNodes.length; i++) {
+                    const node = expandableNodes[i];
+                    console.log(`🔥 FORCE EXPANDING node ${node.id} (${i + 1}/${expandableNodes.length})`);
+                    
+                    // Force add to expanded set
+                    fileManagerData.expandedNodes.add(node.id);
+                    
+                    // Force load children
+                    if (!node.children || node.children.length === 0) {
+                        try {
+                            await loadNodeChildren(node, 0);
+                        } catch (error) {
+                            console.log(`⚠️ Error loading children for ${node.id}:`, error.message);
+                        }
+                    }
+                }
+                
+                // Force re-render
+                renderTreeView();
+                
+                // Check current depth
+                console.log(`📊 Current max depth: ${maxDepthReached}`);
+                
+                // Small delay to prevent browser freeze
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+            console.log(`🏁 FORCE EXPANSION COMPLETED after ${expansionCount} iterations`);
+            console.log(`📊 Final maximum depth: ${maxDepthReached}`);
+        };
+        
+        // Test blockchain data directly - bypass tree structure
+        window.testBlockchainDataDirectly = async function() {
+            console.log('🔍 TESTING BLOCKCHAIN DATA DIRECTLY...');
+            
+            if (!window.contractConfig || !window.contractConfig.contract) {
+                console.log('❌ Contract not available');
+                return;
+            }
+            
+            const contract = window.contractConfig.contract;
+            
+            // Test specific indices to see if blockchain has data beyond level 9
+            const testIndices = [
+                1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+                32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536
+            ];
+            
+            console.log('🧪 Testing blockchain data for specific indices...');
+            
+            for (let i = 0; i < testIndices.length; i++) {
+                const index = testIndices[i];
+                const level = Math.floor(Math.log2(index));
+                
+                try {
+                    console.log(`📞 Testing index ${index} (level ${level})...`);
+                    
+                    const leftAddress = await contract.getLeftAddress(index);
+                    const rightAddress = await contract.getRightAddress(index);
+                    
+                    const leftValid = leftAddress !== '0x0000000000000000000000000000000000000000';
+                    const rightValid = rightAddress !== '0x0000000000000000000000000000000000000000';
+                    
+                    console.log(`📍 Index ${index} (Level ${level}): Left=${leftValid}, Right=${rightValid}`);
+                    
+                    if (leftValid || rightValid) {
+                        console.log(`✅ Level ${level} has valid data!`);
+                    } else {
+                        console.log(`❌ Level ${level} has no valid data`);
+                    }
+                    
+                } catch (error) {
+                    console.log(`❌ Error testing index ${index}:`, error.message);
+                }
+                
+                // Small delay
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        };
+        
+        // Create unlimited tree manually - bypass all restrictions
+        window.createUnlimitedTree = async function() {
+            console.log('🚀 CREATING UNLIMITED TREE MANUALLY...');
+            
+            if (!window.contractConfig || !window.contractConfig.contract) {
+                console.log('❌ Contract not available');
+                return;
+            }
+            
+            const contract = window.contractConfig.contract;
+            const unlimitedTree = {
+                id: 'unlimited_root',
+                index: '1',
+                address: window.contractConfig.userAddress,
+                type: 'node',
+                expanded: true,
+                children: [],
+                hasChildren: true
+            };
+            
+            // Manually create tree structure up to level 20
+            async function createTreeLevel(parentNode, level, maxLevel = 20) {
+                if (level >= maxLevel) return;
+                
+                console.log(`🌳 Creating level ${level} for node ${parentNode.id}`);
+                
+                const nodeIndex = parseInt(parentNode.index);
+                const leftIndex = nodeIndex * 2;
+                const rightIndex = nodeIndex * 2 + 1;
+                
+                try {
+                    // Get addresses
+                    const leftAddress = await contract.getLeftAddress(nodeIndex);
+                    const rightAddress = await contract.getRightAddress(nodeIndex);
+                    
+                    const leftValid = leftAddress !== '0x0000000000000000000000000000000000000000';
+                    const rightValid = rightAddress !== '0x0000000000000000000000000000000000000000';
+                    
+                    if (leftValid) {
+                        const leftChild = {
+                            id: `unlimited_node_${leftIndex}`,
+                            index: leftIndex.toString(),
+                            address: leftAddress,
+                            type: 'node',
+                            expanded: false,
+                            children: [],
+                            hasChildren: true
+                        };
+                        parentNode.children.push(leftChild);
+                        console.log(`✅ Added left child: ${leftChild.id}`);
+                        
+                        // Recursively create next level
+                        await createTreeLevel(leftChild, level + 1, maxLevel);
+                    } else {
+                        // Create empty node for left position
+                        const leftEmptyChild = {
+                            id: `empty_node_${leftIndex}`,
+                            index: leftIndex.toString(),
+                            address: null,
+                            type: 'empty',
+                            expanded: false,
+                            children: [],
+                            hasChildren: false,
+                            parentIndex: nodeIndex,
+                            position: 'left'
+                        };
+                        parentNode.children.push(leftEmptyChild);
+                        console.log(`📝 Added empty left child: ${leftEmptyChild.id}`);
+                    }
+                    
+                    if (rightValid) {
+                        const rightChild = {
+                            id: `unlimited_node_${rightIndex}`,
+                            index: rightIndex.toString(),
+                            address: rightAddress,
+                            type: 'node',
+                            expanded: false,
+                            children: [],
+                            hasChildren: true
+                        };
+                        parentNode.children.push(rightChild);
+                        console.log(`✅ Added right child: ${rightChild.id}`);
+                        
+                        // Recursively create next level
+                        await createTreeLevel(rightChild, level + 1, maxLevel);
+                    } else {
+                        // Create empty node for right position
+                        const rightEmptyChild = {
+                            id: `empty_node_${rightIndex}`,
+                            index: rightIndex.toString(),
+                            address: null,
+                            type: 'empty',
+                            expanded: false,
+                            children: [],
+                            hasChildren: false,
+                            parentIndex: nodeIndex,
+                            position: 'right'
+                        };
+                        parentNode.children.push(rightEmptyChild);
+                        console.log(`📝 Added empty right child: ${rightEmptyChild.id}`);
+                    }
+                    
+                } catch (error) {
+                    console.log(`❌ Error creating level ${level}:`, error.message);
+                }
+            }
+            
+            // Create unlimited tree
+            await createTreeLevel(unlimitedTree, 0, 20);
+            
+            // Replace current tree data
+            fileManagerData.treeData = unlimitedTree;
+            
+            // Force expand all nodes
+            function forceExpandAll(node) {
+                fileManagerData.expandedNodes.add(node.id);
+                if (node.children) {
+                    node.children.forEach(child => forceExpandAll(child));
+                }
+            }
+            forceExpandAll(unlimitedTree);
+            
+            // Render the unlimited tree
+            renderTreeView();
+            
+            console.log('🏁 UNLIMITED TREE CREATED AND RENDERED!');
+            console.log(`📊 Final maximum depth: ${maxDepthReached}`);
+        };
+        
+        // Manual function to expand tree container
+        window.expandTreeContainer = function() {
+            console.log('📏 Manually expanding tree container...');
+            autoExpandTreeContainer();
+        };
+        
+        // Function to reset and re-expand container
+        window.resetTreeContainer = function() {
+            console.log('🔄 Resetting tree container...');
+            const treeView = document.getElementById('tree-view');
+            if (treeView) {
+                treeView.style.width = 'auto';
+                treeView.style.height = 'auto';
+                treeView.style.minWidth = '100%';
+                treeView.style.minHeight = '100%';
+                treeView.style.maxWidth = 'none';
+                treeView.style.maxHeight = 'none';
+                treeView.style.overflow = 'visible';
+            }
+            
+            // Reset parent containers
+            const parentContainer = treeView?.closest('.expand-content');
+            if (parentContainer) {
+                parentContainer.style.width = 'auto';
+                parentContainer.style.height = 'auto';
+                parentContainer.style.overflow = 'visible';
+            }
+            
+            const expandableContainer = treeView?.closest('.expandable-container');
+            if (expandableContainer) {
+                expandableContainer.style.width = 'auto';
+                expandableContainer.style.height = 'auto';
+                expandableContainer.style.overflow = 'visible';
+            }
+            
+            // Re-expand after reset
+            setTimeout(() => {
+                autoExpandTreeContainer();
+            }, 100);
+        };
+        
+        // Render flat tree structure - all nodes in single container
+        function renderFlatTree(node, container, depth = 0) {
+            // Track maximum depth
+            if (depth > maxDepthReached) {
+                maxDepthReached = depth;
+                console.log(`🏆 New maximum depth reached: ${depth} (node: ${node.id})`);
+            }
+            
+            // Debug logging
+            console.log(`🌳 Rendering node ${node.id} at depth ${depth} (max: ${maxDepthReached})`);
+            
+            // Render current node
+            renderFlatNode(node, container, depth);
+            
+            // If node is expanded and has children, render them
+            const isExpanded = fileManagerData.expandedNodes.has(node.id);
+            console.log(`🔍 Node ${node.id} - expanded: ${isExpanded}, hasChildren: ${node.children && node.children.length > 0}, childrenCount: ${node.children ? node.children.length : 0}`);
+            
+            if (isExpanded && node.children && node.children.length > 0) {
+                node.children.forEach(child => {
+                    console.log(`👶 Rendering child ${child.id} at depth ${depth + 1}`);
+                    renderFlatTree(child, container, depth + 1);
+                });
+            }
+        }
+
+        // Render individual flat tree node
+        function renderFlatNode(node, container, depth = 0) {
+            const nodeElement = document.createElement('div');
+            nodeElement.className = 'tree-node flat-tree-node';
+            nodeElement.style.marginRight = `${depth * 1.5}rem`;
+            nodeElement.setAttribute('data-node-id', node.id);
+            nodeElement.setAttribute('data-depth', depth);
+            
+            // Dynamic color generation with very distinct colors
+            const distinctColors = [
+                '#ff0000', // Level 0: Red
+                '#00ff00', // Level 1: Green
+                '#0000ff', // Level 2: Blue
+                '#ffff00', // Level 3: Yellow
+                '#ff00ff', // Level 4: Magenta
+                '#00ffff', // Level 5: Cyan
+                '#ff8000', // Level 6: Orange
+                '#8000ff', // Level 7: Purple
+                '#ff0080', // Level 8: Pink
+                '#80ff00', // Level 9: Lime
+                '#0080ff', // Level 10: Light Blue
+                '#ff8080', // Level 11: Light Red
+                '#80ff80', // Level 12: Light Green
+                '#8080ff', // Level 13: Light Blue
+                '#ffff80', // Level 14: Light Yellow
+                '#ff80ff', // Level 15: Light Magenta
+                '#80ffff', // Level 16: Light Cyan
+                '#ff4000', // Level 17: Dark Orange
+                '#4000ff', // Level 18: Dark Purple
+                '#ff0040', // Level 19: Dark Pink
+                '#40ff00'  // Level 20: Dark Lime
+            ];
+            
+            // Get color based on depth, cycle through colors for deeper levels
+            const colorIndex = depth % distinctColors.length;
+            const levelColor = distinctColors[colorIndex];
+            
+            // Convert hex to RGB
+            const r = parseInt(levelColor.slice(1, 3), 16);
+            const g = parseInt(levelColor.slice(3, 5), 16);
+            const b = parseInt(levelColor.slice(5, 7), 16);
+            
+            // Calculate intensity based on depth - make colors more visible
+            const intensity = Math.max(0.3, 0.8 - depth * 0.02);
+            const borderIntensity = Math.max(0.6, 0.9 - depth * 0.01);
+            const shadowIntensity = Math.max(0.4, 0.7 - depth * 0.01);
+            
+            // Apply level-based colors
+            nodeElement.style.background = `linear-gradient(135deg, rgba(${r}, ${g}, ${b}, ${intensity}), rgba(${r}, ${g}, ${b}, ${intensity * 0.7}))`;
+            nodeElement.style.border = `2px solid rgba(${r}, ${g}, ${b}, ${borderIntensity})`;
+            nodeElement.style.boxShadow = `0 2px 8px rgba(${r}, ${g}, ${b}, ${shadowIntensity})`;
+            nodeElement.style.color = `#${levelColor}`;
+            
+            // Add level indicator
+            nodeElement.setAttribute('data-level', depth);
+            nodeElement.setAttribute('data-level-color', levelColor);
+            
+            const isExpanded = fileManagerData.expandedNodes.has(node.id);
+            const hasChildren = node.hasChildren || (node.children && node.children.length > 0);
+            
+            // Check if this is an empty node - skip rendering empty nodes
+            const isEmptyNode = node.type === 'empty';
+            
+            // Skip rendering empty nodes
+            if (isEmptyNode) {
+                return;
+            }
+            
+            nodeElement.innerHTML = `
+                <div class="tree-node-content ${isExpanded ? 'expanded' : ''}" data-node-id="${node.id}">
+                    ${hasChildren ? `
+                        <button class="tree-expand-btn ${isExpanded ? 'expanded' : ''}" data-node-id="${node.id}">
+                            ${isExpanded ? '−' : '+'}
+                        </button>
+                    ` : '<div style="width: 14px;"></div>'}
+                    
+                    <div style="display: flex; flex-direction: column; align-items: center; gap: 1px;">
+                        <span class="tree-node-label">IAM ${node.index}</span>
+                        <span class="star-rating" id="star-${node.id}" style="font-size: 12px; color: #ffd700; text-align: center;"></span>
+                    </div>
+                    ${!isMobile() ? `<span class="tree-node-info" onclick="copyToClipboard('${node.address}')" title="Click to copy full address">${node.address ? node.address.substring(0, 6) + '...' + node.address.substring(node.address.length - 4) : ''}</span>` : ''}
+                </div>
+            `;
+            
+            container.appendChild(nodeElement);
+            
+            // Update star rating for this node
+            setTimeout(() => {
+                updateNodeStarRating(node.id, node.index);
+            }, 100);
+            
+            // Add click listeners
+            const expandBtn = nodeElement.querySelector('.tree-expand-btn');
+            if (expandBtn) {
+                expandBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    toggleNodeExpansion(node.id);
+                });
+            }
+            
+            const nodeContent = nodeElement.querySelector('.tree-node-content');
+            nodeContent.addEventListener('click', () => {
+                if (isEmptyNode) {
+                    // For empty nodes, open registration form
+                    openRegistrationForm(node);
+                } else {
+                    // On click, show typewriter modal with full user details
+                    showNodeDetails(node);
+                }
+            });
+        }
+
+
+
+        // Open registration form for empty nodes
+        function openRegistrationForm(emptyNode) {
+            console.log('📝 Opening registration form for empty node:', emptyNode);
+            
+            // Get parent address (upper) - this is the parent node in the tree
+            let upperAddress = null;
+            if (emptyNode.parentIndex) {
+                // Find parent node in tree
+                const parentNode = findNodeInTree(fileManagerData.treeData, `unlimited_node_${emptyNode.parentIndex}`);
+                if (parentNode && parentNode.address) {
+                    upperAddress = parentNode.address;
+                } else {
+                    // If parent not found in unlimited tree, try to find in regular tree
+                    const regularParentNode = findNodeInTree(fileManagerData.treeData, `node_${emptyNode.parentIndex}`);
+                    if (regularParentNode && regularParentNode.address) {
+                        upperAddress = regularParentNode.address;
+                    }
+                }
+            }
+            
+            if (!upperAddress) {
+                alert('Parent address not found. Cannot register new user.');
+                return;
+            }
+            
+            // Calculate slot number (emptyIndex divided by 2)
+            const slotNumber = Math.floor(parseInt(emptyNode.index) / 2);
+            
+            console.log('📍 Registration parameters:');
+            console.log(`  Upper (parent): ${upperAddress}`);
+            console.log(`  Empty Index: ${emptyNode.index}`);
+            console.log(`  Slot Number: ${slotNumber} (${emptyNode.index} ÷ 2)`);
+            console.log(`  Position: ${emptyNode.position}`);
+            
+            // Create registration URL with parameters (only upper address)
+            const baseUrl = window.location.origin + '/register.html';
+            const params = new URLSearchParams();
+            params.set('upper', upperAddress);
+            params.set('emptyIndex', slotNumber.toString());
+            params.set('position', emptyNode.position);
+            
+            const registrationUrl = `${baseUrl}?${params.toString()}`;
+            
+            console.log('🔗 Registration URL:', registrationUrl);
+            
+            // Open registration form in new tab
+            window.open(registrationUrl, '_blank');
+        }
+
+        // Toggle node expansion for flat structure
+        async function toggleNodeExpansion(nodeId) {
+            const node = findNodeInTree(fileManagerData.treeData, nodeId);
+            if (!node) return;
+            
+            if (fileManagerData.expandedNodes.has(nodeId)) {
+                // Collapsing - remove from expanded set
+                fileManagerData.expandedNodes.delete(nodeId);
+            } else {
+                // Expanding - add to expanded set and load children if needed
+                fileManagerData.expandedNodes.add(nodeId);
+                
+                // Load children if not already loaded
+                if (!node.children || node.children.length === 0) {
+                    await loadNodeChildren(node, 0);
+                }
+            }
+            
+            // Re-render the entire tree
+            renderTreeView();
+        }
+
+        // =============== Typewriter User Modal ===============
+        function formatScientificFromIntegerString(intString, significantDigits = 3) {
+            // intString: base-10 integer as string (no decimals). Returns scientific like 1.23e+6
+            if (!intString) return '0';
+            const s = String(intString).replace(/^0+/, '');
+            if (s.length === 0) return '0';
+            if (s.length === 1) return s; // single digit
+            const exponent = s.length - 1;
+            const mantissaRaw = s[0] + (s.slice(1, significantDigits));
+            const mantissa = mantissaRaw.length > 1 ? mantissaRaw[0] + '.' + mantissaRaw.slice(1) : mantissaRaw;
+            return `${mantissa}e+${exponent}`;
+        }
+
+        function shortenAddress(address) {
+            if (!address || typeof address !== 'string') return '';
+            if (address.length <= 12) return address;
+            return address.slice(0, 6) + '...' + address.slice(-4);
+        }
+
+        // Compute USD = (tokenAmount(wei) * price(wei)) / 1e18, return as $x.xx
+        function bigIntToDecimalString(valueBigInt, decimals) {
+            const negative = valueBigInt < 0n;
+            let v = negative ? -valueBigInt : valueBigInt;
+            const base = 10n ** BigInt(decimals);
+            const intPart = v / base;
+            let fracPart = (v % base).toString().padStart(decimals, '0');
+            // trim trailing zeros
+            fracPart = fracPart.replace(/0+$/, '');
+            return (negative ? '-' : '') + intPart.toString() + (fracPart ? ('.' + fracPart) : '');
+        }
+
+        function formatUsdFromWei(productWei, fractionDigits = 2) {
+            // productWei has 18 decimals
+            const s = bigIntToDecimalString(productWei, 18);
+            const n = Number(s);
+            if (!isFinite(n)) return '$0.00';
+            return '$' + n.toFixed(fractionDigits);
+        }
+
+        function formatDateTimeFromSeconds(intString) {
+            try {
+                const s = String(intString || '0').trim();
+                if (!s || s === '0') return '-';
+                const sec = parseInt(s, 10);
+                if (!Number.isFinite(sec) || sec <= 0) return '-';
+                const d = new Date(sec * 1000);
+                if (isNaN(d.getTime())) return '-';
+                // Format: YYYY-MM-DD HH:MM:SS (24h)
+                const pad = (n) => String(n).padStart(2, '0');
+                const yyyy = d.getFullYear();
+                const mm = pad(d.getMonth() + 1);
+                const dd = pad(d.getDate());
+                const HH = pad(d.getHours());
+                const MM = pad(d.getMinutes());
+                const SS = pad(d.getSeconds());
+                return `${yyyy}-${mm}-${dd} ${HH}:${MM}:${SS}`;
+            } catch (_) {
+                return '-';
+            }
+        }
+
+        async function buildUserUsdLines(details) {
+            try {
+                if (!window.contractConfig || !window.contractConfig.contract) return [];
+                const contract = window.contractConfig.contract;
+                if (typeof contract.getTokenPrice !== 'function') return [];
+                const price = await contract.getTokenPrice(); // wei per token
+                const usdLines = [];
+                const tokenKeys = ['totalPurchasedKind','depositedAmount','totalMonthlyRewarded','refclimed'];
+                for (const key of tokenKeys) {
+                    if (!details[key]) continue;
+                    const raw = String(details[key]).replace(/[^0-9]/g, '') || '0';
+                    const amountWei = BigInt(raw); // assume already wei-like big integer string
+                    const product = amountWei * BigInt(price);
+                    const usd = formatUsdFromWei(product, 2);
+                    usdLines.push(`IAM >> <span class=\"key\">${key} USD:</span> <span class=\"kv\">${usd}</span>`);
+                }
+                return usdLines;
+            } catch(_) { return []; }
+        }
+
+        function buildUserDetails(userData, iamIndex, address) {
+            const toText = (v) => {
+                try {
+                    if (typeof v === 'bigint') return v.toString();
+                    if (v === undefined || v === null) return '0';
+                    if (typeof v.toString === 'function') return v.toString();
+                    return String(v);
+                } catch (e) { return String(v); }
+            };
+
+            const d = {};
+            d['IAM Index'] = iamIndex?.toString?.() || String(iamIndex ?? '');
+            d['Address'] = shortenAddress(address || '');
+            d['index'] = toText(userData?.index);
+            d['binaryPoints'] = toText(userData?.binaryPoints);
+            d['binaryPointCap'] = toText(userData?.binaryPointCap);
+            d['binaryPointsClaimed'] = toText(userData?.binaryPointsClaimed);
+            d['totalPurchasedKind'] = toText(userData?.totalPurchasedKind);
+            d['upgradeTime'] = toText(userData?.upgradeTime);
+            d['lastClaimTime'] = toText(userData?.lastClaimTime);
+            d['leftPoints'] = toText(userData?.leftPoints);
+            d['rightPoints'] = toText(userData?.rightPoints);
+            d['lastMonthlyClaim'] = toText(userData?.lastMonthlyClaim);
+            d['totalMonthlyRewarded'] = toText(userData?.totalMonthlyRewarded);
+            d['refclimed'] = toText(userData?.refclimed);
+            d['depositedAmount'] = toText(userData?.depositedAmount);
+
+            // Fields that represent token amounts: format to scientific
+            const scientificKeys = new Set([
+                'totalPurchasedKind',
+                'depositedAmount',
+                'totalMonthlyRewarded',
+                'refclimed'
+            ]);
+            for (const key of Object.keys(d)) {
+                if (scientificKeys.has(key)) {
+                    const raw = String(d[key] ?? '0').replace(/\D/g, '') || '0';
+                    d[key] = formatScientificFromIntegerString(raw, 3);
+                }
+            }
+
+            // Human-readable dates for timestamp fields
+            const dateKeys = ['upgradeTime', 'lastClaimTime', 'lastMonthlyClaim'];
+            for (const k of dateKeys) {
+                d[k] = formatDateTimeFromSeconds(d[k]);
+            }
+            return d;
+        }
+
+        // =============== DFS subtree counting (left/right) ===============
+        async function getChildAddresses(contract, nodeIndex) {
+            try {
+                const idx = (typeof nodeIndex === 'bigint') ? nodeIndex : BigInt(nodeIndex);
+                const [leftAddress, rightAddress] = await Promise.all([
+                    contract.getLeftAddress(idx),
+                    contract.getRightAddress(idx)
+                ]);
+                return { leftAddress, rightAddress };
+            } catch (e) {
+                return { leftAddress: '0x0000000000000000000000000000000000000000', rightAddress: '0x0000000000000000000000000000000000000000' };
+            }
+        }
+
+        async function countSubtreeDFS(contract, startIndex, maxDepth = 1000000) {
+            try {
+                if (!startIndex || startIndex <= 0) return 0;
+                const start = (typeof startIndex === 'bigint') ? startIndex : BigInt(startIndex);
+                const stack = [{ index: start, depth: 1 }];
+                let count = 0;
+                while (stack.length > 0) {
+                    const { index, depth } = stack.pop();
+                    if (depth > maxDepth) continue;
+                    try {
+                        const { leftAddress, rightAddress } = await getChildAddresses(contract, index);
+                        if (leftAddress && leftAddress !== '0x0000000000000000000000000000000000000000') {
+                            const leftIndex = index * 2n;
+                            count++;
+                            stack.push({ index: leftIndex, depth: depth + 1 });
+                        }
+                        if (rightAddress && rightAddress !== '0x0000000000000000000000000000000000000000') {
+                            const rightIndex = index * 2n + 1n;
+                            count++;
+                            stack.push({ index: rightIndex, depth: depth + 1 });
+                        }
+                    } catch (e) {
+                        // ignore and continue
+                    }
+                    if (count % 200 === 0) {
+                        await new Promise(r => setTimeout(r, 0));
+                    }
+                }
+                return count;
+            } catch (_) {
+                return 0;
+            }
+        }
+
+        async function computeLeftRightCounts(contract, rootIndex) {
+            try {
+                const root = (typeof rootIndex === 'bigint') ? rootIndex : BigInt(rootIndex);
+                const { leftAddress, rightAddress } = await getChildAddresses(contract, root);
+                const leftIndex = leftAddress && leftAddress !== '0x0000000000000000000000000000000000000000' ? root * 2n : 0n;
+                const rightIndex = rightAddress && rightAddress !== '0x0000000000000000000000000000000000000000' ? root * 2n + 1n : 0n;
+                const [leftCount, rightCount] = await Promise.all([
+                    countSubtreeDFS(contract, leftIndex),
+                    countSubtreeDFS(contract, rightIndex)
+                ]);
+                return { leftCount, rightCount };
+            } catch (e) {
+                return { leftCount: 0, rightCount: 0 };
+            }
+        }
+
+        function showTypewriterUserModal(details) {
+            const modal = document.getElementById('user-typewriter-modal');
+            const title = document.getElementById('user-typewriter-title');
+            const content = document.getElementById('user-typewriter-content');
+            const closeBtn = document.getElementById('user-typewriter-close');
+
+            if (!modal || !content) return;
+
+            title.textContent = 'User Details';
+            content.textContent = '';
+            modal.style.display = 'flex';
+
+            const lines = Object.keys(details).map((k) => `IAM >> <span class="key">${k}:</span> <span class="kv">${details[k] ?? ''}</span>`);
+
+            typewriter(content, lines, 4);
+
+            const close = () => { modal.style.display = 'none'; };
+            if (closeBtn) closeBtn.onclick = close;
+            modal.onclick = (e) => { if (e.target === modal) close(); };
+        }
+
+        function typewriter(targetEl, lines, charsPerFrame = 6) {
+            let lineIdx = 0;
+            let charIdx = 0;
+            targetEl.innerHTML = '';
+
+            function step() {
+                if (lineIdx >= lines.length) return;
+                const current = lines[lineIdx];
+                charIdx = Math.min(charIdx + charsPerFrame, current.length);
+                const currentTyped = current.slice(0, charIdx);
+
+                const completed = lines.slice(0, lineIdx).join('<br>');
+                targetEl.innerHTML = completed + (completed ? '<br>' : '') + currentTyped + '▌';
+
+                if (charIdx >= current.length) {
+                    targetEl.innerHTML = completed + (completed ? '<br>' : '') + current + '<br>';
+                    lineIdx++;
+                    charIdx = 0;
+                }
+
+                if (lineIdx < lines.length) {
+                    requestAnimationFrame(step);
+                }
+            }
+
+            requestAnimationFrame(step);
+        }
+
+        // Append more lines to an already opened modal using the same typewriter effect
+        function appendTypewriterLines(extraLines) {
+            const modal = document.getElementById('user-typewriter-modal');
+            const content = document.getElementById('user-typewriter-content');
+            if (!modal || !content || modal.style.display === 'none') return;
+
+            const existing = content.innerHTML.replace(/▌$/,'');
+            const currentLines = existing ? existing.split('<br>') : [];
+            const newLines = extraLines || [];
+            const all = currentLines.concat(newLines);
+
+            // Clear and replay quickly only for new lines
+            const startIdx = currentLines.length;
+            let lineIdx = startIdx;
+            let charIdx = 0;
+            function step() {
+                if (lineIdx >= all.length) return;
+                const completed = all.slice(0, lineIdx).join('<br>');
+                const current = all[lineIdx];
+                charIdx = Math.min(charIdx + 6, current.length);
+                const currentTyped = current.slice(0, charIdx);
+                content.innerHTML = (completed ? completed + '<br>' : '') + currentTyped + '▌';
+                if (charIdx >= current.length) {
+                    content.innerHTML = (completed ? completed + '<br>' : '') + current + '<br>';
+                    lineIdx++;
+                    charIdx = 0;
+                }
+                if (lineIdx < all.length) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        // Update a rendered line that starts with a prefix
+        function updateTypewriterLineStartsWith(prefix, newLine) {
+            const modal = document.getElementById('user-typewriter-modal');
+            const content = document.getElementById('user-typewriter-content');
+            if (!modal || !content || modal.style.display === 'none') return;
+            const lines = content.innerHTML.split('<br>');
+            const idx = lines.findIndex(l => l.startsWith(prefix));
+            if (idx === -1) return;
+            lines[idx] = newLine;
+            // keep trailing cursor if present
+            const hasCursor = /▌$/.test(content.innerHTML);
+            const rebuilt = lines.join('<br>') + (hasCursor ? '▌' : '<br>');
+            content.innerHTML = rebuilt;
+        }
+
+        // Find node in tree structure
+        function findNodeInTree(node, nodeId) {
+            if (node.id === nodeId) return node;
+            
+            if (node.children && node.children.length > 0) {
+                for (let child of node.children) {
+                    const found = findNodeInTree(child, nodeId);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        // Select node
+        function selectNode(node) {
+            console.log('🎯 Node selected:', node);
+            
+            // Update breadcrumb
+            fileManagerData.currentPath = ['root', node.index];
+            updateBreadcrumb();
+            
+            // Show node details (could be expanded later)
+            showNodeDetails(node);
+        }
+
+        // Copy address to clipboard
+        function copyToClipboard(text) {
+            if (!text) return;
+            
+            navigator.clipboard.writeText(text).then(() => {
+                // Show success message
+                const toast = document.createElement('div');
+                toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+                    right: 20px;
+                    background: linear-gradient(135deg, #00ff88, #00cc6a);
+                    color: #1a202c;
+                    padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: bold;
+                    font-size: 14px;
+                    z-index: 10000;
+                    box-shadow: 0 4px 12px rgba(0, 255, 136, 0.3);
+                    animation: slideIn 0.3s ease;
+                `;
+                toast.textContent = 'Address copied to clipboard!';
+                document.body.appendChild(toast);
+                
+                // Remove toast after 3 seconds
+                setTimeout(() => {
+                    toast.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => {
+                        document.body.removeChild(toast);
+                    }, 300);
+                }, 3000);
+                
+            }).catch(err => {
+                console.error('Failed to copy address:', err);
+                
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                alert('Address copied to clipboard!');
+            });
+        }
+
+        // Show node details with typewriter effect
+        async function showNodeDetails(node) {
+            console.log('📋 Node details:', {
+                index: node.index,
+                address: node.address,
+                type: node.type,
+                hasChildren: node.hasChildren
+            });
+            
+            if (!node.address) {
+                console.log('❌ No address available');
+                return;
+            }
+            
+            try {
+                let user = null;
+                let contract = null;
+                
+                // Try to get contract from different sources
+                if (window.contractConfig && window.contractConfig.contract) {
+                    contract = window.contractConfig.contract;
+                    console.log('✅ Using contractConfig contract');
+                } else if (typeof window.connectWallet === 'function') {
+                    try {
+                        const connection = await window.connectWallet();
+                        if (connection && connection.contract) {
+                            contract = connection.contract;
+                            console.log('✅ Using connectWallet contract');
+                        }
+                    } catch (error) {
+                        console.log('❌ connectWallet failed:', error.message);
+                    }
+                }
+                
+                if (!contract) {
+                    console.log('❌ No contract available');
+                    return;
+                }
+                
+                // Get user data from contract
+                console.log('🔄 Fetching user data for address:', node.address);
+                user = await contract.users(node.address);
+                
+                console.log('👤 User data:', user);
+                
+                // Validate user data
+                if (!user || user.index === undefined) {
+                    console.log('❌ Invalid user data received');
+                    return;
+                }
+                
+                // Build details and show in typewriter modal
+                const details = buildUserDetails(user, node.index, node.address);
+                showTypewriterUserModal(details);
+                buildUserUsdLines(details).then(lines => { if (lines.length) appendTypewriterLines(lines); });
+                appendTypewriterLines([
+                    'IAM >> <span class="key">leftAddress:</span> <span class="kv">⏳ waiting...</span>',
+                    'IAM >> <span class="key">rightAddress:</span> <span class="kv">⏳ waiting...</span>',
+                    'IAM >> <span class="key">leftWalletsCount:</span> <span class="kv">⏳ calculating...</span>',
+                    'IAM >> <span class="key">rightWalletsCount:</span> <span class="kv">⏳ calculating...</span>'
+                ]);
+                // Voting line placeholder
+                appendTypewriterLines([
+                    'IAM >> <span class="key">votes:</span> <span class="kv">⏳ loading...</span>'
+                ]);
+                if (window.contractConfig && window.contractConfig.contract) {
+                    setTimeout(async () => {
+                        try {
+                            const rootIdx = parseInt(node.index, 10);
+                            const { leftAddress, rightAddress } = await getChildAddresses(window.contractConfig.contract, rootIdx);
+                            if (leftAddress) updateTypewriterLineStartsWith('IAM >> <span class="key">leftAddress:</span>', `IAM >> <span class=\"key\">leftAddress:</span> <span class=\"kv\">${shortenAddress(leftAddress)}</span>`);
+                            if (rightAddress) updateTypewriterLineStartsWith('IAM >> <span class="key">rightAddress:</span>', `IAM >> <span class=\"key\">rightAddress:</span> <span class=\"kv\">${shortenAddress(rightAddress)}</span>`);
+
+                            const { leftCount, rightCount } = await computeLeftRightCounts(window.contractConfig.contract, rootIdx);
+                            updateTypewriterLineStartsWith('IAM >> <span class="key">leftWalletsCount:</span>', `IAM >> <span class=\"key\">leftWalletsCount:</span> <span class=\"kv\">${leftCount}</span>`);
+                            updateTypewriterLineStartsWith('IAM >> <span class="key">rightWalletsCount:</span>', `IAM >> <span class=\"key\">rightWalletsCount:</span> <span class=\"kv\">${rightCount}</span>`);
+                        } catch (_) {}
+                    }, 0);
+                }
+                
+            } catch (error) {
+                console.error('❌ Error fetching user data:', error);
+                
+                const fallback = { 'IAM Index': String(node.index || 0), Address: node.address || '', Note: 'Failed to fetch user' };
+                showTypewriterUserModal(fallback);
+            }
+        }
+
+        // Voting from tree modal
+        window.voteFromTree = async function(address, isLike){
+            try {
+                if (!window.contractConfig || !window.contractConfig.contract) {
+                    await window.connectWallet();
+                }
+                const current = window.contractConfig?.signer?.address;
+                if (current && current.toLowerCase() === address.toLowerCase()) {
+                    alert('You cannot vote for yourself');
+                    return;
+                }
+                if (typeof window.voteForUser === 'function') {
+                    await window.voteForUser(address, isLike);
+                } else {
+                    const tx = await window.contractConfig.contract.voteUser(address, isLike);
+                    await tx.wait();
+                }
+                // Refresh votes line
+                try {
+                    const vs = await window.contractConfig.contract.getVoteStatus(address);
+                    const likes = Number(vs[0] ?? 0);
+                    const dislikes = Number(vs[1] ?? 0);
+                    const myVote = Number(vs[2] ?? 0);
+                    const myVoteText = myVote === 1 ? 'Liked' : myVote === 2 ? 'Disliked' : 'No vote';
+                    const votesHtml = `IAM >> <span class=\"key\">votes:</span> <span class=\"kv\"><div style=\"display:flex;gap:8px;align-items:center;flex-wrap:wrap;\"><span>👍 ${likes}</span><span>👎 ${dislikes}</span><span>• ${myVoteText}</span><button style=\"background:#00ff88;color:#0a0f1c;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;\" onclick=\"window.voteFromTree('${address}', true)\">👍 Like</button><button style=\"background:#a786ff;color:#fff;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;\" onclick=\"window.voteFromTree('${address}', false)\">👎 Dislike</button></div></span>`;
+                                updateTypewriterLineStartsWith('IAM >> <span class="key">votes:</span>', votesHtml);
+                            } catch (_) {
+                                updateTypewriterLineStartsWith('IAM >> <span class="key">votes:</span>', 'IAM >> <span class=\"key\">votes:</span> <span class=\"kv\">-</span>');
+                            }
+            
+                
+            } catch (e) {
+                alert('Voting failed: ' + (e?.message || 'Unknown error'));
+            }
+        }
+        // Load node children for flat structure - UNLIMITED VERSION
+        async function loadNodeChildren(node, depth) {
+            try {
+                console.log(`🔄 UNLIMITED LOADING children for node ${node.id} (index: ${node.index}) at depth ${depth}`);
+                
+                const contract = window.contractConfig.contract;
+                const nodeIndex = parseInt(node.index);
+                const zero = '0x0000000000000000000000000000000000000000';
+                
+                // Try primary methods
+                let leftAddress = zero;
+                let rightAddress = zero;
+                try {
+                    if (typeof contract.getLeftAddress === 'function') {
+                        console.log(`🔥 FORCE CALLING getLeftAddress(${nodeIndex})...`);
+                        leftAddress = await contract.getLeftAddress(nodeIndex);
+                    }
+                } catch(_) {}
+                try {
+                    if (typeof contract.getRightAddress === 'function') {
+                        console.log(`🔥 FORCE CALLING getRightAddress(${nodeIndex})...`);
+                        rightAddress = await contract.getRightAddress(nodeIndex);
+                    }
+                } catch(_) {}
+                
+                // Fallback: derive from indices using indexToAddress
+                const leftIndexNum = nodeIndex * 2;
+                const rightIndexNum = nodeIndex * 2 + 1;
+                if (leftAddress === zero && typeof contract.indexToAddress === 'function') {
+                    try { leftAddress = await contract.indexToAddress(leftIndexNum); } catch(_) {}
+                }
+                if (rightAddress === zero && typeof contract.indexToAddress === 'function') {
+                    try { rightAddress = await contract.indexToAddress(rightIndexNum); } catch(_) {}
+                }
+                
+                console.log(`📍 Node ${node.id} - Left: ${leftAddress}, Right: ${rightAddress}`);
+                
+                // Always create two children (placeholders if address is zero)
+                const children = [];
+                
+                // Left child
+                if (leftAddress !== zero) {
+                    const leftChild = {
+                        id: `node_${leftIndexNum}`,
+                        index: String(leftIndexNum),
+                        address: leftAddress,
+                        type: 'node',
+                        expanded: false,
+                        children: [],
+                        hasChildren: true
+                    };
+                    children.push(leftChild);
+                    console.log(`✅ Added left child: ${leftChild.id} (index: ${leftChild.index})`);
+                } else {
+                    // Create empty node for left position
+                    const leftEmptyChild = {
+                        id: `empty_node_${leftIndexNum}`,
+                        index: String(leftIndexNum),
+                        address: null,
+                        type: 'empty',
+                        expanded: false,
+                        children: [],
+                        hasChildren: false,
+                        parentIndex: nodeIndex,
+                        position: 'left'
+                    };
+                    children.push(leftEmptyChild);
+                    console.log(`📝 Added empty left child: ${leftEmptyChild.id} (index: ${leftEmptyChild.index})`);
+                }
+                
+                // Right child
+                if (rightAddress !== zero) {
+                    const rightChild = {
+                        id: `node_${rightIndexNum}`,
+                        index: String(rightIndexNum),
+                        address: rightAddress,
+                        type: 'node',
+                        expanded: false,
+                        children: [],
+                        hasChildren: true
+                    };
+                    children.push(rightChild);
+                    console.log(`✅ Added right child: ${rightChild.id} (index: ${rightChild.index})`);
+                } else {
+                    // Create empty node for right position
+                    const rightEmptyChild = {
+                        id: `empty_node_${rightIndexNum}`,
+                        index: String(rightIndexNum),
+                        address: null,
+                        type: 'empty',
+                        expanded: false,
+                        children: [],
+                        hasChildren: false,
+                        parentIndex: nodeIndex,
+                        position: 'right'
+                    };
+                    children.push(rightEmptyChild);
+                    console.log(`📝 Added empty right child: ${rightEmptyChild.id} (index: ${rightEmptyChild.index})`);
+                }
+                
+                // Update node with children (always two)
+                node.children = children;
+                node.hasChildren = true;
+                
+                console.log(`🎯 Node ${node.id} now has ${children.length} children`);
+                
+                // Re-render the entire tree to show new children
+                renderTreeView();
+                
+            } catch (error) {
+                console.error('❌ Error loading node children:', error);
+            }
+        }
+
+
+
+
+
+        // Show empty tree state
+        function showEmptyTree() {
+            const treeView = document.getElementById('tree-view');
+            if (!treeView) return;
+            
+            treeView.innerHTML = `
+                <div class="tree-empty">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">📁</div>
+                    <div>No tree data available</div>
+                    <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #a786ff;">
+                        Connect your wallet to load the network tree
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Show unregistered user message
+        function showUnregisteredUserMessage() {
+            const treeView = document.getElementById('tree-view');
+            if (!treeView) return;
+            
+            treeView.innerHTML = `
+                <div class="tree-empty">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">🚫</div>
+                    <div>Access Denied</div>
+                    <div style="font-size: 0.9rem; margin-top: 0.5rem; color: #ff6b6b;">
+                        You need to be registered to view the network tree
+                    </div>
+                    <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #a786ff;">
+                        Please register first to access this feature
+                    </div>
+                </div>
+            `;
+        }
+
+        // Show error tree state
+        function showErrorTree() {
+            const treeView = document.getElementById('tree-view');
+            if (!treeView) return;
+            
+            treeView.innerHTML = `
+                <div class="tree-empty">
+                    <div style="font-size: 2rem; margin-bottom: 1rem;">❌</div>
+                    <div>Error loading tree data</div>
+                    <div style="font-size: 0.8rem; margin-top: 0.5rem; color: #ff6b6b;">
+                        Please try refreshing the page
+                    </div>
+                </div>
+            `;
+        }
+
+        // Render all networks in 4 columns with fast traversal
+        async function renderNetworkLists() {
+            console.log('🚀 Starting fast network traversal...');
+            
+            // Get all network lists
+            const network1List = document.getElementById('network-1-list');
+            const network2List = document.getElementById('network-2-list');
+            const network3List = document.getElementById('network-3-list');
+            const network4List = document.getElementById('network-4-list');
+            
+            if (!network1List || !network2List || !network3List || !network4List) return;
+            
+            // Clear existing content
+            network1List.innerHTML = '';
+            network2List.innerHTML = '';
+            network3List.innerHTML = '';
+            network4List.innerHTML = '';
+            
+            // Show loading state
+            const loadingHtml = '<div style="text-align: center; color: #00ff88; padding: 1rem;">🔄 Loading network...</div>';
+            network1List.innerHTML = loadingHtml;
+            network2List.innerHTML = loadingHtml;
+            network3List.innerHTML = loadingHtml;
+            network4List.innerHTML = loadingHtml;
+            
+            try {
+                // Get all networks using fast traversal
+                const allNetworks = await getAllNetworksFast();
+                console.log('✅ All networks loaded:', allNetworks);
+                
+                // Render each network in its column
+                renderNetworkInColumn(network1List, allNetworks.network1, 'Network 1', 1);
+                renderNetworkInColumn(network2List, allNetworks.network2, 'Network 2', 2);
+                renderNetworkInColumn(network3List, allNetworks.network3, 'Network 3', 3);
+                renderNetworkInColumn(network4List, allNetworks.network4, 'Network 4', 4);
+                
+            } catch (error) {
+                console.error('❌ Error loading networks:', error);
+                const errorHtml = '<div style="text-align: center; color: #ff4757; padding: 1rem;">❌ Error loading network</div>';
+                network1List.innerHTML = errorHtml;
+                network2List.innerHTML = errorHtml;
+                network3List.innerHTML = errorHtml;
+                network4List.innerHTML = errorHtml;
+            }
+        }
+
+        // Fast traversal to get all networks
+        async function getAllNetworksFast() {
+            if (!window.contractConfig || !window.contractConfig.contract) {
+                throw new Error('Contract not available');
+            }
+
+            const contract = window.contractConfig.contract;
+            const userAddress = window.contractConfig.userAddress;
+            
+            if (!userAddress) {
+                throw new Error('User address not available');
+            }
+
+            console.log('📡 Starting fast traversal for user:', userAddress);
+            
+            // Get user's index
+            const userIndex = await window.getIndexByAddress(contract, userAddress);
+            console.log('✅ User index:', userIndex.toString());
+            
+            const allNetworks = {
+                network1: [],
+                network2: [],
+                network3: [],
+                network4: []
+            };
+            
+            // Get root children first
+            const rootChildren = await getNodeChildrenFast(contract, userIndex);
+            console.log('✅ Root children:', rootChildren);
+            
+            if (rootChildren.length === 0) {
+                return allNetworks;
+            }
+            
+            // Process each root child and its descendants
+            const promises = [];
+            
+            if (rootChildren.length > 0) {
+                promises.push(traverseNetworkFast(contract, rootChildren[0], allNetworks.network1, 'Network 1'));
+            }
+            if (rootChildren.length > 1) {
+                promises.push(traverseNetworkFast(contract, rootChildren[1], allNetworks.network2, 'Network 2'));
+            }
+            if (rootChildren.length > 2) {
+                promises.push(traverseNetworkFast(contract, rootChildren[2], allNetworks.network3, 'Network 3'));
+            }
+            if (rootChildren.length > 3) {
+                promises.push(traverseNetworkFast(contract, rootChildren[3], allNetworks.network4, 'Network 4'));
+            }
+            
+            // Wait for all networks to be traversed
+            await Promise.all(promises);
+            
+            console.log('✅ Fast traversal completed:', allNetworks);
+            return allNetworks;
+        }
+
+        // Fast traversal for a single network
+        async function traverseNetworkFast(contract, rootIndex, networkArray, networkName) {
+            console.log(`🔄 Traversing ${networkName} starting from index:`, rootIndex.toString());
+            
+            const queue = [rootIndex];
+            const visited = new Set();
+            let maxDepth = 0;
+            // No node limit - render unlimited tree
+            
+            while (queue.length > 0) {
+                const currentIndex = queue.shift();
+                
+                if (visited.has(currentIndex.toString())) continue;
+                visited.add(currentIndex.toString());
+                
+                // Add current node to network
+                networkArray.push({
+                    index: currentIndex.toString(),
+                    depth: maxDepth,
+                    expanded: false,
+                    children: []
+                });
+                
+                // Get children for current node
+                try {
+                    const children = await getNodeChildrenFast(contract, currentIndex);
+                    
+                    if (children && children.length > 0) {
+                        // Add children to queue for next level
+                        queue.push(...children);
+                        maxDepth++;
+                    }
+                } catch (error) {
+                    console.warn(`⚠️ Could not get children for index ${currentIndex}:`, error);
+                    // Continue with next node
+                }
+                
+                // Small delay to prevent overwhelming the contract
+                await new Promise(resolve => setTimeout(resolve, 10));
+            }
+            
+            console.log(`✅ ${networkName} traversal completed: ${networkArray.length} nodes`);
+        }
+
+        // Fast method to get node children
+        async function getNodeChildrenFast(contract, nodeIndex) {
+            try {
+                // Convert index to address
+                const nodeAddress = await window.getAddressByIndex(contract, nodeIndex);
+                if (!nodeAddress || nodeAddress === '0x0000000000000000000000000000000000000000') {
+                    return [];
+                }
+                
+                // Get user tree
+                const userTree = await contract.getUserTree(nodeAddress);
+                const leftAddress = userTree[0];
+                const rightAddress = userTree[1];
+                const activated = userTree[2];
+                
+                const children = [];
+                
+                if (activated) {
+                    if (leftAddress && leftAddress !== '0x0000000000000000000000000000000000000000') {
+                        const leftIndex = await window.getIndexByAddress(contract, leftAddress);
+                        if (leftIndex && leftIndex > 0n) {
+                            children.push(leftIndex);
+                        }
+                    }
+                    
+                    if (rightAddress && rightAddress !== '0x0000000000000000000000000000000000000000') {
+                        const rightIndex = await window.getIndexByAddress(contract, rightAddress);
+                        if (rightIndex && rightIndex > 0n) {
+                            children.push(rightIndex);
+                        }
+                    }
+                }
+                
+                return children;
+            } catch (error) {
+                console.warn(`⚠️ Error getting children for index ${nodeIndex}:`, error);
+                return [];
+            }
+        }
+
+        // Render network in a specific column
+        function renderNetworkInColumn(container, networkData, networkName, networkNumber) {
+            console.log(`🔄 Rendering ${networkName}:`, networkData.length, 'nodes');
+            
+            if (networkData.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #a0aec0; padding: 2rem;">No data available</div>';
+                return;
+            }
+            
+            // Clear container
+            container.innerHTML = '';
+            
+            // Add network stats
+            const statsDiv = document.createElement('div');
+            statsDiv.style.cssText = `
+                background: rgba(0, 0, 0, 0.2);
+                border-radius: 6px;
+                padding: 0.5rem;
+                margin-bottom: 1rem;
+                text-align: center;
+                font-size: 0.9em;
+                color: #00ff88;
+            `;
+            statsDiv.innerHTML = `📊 ${networkData.length} nodes found`;
+            container.appendChild(statsDiv);
+            
+            // Render all nodes in the network
+            networkData.forEach((node, index) => {
+                const networkItem = createNetworkItem(node, networkName, networkNumber);
+                container.appendChild(networkItem);
+            });
+            
+            // Add expand button for manual expansion if needed
+            const expandButton = document.createElement('button');
+            expandButton.style.cssText = `
+                width: 100%;
+                background: linear-gradient(45deg, #00ff88, #00cc6a);
+                color: #1a202c;
+            border: none;
+                padding: 0.5rem;
+                border-radius: 6px;
+                font-weight: 600;
+            cursor: pointer;
+                            margin-top: 1rem;
+                transition: all 0.3s ease;
+            `;
+            expandButton.innerHTML = '🔄 Expand More';
+            expandButton.onclick = () => expandNetworkManually(networkNumber, networkData);
+            container.appendChild(expandButton);
+        }
+
+        // Manual expansion for a network
+        async function expandNetworkManually(networkNumber, currentNetworkData) {
+            console.log(`🔄 Manual expansion for Network ${networkNumber}`);
+            
+            const container = document.getElementById(`network-${networkNumber}-list`);
+            if (!container) return;
+            
+            // Show loading
+            const expandButton = container.querySelector('button');
+            if (expandButton) {
+                expandButton.innerHTML = '🔄 Expanding...';
+                expandButton.disabled = true;
+            }
+            
+            try {
+                // Get more nodes for this network
+                const newNodes = await getMoreNodesForNetwork(networkNumber, currentNetworkData);
+                
+                if (newNodes.length > 0) {
+                    // Add new nodes to the network
+                    newNodes.forEach(node => {
+                        const networkItem = createNetworkItem(node, `Network ${networkNumber}`, networkNumber);
+                        container.insertBefore(networkItem, expandButton);
+                    });
+                    
+                    // Update stats
+                    const statsDiv = container.querySelector('div');
+                    if (statsDiv) {
+                        const totalNodes = currentNetworkData.length + newNodes.length;
+                        statsDiv.innerHTML = `📊 ${totalNodes} nodes found`;
+                    }
+                }
+                
+            } catch (error) {
+                console.error(`❌ Error expanding Network ${networkNumber}:`, error);
+            } finally {
+                // Reset button
+                if (expandButton) {
+                    expandButton.innerHTML = '🔄 Expand More';
+                    expandButton.disabled = false;
+                }
+            }
+        }
+
+        // Get more nodes for a specific network
+        async function getMoreNodesForNetwork(networkNumber, currentNetworkData) {
+            // This is a simplified version - in reality, you'd implement more sophisticated expansion logic
+            const newNodes = [];
+            
+            // For now, just return some dummy data or implement based on your specific needs
+            console.log(`📡 Getting more nodes for Network ${networkNumber}`);
+            
+            return newNodes;
+        }
+
+        // Create a network item for the list
+        function createNetworkItem(node, networkName, networkNumber) {
+            const networkItem = document.createElement('div');
+            networkItem.className = 'network-item';
+            
+            // Determine odd/even for styling
+            const nodeIndex = parseInt(node.index);
+            networkItem.classList.add(nodeIndex % 2 === 0 ? 'even' : 'odd');
+            
+            // Create expand button (for manual expansion)
+            const expandBtn = document.createElement('button');
+            expandBtn.className = 'expand-btn';
+            expandBtn.textContent = '▶';
+            expandBtn.onclick = () => expandNodeManually(node, networkNumber);
+            
+            // Create index display
+            const indexDisplay = document.createElement('span');
+            indexDisplay.className = 'index-display';
+            indexDisplay.textContent = 'IAM ' + node.index;
+            indexDisplay.style.cursor = 'pointer';
+            indexDisplay.onclick = (e) => {
+                e.stopPropagation();
+                showUserPopup(node);
+            };
+            
+            // Create depth indicator
+            const depthIndicator = document.createElement('span');
+            depthIndicator.style.cssText = `
+                font-size: 0.7em;
+                color: #a0aec0;
+                margin-left: 0.5rem;
+                background: rgba(0, 0, 0, 0.3);
+                padding: 0.2rem 0.4rem;
+                border-radius: 4px;
+            `;
+            depthIndicator.textContent = `D${node.depth || 0}`;
+            
+            // Create button container
+            const buttonContainer = document.createElement('div');
+            buttonContainer.className = 'pyramid-button';
+            buttonContainer.appendChild(expandBtn);
+            buttonContainer.appendChild(indexDisplay);
+            buttonContainer.appendChild(depthIndicator);
+            
+            networkItem.appendChild(buttonContainer);
+            
+            return networkItem;
+        }
+
+        // Manual expansion for a specific node
+        async function expandNodeManually(node, networkNumber) {
+            console.log(`🔄 Manual expansion for node ${node.index} in Network ${networkNumber}`);
+            
+            try {
+                if (!window.contractConfig || !window.contractConfig.contract) {
+                    throw new Error('Contract not available');
+                }
+
+                const contract = window.contractConfig.contract;
+                
+                // Get children for this node
+                const children = await getNodeChildrenFast(contract, BigInt(node.index));
+                
+                if (children && children.length > 0) {
+                    // Add children to the network
+                    const container = document.getElementById(`network-${networkNumber}-list`);
+                            if (container) {
+                        children.forEach((childIndex, index) => {
+                            const childNode = {
+                                index: childIndex.toString(),
+                                depth: (node.depth || 0) + 1,
+                                expanded: false,
+                                children: []
+                            };
+                            
+                            const childItem = createNetworkItem(childNode, `Network ${networkNumber}`, networkNumber);
+                            
+                            // Insert after the current node
+                            const currentItem = container.querySelector(`[data-node-index="${node.index}"]`);
+                            if (currentItem) {
+                                currentItem.insertAdjacentElement('afterend', childItem);
+                            } else {
+                                container.appendChild(childItem);
+                            }
+                        });
+                            }
+                        }
+                        
+                    } catch (error) {
+                console.error(`❌ Error expanding node ${node.index}:`, error);
+            }
+        }
+
+
+
+
+
+        // Load real data and render tree
+        async function loadRealDataAndRender() {
+            try {
+                console.log('🔄 Loading real wallet data...');
+                console.log('🔍 Contract config:', window.contractConfig);
+                console.log('🔍 User address:', window.contractConfig?.userAddress);
+                
+
+                
+                // Check if wallet is connected
+                if (!window.contractConfig || !window.contractConfig.contract) {
+                    console.log('⚠️ Wallet not connected, showing empty state');
+                    showEmptyTree();
+                    return;
+                }
+                
+                // Ensure user address is set
+                if (!window.contractConfig.userAddress) {
+                    if (window.contractConfig.signer && window.contractConfig.signer.address) {
+                        window.contractConfig.userAddress = window.contractConfig.signer.address;
+                        console.log('✅ User address set from signer:', window.contractConfig.userAddress);
+                    } else if (window.ethereum && window.ethereum.selectedAddress) {
+                        window.contractConfig.userAddress = window.ethereum.selectedAddress;
+                        console.log('✅ User address set from provider:', window.contractConfig.userAddress);
+                    }
+                }
+                
+                // Get real wallet data
+                const realData = await getRealWalletData();
+                console.log('🔍 Real data result:', realData);
+                
+                if (realData) {
+                    console.log('✅ Real data loaded, rendering tree...');
+                    
+                    // Update status display after successful data load
+                    const statusDiv = document.getElementById('auto-connect-status');
+                    if (statusDiv && window.contractConfig && window.contractConfig.userAddress) {
+                        const shortAddress = window.contractConfig.userAddress.slice(0, 6) + '...' + window.contractConfig.userAddress.slice(-4);
+                        statusDiv.className = 'connect-wallet-btn modern-btn connected';
+                        statusDiv.textContent = `✅ ${shortAddress}`;
+                        statusDiv.style.display = 'block';
+                    }
+                    
+                    // Load the file manager tree directly
+                    await loadFileManagerTree();
+                } else {
+                    console.log('⚠️ Could not load real data, showing unregistered message');
+                    
+                    // Update status display for failed data load
+                    const statusDiv = document.getElementById('auto-connect-status');
+                    if (statusDiv) {
+                        statusDiv.className = 'connect-wallet-btn modern-btn error';
+                        statusDiv.textContent = '⚠️ Data Load Failed';
+                        statusDiv.style.display = 'block';
+                        setTimeout(() => {
+                            if (window.contractConfig && window.contractConfig.userAddress) {
+                                const shortAddress = window.contractConfig.userAddress.slice(0, 6) + '...' + window.contractConfig.userAddress.slice(-4);
+                                statusDiv.className = 'connect-wallet-btn modern-btn connected';
+                                statusDiv.textContent = `✅ ${shortAddress}`;
+                            } else {
+                                statusDiv.className = 'connect-wallet-btn modern-btn';
+                                statusDiv.textContent = '🔗 Connect Wallet';
+                            }
+                        }, 3000);
+                    }
+                    
+                    // Show unregistered user message
+                    showUnregisteredUserMessage();
+                }
+
+            } catch (error) {
+                console.error('❌ Error loading real data:', error);
+                console.log('⚠️ Error occurred, showing unregistered message');
+                showUnregisteredUserMessage();
+            }
+        }
+        
+        // Simple connect wallet function
+        async function simpleConnectWallet() {
+            try {
+                console.log('🔗 Simple wallet connection...');
+                
+                // Check if MetaMask is available
+                if (!window.ethereum) {
+                    console.log('❌ MetaMask not detected');
+                    alert('Please install MetaMask to connect your wallet');
+                    return false;
+                }
+                
+                // Request account access
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                if (accounts && accounts.length > 0) {
+                    console.log('✅ Wallet connected:', accounts[0]);
+                    
+                    // Set up contract config
+                    if (!window.contractConfig) {
+                        window.contractConfig = {};
+                    }
+                    window.contractConfig.userAddress = accounts[0];
+                    
+                    // Try to create contract if we have the address and ABI
+                    if (window.IAM_ADDRESS && window.IAM_ABI) {
+                        try {
+                            const provider = new ethers.BrowserProvider(window.ethereum);
+                            const signer = await provider.getSigner();
+                            window.contractConfig.contract = new ethers.Contract(
+                                window.IAM_ADDRESS,
+                                window.IAM_ABI,
+                                signer
+                            );
+                            window.contractConfig.contractAddress = window.IAM_ADDRESS;
+                            window.contractConfig.contractABI = window.IAM_ABI;
+                            console.log('✅ Contract created successfully');
+                        } catch (contractError) {
+                            console.log('⚠️ Contract creation failed:', contractError.message);
+                        }
+                    } else {
+                        console.log('⚠️ IAM_ADDRESS or IAM_ABI not available, using fallback');
+                        // Use fallback contract address if available
+                        const fallbackAddress = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D'; // IAM contract address
+                        if (fallbackAddress && (window.IAM_ABI || window.CONTRACT_ABI)) {
+                            try {
+                                const provider = new ethers.BrowserProvider(window.ethereum);
+                                const signer = await provider.getSigner();
+                                const abi = window.IAM_ABI || window.CONTRACT_ABI;
+                                window.contractConfig.contract = new ethers.Contract(
+                                    fallbackAddress,
+                                    abi,
+                                    signer
+                                );
+                                window.contractConfig.contractAddress = fallbackAddress;
+                                window.contractConfig.contractABI = abi;
+                                console.log('✅ Fallback contract created successfully');
+                            } catch (contractError) {
+                                console.log('⚠️ Fallback contract creation failed:', contractError.message);
+                            }
+                        }
+                    }
+                    
+                    return true;
+                } else {
+                    console.log('❌ No accounts returned');
+                    return false;
+                }
+            } catch (error) {
+                console.error('❌ Error connecting wallet:', error);
+                if (error.code === 4001) {
+                    console.log('👤 User rejected connection');
+                }
+                return false;
+            }
+        }
+
+        
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Pyramid Tree page loaded');
+            
+            
+            
+            // Debug wallet connection
+            console.log('🔍 Debug Wallet Connection:');
+            console.log('- window.ethereum:', !!window.ethereum);
+            console.log('- window.IAM_ADDRESS:', window.IAM_ADDRESS);
+            console.log('- window.IAM_ABI:', !!window.IAM_ABI);
+            console.log('- window.contractConfig:', !!window.contractConfig);
+            console.log('- window.connectWallet:', !!window.connectWallet);
+            
+            // Setup auto-connect status (function not available)
+            
+            // Test function for debugging
+            window.testConnectWallet = async function() {
+                console.log('🧪 Testing connect wallet...');
+                const result = await simpleConnectWallet();
+                console.log('🧪 Test result:', result);
+                return result;
+            };
+            
+            // Make functions globally available for debugging
+            window.simpleConnectWallet = simpleConnectWallet;
+            
+            // Wait for scripts to load and try multiple times
+            let attempts = 0;
+            const maxAttempts = 5;
+            
+            // Auto-connect flow enabled
+            const tryConnectWallet = async () => {
+                attempts++;
+                console.log(`🔄 Attempt ${attempts}/${maxAttempts} to auto-connect wallet...`);
+                
+                try {
+                    // Check if MetaMask is available
+                    if (!window.ethereum) {
+                        if (attempts < maxAttempts) {
+                            console.log('⏳ MetaMask not detected, waiting...');
+                            setTimeout(() => tryConnectWallet(), 1000);
+                            return;
+                        } else {
+                            console.log('❌ MetaMask not available after max attempts');
+                            showEmptyTree();
+                            return;
+                        }
+                    }
+                    
+                    // Check if already connected
+                    if (window.ethereum.selectedAddress) {
+                        console.log('✅ Wallet already connected:', window.ethereum.selectedAddress);
+                        
+                        // Set up contract config
+                        if (!window.contractConfig) {
+                            window.contractConfig = {};
+                        }
+                        window.contractConfig.userAddress = window.ethereum.selectedAddress;
+                        
+                        // Try to create contract
+                        if (window.IAM_ADDRESS && (window.IAM_ABI || window.CONTRACT_ABI)) {
+                            try {
+                                const provider = new ethers.BrowserProvider(window.ethereum);
+                                const signer = await provider.getSigner();
+                                const abi = window.IAM_ABI || window.CONTRACT_ABI;
+                                window.contractConfig.contract = new ethers.Contract(
+                                    window.IAM_ADDRESS,
+                                    abi,
+                                    signer
+                                );
+                                window.contractConfig.contractAddress = window.IAM_ADDRESS;
+                                window.contractConfig.contractABI = abi;
+                                console.log('✅ Contract created for auto-connection');
+                            } catch (contractError) {
+                                console.log('⚠️ Contract creation failed:', contractError.message);
+                            }
+                        }
+                        
+                        console.log('✅ Auto-connection successful, loading real data...');
+                        
+                        
+                        
+                        await loadRealDataAndRender();
+                        return;
+                    }
+                    
+                    // Try to connect using shared connector first
+                    const walletConnected = window.connectWallet ? await window.connectWallet() : await simpleConnectWallet();
+                    
+                    if (walletConnected) {
+                        console.log('✅ Auto-connection successful, loading real data...');
+                        
+                        // Ensure userAddress is set after connection
+                        if (window.contractConfig && window.contractConfig.signer && window.contractConfig.signer.address) {
+                            window.contractConfig.userAddress = window.contractConfig.signer.address;
+                            console.log('✅ User address set from signer:', window.contractConfig.userAddress);
+                        } else if (window.ethereum && window.ethereum.selectedAddress) {
+                            if (!window.contractConfig) {
+                                window.contractConfig = {};
+                            }
+                            window.contractConfig.userAddress = window.ethereum.selectedAddress;
+                            console.log('✅ User address set from provider:', window.contractConfig.userAddress);
+                        }
+                        
+                        await loadRealDataAndRender();
+                    } else {
+                        console.log('⚠️ Auto-connection failed, showing default data');
+                        
+                        
+                        
+                        showEmptyTree();
+                    }
+            } catch (error) {
+                    console.error(`❌ Error in auto-connection attempt ${attempts}:`, error);
+                    if (attempts < maxAttempts) {
+                        setTimeout(() => tryConnectWallet(), 1000);
+                    } else {
+                        console.log('❌ Max auto-connection attempts reached, showing empty state');
+                        showEmptyTree();
+                    }
+                }
+            };
+            
+            // Debug MetaMask detection
+            console.log('🔍 Debug MetaMask Detection:');
+            console.log('- window.ethereum:', !!window.ethereum);
+            console.log('- window.web3:', !!window.web3);
+            console.log('- window.web3.currentProvider:', !!window.web3?.currentProvider);
+            console.log('- isMobile():', isMobile());
+            console.log('- User Agent:', navigator.userAgent);
+            console.log('- Screen width:', window.innerWidth);
+            
+            
+            
+            // Enable auto-connecting
+            tryConnectWallet();
+            
+            
+            // Listen for account changes
+            if (window.ethereum) {
+                window.ethereum.on('accountsChanged', async (accounts) => {
+                    console.log('🔄 Account changed:', accounts);
+                    if (accounts && accounts.length > 0) {
+                        if (window.contractConfig) {
+                            window.contractConfig.userAddress = accounts[0];
+                        }
+                        await loadRealDataAndRender();
+                    } else {
+                        showEmptyTree();
+                    }
+                });
+                
+                window.ethereum.on('chainChanged', () => {
+                    console.log('🔄 Chain changed, reloading...');
+                    window.location.reload();
+                });
+            }
+        });
+        
+        // Test function to create empty nodes manually
+        window.testEmptyNodes = function() {
+            console.log('🧪 Testing empty nodes creation...');
+            
+            // Find a node that has children
+            const rootNode = fileManagerData.treeData;
+            if (rootNode && rootNode.children) {
+                // Add empty nodes to the first child
+                const firstChild = rootNode.children[0];
+                if (firstChild) {
+                    const nodeIndex = parseInt(firstChild.index);
+                    const leftIndex = nodeIndex * 2;
+                    const rightIndex = nodeIndex * 2 + 1;
+                    
+                    // Add empty nodes
+                    firstChild.children = [
+                        {
+                            id: `empty_node_${leftIndex}`,
+                            index: leftIndex.toString(),
+                            address: null,
+                            type: 'empty',
+                            expanded: false,
+                            children: [],
+                            hasChildren: false,
+                            parentIndex: nodeIndex,
+                            position: 'left'
+                        },
+                        {
+                            id: `empty_node_${rightIndex}`,
+                            index: rightIndex.toString(),
+                            address: null,
+                            type: 'empty',
+                            expanded: false,
+                            children: [],
+                            hasChildren: false,
+                            parentIndex: nodeIndex,
+                            position: 'right'
+                        }
+                    ];
+                    
+                    console.log(`✅ Added empty nodes to ${firstChild.id}`);
+                    
+                    // Re-render tree
+                    renderTreeView();
+                }
+            }
+        };
+        
+        // Force create empty nodes for all existing nodes
+        window.forceCreateEmptyNodes = function() {
+            console.log('🧪 Force creating empty nodes for all nodes...');
+            
+            function addEmptyNodesToNode(node) {
+                if (node && node.children && node.children.length > 0) {
+                    // Check if children are real nodes or empty nodes
+                    const hasRealChildren = node.children.some(child => child.type === 'node' && child.address);
+                    const hasEmptyChildren = node.children.some(child => child.type === 'empty');
+                    
+                    if (hasRealChildren && !hasEmptyChildren) {
+                        // Add empty nodes to this node
+                        const nodeIndex = parseInt(node.index);
+                        const leftIndex = nodeIndex * 2;
+                        const rightIndex = nodeIndex * 2 + 1;
+                        
+                        // Check if left and right positions are empty
+                        const leftExists = node.children.some(child => parseInt(child.index) === leftIndex);
+                        const rightExists = node.children.some(child => parseInt(child.index) === rightIndex);
+                        
+                        if (!leftExists) {
+                            node.children.push({
+                                id: `empty_node_${leftIndex}`,
+                                index: leftIndex.toString(),
+                                address: null,
+                                type: 'empty',
+                                expanded: false,
+                                children: [],
+                                hasChildren: false,
+                                parentIndex: nodeIndex,
+                                position: 'left'
+                            });
+                            console.log(`📝 Added empty left node ${leftIndex} to ${node.id}`);
+                        }
+                        
+                        if (!rightExists) {
+                            node.children.push({
+                                id: `empty_node_${rightIndex}`,
+                                index: rightIndex.toString(),
+                                address: null,
+                                type: 'empty',
+                                expanded: false,
+                                children: [],
+                                hasChildren: false,
+                                parentIndex: nodeIndex,
+                                position: 'right'
+                            });
+                            console.log(`📝 Added empty right node ${rightIndex} to ${node.id}`);
+                        }
+                    }
+                    
+                    // Recursively process children
+                    node.children.forEach(child => addEmptyNodesToNode(child));
+                }
+            }
+            
+            // Process the entire tree
+            addEmptyNodesToNode(fileManagerData.treeData);
+            
+            // Re-render tree
+            renderTreeView();
+            
+            console.log('✅ Empty nodes creation completed');
+        };
+        
+        // Test function to test registration form opening
+        window.testRegistrationForm = function() {
+            console.log('🧪 Testing registration form opening...');
+            
+            // Create a test empty node with a parent that has an address
+            const testEmptyNode = {
+                id: 'test_empty_node',
+                index: '6', // This will be divided by 2 to get slot number 3
+                address: null,
+                type: 'empty',
+                expanded: false,
+                children: [],
+                hasChildren: false,
+                parentIndex: 2,
+                position: 'left'
+            };
+            
+            // Add a parent node to the tree for testing
+            if (fileManagerData.treeData) {
+                const parentNode = {
+                    id: 'unlimited_node_2',
+                    index: '2',
+                    address: '0x1234567890123456789012345678901234567890', // Test address
+                    type: 'node',
+                    expanded: false,
+                    children: [],
+                    hasChildren: true
+                };
+                
+                // Add parent to tree if not exists
+                if (!fileManagerData.treeData.children) {
+                    fileManagerData.treeData.children = [];
+                }
+                fileManagerData.treeData.children.push(parentNode);
+            }
+            
+            console.log('📝 Test empty node:', testEmptyNode);
+            
+            // Test the registration form opening
+            openRegistrationForm(testEmptyNode);
+        };
+    </script>
+    
+    <!-- Mobile User Popup disabled -->
+    <script>
+        // Disabled to avoid 404s
+    </script>
+    
+</body>
+</html> 
+</html> 

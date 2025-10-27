@@ -1,0 +1,3085 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>IAMPHOENIX - Dashboard</title>
+  <script>window.SKIP_META = true;</script>
+  <script>
+    // Suppress noisy extension/MetaMask RPC messages that don't affect functionality
+    window.addEventListener('error', function(e){
+      const m = (e && e.message) || '';
+      if (m.includes('Could not establish connection') || m.includes('getEnabledChains') || m.includes('isDefaultWallet') || m.includes('Internal JSON-RPC error')) {
+        e.preventDefault();
+        return false;
+      }
+    });
+    window.addEventListener('unhandledrejection', function(e){
+      const r = e && e.reason;
+      const msg = (r && (r.message || r)) || '';
+      if (typeof msg === 'string' && (msg.includes('Could not establish connection') || msg.includes('getEnabledChains') || msg.includes('isDefaultWallet') || msg.includes('Internal JSON-RPC error'))) {
+        e.preventDefault();
+        return false;
+      }
+    });
+  </script>
+    <style>
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; background:#0a0b0f; color:#e6eaf0; }
+    .container { 
+      max-width: 1100px; 
+      margin: 0 auto; 
+      padding: 24px; 
+      box-sizing: border-box; 
+      width: 100%;
+      overflow: visible;
+    }
+    
+    /* Ensure all main content divs have consistent width */
+    .additional-content {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    
+    .card {
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    h1 { margin: 0 0 16px; font-size: 20px; color:#9ecbff; text-align: center; }
+    .grid { 
+      display: grid; 
+      grid-template-columns: repeat(2, minmax(0,1fr)); 
+      gap: 16px; 
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+      overflow: visible;
+    }
+    @media (max-width: 1024px) { .grid { grid-template-columns: 1fr; gap: 14px; } }
+    .card { background: #121521; border: 1px solid #1f2433; border-radius: 12px; padding: 16px; }
+    .card h2 { margin: 0 0 12px; font-size: 16px; color:#aef3c6; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: space-between; }
+    #contract-card h2 { margin: 0 0 8px; font-size: 16px; color: #00ff88; text-align: center; }
+    .card h2:hover { color: #c4f7d6; }
+    .card h2 .toggle-icon { transition: transform 0.3s ease; font-size: 16px; }
+    .card h2.collapsed .toggle-icon { transform: rotate(-90deg); }
+    /* Contract Info – enhanced theming */
+    #contract-card { 
+      background: linear-gradient(135deg, #1a1f2e 0%, #232946 100%);
+      border: 1px solid #00ff88;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
+      overflow: visible;
+      width: 100%;
+      max-width: 100%;
+      min-width: 0;
+      padding: 12px 16px;
+      margin: 10px 0;
+    }
+    #contract-card .row { 
+      padding: 4px 0; 
+      border-bottom: 1px dashed rgba(0,255,136,0.18);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: nowrap;
+      min-width: 0;
+      width: 100%;
+    }
+    #contract-card .row:last-child { border-bottom: 0; }
+    #contract-card .label {
+      font-weight: 600;
+      color: #aef3c6;
+      min-width: 90px;
+      max-width: 90px;
+      font-size: 10px;
+      flex-shrink: 0;
+    }
+    #contract-card .value {
+      flex: 1;
+      font-family: monospace;
+      font-size: 11px;
+      color: #e6eaf0;
+      word-break: break-all;
+      background: rgba(0, 255, 136, 0.05);
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 255, 136, 0.1);
+      min-width: 0;
+      overflow-wrap: break-word;
+      white-space: nowrap;
+      display: flex;
+      align-items: center;
+      flex-wrap: nowrap;
+    }
+    #contract-card .value a {
+      color: #60a5fa;
+      text-decoration: none;
+      font-weight: 600;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    #contract-card .value a:hover {
+      color: #93c5fd;
+      text-decoration: underline;
+    }
+    
+    /* Contract Info scroll and overflow handling */
+    #contract-content {
+      overflow: visible;
+      width: 100%;
+      max-width: 100%;
+    }
+    
+    #contract-content.collapsed {
+      display: none;
+    }
+    
+    /* Ensure all contract data is visible */
+    #contract-card {
+      overflow: visible;
+    }
+    
+    #contract-card a.value { 
+      color: #9ecbff; 
+      text-decoration: none; 
+      background: rgba(59,130,246,0.08);
+      border: 1px solid rgba(59,130,246,0.25);
+    }
+    #contract-card a.value:hover { 
+      color: #00ff88; 
+      border-color: rgba(0,255,136,0.55);
+      box-shadow: 0 0 0 3px rgba(0,255,136,0.12) inset;
+    }
+    /* Inline USD badges next to values */
+    [data-role="usd-inline"] { 
+      background: rgba(167,134,255,0.08);
+      border: 1px solid rgba(167,134,255,0.25);
+      padding: 2px 4px; 
+      border-radius: 4px;
+      font-size: 10px;
+      color: #a78eff;
+      font-weight: 500;
+      margin-left: 6px;
+      display: inline-block;
+      white-space: nowrap;
+    }
+    .card-content { 
+      transition: max-height 0.3s ease, opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease; 
+      overflow: hidden; 
+      max-height: 1000px;
+      opacity: 1;
+    }
+    .card-content.collapsed { 
+      max-height: 0; 
+      opacity: 0; 
+      margin: 0; 
+      padding: 0; 
+    }
+    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed #263048; }
+    .row:last-child { border-bottom: 0; }
+    .label { color:#9aa8c1; }
+    .value { color:#e6eaf0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; word-break: break-all; overflow-wrap: anywhere; }
+    .actions { display:flex; gap:8px; margin-bottom:16px; }
+    /* Modern Button Styles */
+    button { 
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #fff; 
+      border: none; 
+      padding: 12px 20px; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    button:hover::before {
+      left: 100%;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+      background: linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%);
+    }
+    
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    button.secondary { 
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      box-shadow: 0 4px 15px rgba(30, 41, 59, 0.3);
+    }
+    
+    button.secondary:hover {
+      background: linear-gradient(135deg, #334155 0%, #475569 100%);
+      box-shadow: 0 8px 25px rgba(30, 41, 59, 0.4);
+    }
+    
+    /* Special Button Variants */
+    button.success {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+    }
+    
+    button.success:hover {
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    }
+    
+    button.warning {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    }
+    
+    button.warning:hover {
+      background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+      box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+    }
+    
+    button.danger {
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+    }
+    
+    button.danger:hover {
+      background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+      box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+    }
+    
+    button.info {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+    }
+    
+    button.info:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+    }
+    
+    /* Button Sizes */
+    button.small {
+      padding: 8px 14px;
+      font-size: 12px;
+      border-radius: 8px;
+    }
+    
+    button.large {
+      padding: 16px 28px;
+      font-size: 16px;
+      border-radius: 16px;
+    }
+    
+    /* Disabled State */
+    button:disabled {
+      background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none !important;
+      box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2) !important;
+    }
+    
+    button:disabled:hover {
+      transform: none;
+      box-shadow: 0 2px 8px rgba(107, 114, 128, 0.2) !important;
+    }
+    .muted { color:#7f8ca8; font-size: 12px; }
+    .error { color:#ff6b6b; font-size: 13px; }
+    .statusbar { background:#0e1220; border:1px solid #1f2433; padding:12px 16px; border-radius:10px; display:flex; gap:8px; align-items:center; margin: 10px 0; }
+    .statusbar.top { flex-wrap: wrap; }
+    .statusbar.bottom { flex-wrap: nowrap; }
+    .pill { background:#162032; color:#cfe2ff; padding:10px 12px; border-radius:8px; font-size:13px; border:1px solid #223150; white-space: nowrap; text-align:center; box-sizing:border-box; flex: 1; min-width: 0; }
+    /* Fixed widths for bottom status bar: IAM 2/3, POL and DAI share 1/3 */
+    /* Bottom bar fixed fractions: IAM = 2/4, POL = 1/4, DAI = 1/4 */
+    #status-iam { flex: 0 0 50%; max-width: 50%; min-width: 0; }
+    #status-matic, #status-dai { flex: 0 0 25%; max-width: 25%; min-width: 0; }
+    /* Two separate status bars: top (address, index, likes, dislikes, rank) | bottom (POL, DAI, IAM) */
+    @media (max-width: 640px) {
+      .statusbar { padding:6px 8px; gap:4px; margin: 6px 0; }
+      .statusbar.top { flex-wrap: wrap; }
+      .statusbar.bottom { flex-wrap: nowrap; }
+      .pill { padding:4px 6px; font-size:9px; border-radius:5px; }
+    }
+    .footer-links { margin: 24px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+    .footer-links a { text-decoration: none; }
+    .footer-btn { 
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      color: #e6eaf0; 
+      border: 1px solid #334155; 
+      padding: 12px 16px; 
+      border-radius: 12px; 
+      font-size: 13px; 
+      display: inline-block;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .footer-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transition: left 0.5s;
+    }
+    
+    .footer-btn:hover::before {
+      left: 100%;
+    }
+    
+    .footer-btn:hover { 
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      border-color: #475569;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(15, 23, 42, 0.4);
+    }
+
+    /* Creative Navigation Menu Styles */
+    .nav-menu {
+      margin-bottom: 24px;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    
+    .nav-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      row-gap: 8px;
+      column-gap: 0;
+      max-width: 100%;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    
+    .nav-card {
+      background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+      border: 1px solid transparent;
+      border-radius: 12px;
+      padding: 16px 12px;
+      text-decoration: none;
+      color: #e6eaf0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+      width: 31%;
+      flex: 0 0 31%;
+      min-height: 80px;
+      box-sizing: border-box;
+      box-shadow: 0 2px 8px rgba(30, 41, 59, 0.2);
+      backdrop-filter: blur(5px);
+    }
+    
+    .nav-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+      transition: left 0.6s ease;
+    }
+    
+    .nav-card::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, rgba(0, 255, 136, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      border-radius: 14px;
+    }
+    
+    .nav-card:hover::before {
+      left: 100%;
+    }
+    
+    .nav-card:hover::after {
+      opacity: 1;
+    }
+    
+    .nav-card:hover {
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 6px 20px rgba(0, 255, 136, 0.3);
+      border-color: #00ff88;
+      background: linear-gradient(135deg, #334155 0%, #475569 100%);
+    }
+    
+    .nav-icon {
+      font-size: 24px;
+      margin-bottom: 8px;
+      filter: drop-shadow(0 0 6px rgba(0, 255, 136, 0.3));
+      transition: all 0.3s ease;
+      position: relative;
+      z-index: 2;
+    }
+    
+    .nav-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: #e6eaf0;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+      position: relative;
+      z-index: 2;
+      letter-spacing: 0.3px;
+    }
+    
+    .nav-card:hover .nav-icon {
+      transform: scale(1.1) rotate(5deg);
+      filter: drop-shadow(0 0 16px rgba(0, 255, 136, 0.6));
+    }
+    
+    .nav-card:hover .nav-label {
+      color: #00ff88;
+      text-shadow: 0 0 8px rgba(0, 255, 136, 0.4);
+    }
+    
+    .nav-card:active {
+      transform: translateY(-2px) scale(1.01);
+      box-shadow: 0 8px 25px rgba(0, 255, 136, 0.5);
+    }
+    
+    /* Disabled state for nav cards */
+    .nav-card.disabled {
+      opacity: 0.5 !important;
+      cursor: not-allowed !important;
+      pointer-events: none !important;
+      filter: grayscale(50%);
+    }
+    
+    .nav-card.disabled:hover {
+      transform: none !important;
+      box-shadow: none !important;
+      border-color: transparent !important;
+    }
+    
+    .nav-card.disabled .nav-icon {
+      filter: grayscale(100%);
+    }
+    
+    .nav-card.disabled .nav-label {
+      color: #6b7280 !important;
+    }
+    
+    /* Mobile-specific disabled styles */
+    @media (max-width: 768px) {
+      .nav-card.disabled {
+        opacity: 0.4 !important;
+        filter: grayscale(70%);
+      }
+      
+      .nav-card.disabled .nav-icon {
+        filter: grayscale(100%) brightness(0.7);
+      }
+      
+      .nav-card.disabled .nav-label {
+        color: #4a5568 !important;
+        font-weight: 500;
+      }
+    }
+    
+    /* Special effects for different nav cards */
+    .nav-card:nth-child(1) { /* About */
+      border-left: 3px solid #3b82f6;
+    }
+    
+    .nav-card:nth-child(2) { /* Register */
+      border-left: 3px solid #10b981;
+    }
+    
+    .nav-card:nth-child(3) { /* Profile */
+      border-left: 3px solid #f59e0b;
+    }
+    
+    .nav-card:nth-child(4) { /* Sales */
+      border-left: 3px solid #ef4444;
+    }
+    
+    .nav-card:nth-child(5) { /* Swap */
+      border-left: 3px solid #8b5cf6;
+    }
+    
+    .nav-card:nth-child(6) { /* Transfer */
+      border-left: 3px solid #06b6d4;
+    }
+    
+    .nav-card:nth-child(7) { /* Ownership */
+      border-left: 3px solid #84cc16;
+    }
+    
+    .nav-card:nth-child(8) { /* Utility */
+      border-left: 3px solid #f97316;
+    }
+    
+    .nav-card:nth-child(9) { /* Partners */
+      border-left: 3px solid #ec4899;
+    }
+    
+    .nav-card:nth-child(10) { /* Price Charts */
+      border-left: 3px solid #6366f1;
+    }
+    
+    .nav-card:nth-child(11) { /* I AM */
+      border-left: 3px solid #fbbf24;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+      .container { padding: 16px; }
+      h1 { font-size: 18px; margin-bottom: 14px; }
+      .card { padding: 14px; border-radius: 10px; }
+      .card h2 { font-size: 14px; }
+      
+      /* Referral section mobile */
+      .referral-section {
+        margin-top: 16px !important;
+        padding: 16px !important;
+        border-radius: 10px !important;
+      }
+      .referral-section h3 {
+        font-size: 16px !important;
+        margin-bottom: 12px !important;
+      }
+      
+      /* Additional content mobile */
+      .additional-content {
+        margin-top: 16px !important;
+        padding: 16px !important;
+        border-radius: 12px !important;
+      }
+      .additional-content h2 {
+        font-size: 20px !important;
+        margin-bottom: 16px !important;
+      }
+      .additional-content h3 {
+        font-size: 16px !important;
+        margin-bottom: 10px !important;
+      }
+      .additional-content p {
+        font-size: 14px !important;
+        margin-bottom: 12px !important;
+      }
+      .additional-content ul {
+        padding-left: 16px !important;
+      }
+      .additional-content li {
+        font-size: 14px !important;
+        margin-bottom: 6px !important;
+      }
+      .row { 
+        gap: 6px; 
+        padding: 6px 0; 
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        width: 100%;
+        min-width: 0;
+      }
+      .label { 
+        font-size: 10px; 
+        font-weight: 600;
+        color: #aef3c6;
+        min-width: 80px;
+        max-width: 80px;
+        flex-shrink: 0;
+      }
+      .value { 
+        font-size: 12px; 
+        flex: 1;
+        word-break: break-all;
+        font-family: monospace;
+        background: rgba(0, 255, 136, 0.05);
+        padding: 3px 6px;
+        border-radius: 3px;
+        border: 1px solid rgba(0, 255, 136, 0.1);
+        min-width: 0;
+        overflow-wrap: break-word;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+      }
+      [data-role="usd-inline"] {
+        margin-left: 4px;
+        font-size: 9px;
+        padding: 1px 3px;
+      }
+      #contract-card .value a {
+        font-size: 11px;
+      }
+      .statusbar { gap: 8px; padding: 10px 12px; }
+      .pill { font-size: 12px; padding: 8px 10px; }
+      
+      /* Contract Info tablet improvements */
+      #contract-card {
+        padding: 12px;
+        overflow: visible;
+      }
+      #contract-card .row {
+        margin-bottom: 6px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(0, 255, 136, 0.15);
+        min-width: max-content;
+      }
+      #contract-card .row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+      }
+      #contract-card h2 {
+        font-size: 16px;
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+      }
+      #contract-content {
+        overflow: visible;
+        width: 100%;
+      }
+      
+      /* Navigation menu mobile styles */
+      .nav-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(5, auto);
+        gap: 8px;
+        width: 100%;
+      }
+      .nav-card {
+        padding: 12px 8px;
+        width: 100%;
+        min-height: 70px;
+        border-radius: 10px;
+      }
+      .nav-icon {
+        font-size: 20px;
+        margin-bottom: 6px;
+      }
+      .nav-label {
+        font-size: 12px;
+        font-weight: 600;
+      }
+    }
+
+    /* Ensure floating token card sits at bottom of the page */
+    #floating-token-card, .floating-token-card, .token-floating-card {
+      position: fixed !important;
+      bottom: 8px !important;
+      right: 8px !important;
+      z-index: 9999 !important;
+    }
+
+    @media (max-width: 480px) {
+      .container { padding: 14px; }
+      h1 { font-size: 17px; }
+      .card h2 { font-size: 13px; }
+      
+      /* Referral section small mobile */
+      .referral-section {
+        margin-top: 12px !important;
+        padding: 12px !important;
+        border-radius: 8px !important;
+      }
+      .referral-section h3 {
+        font-size: 14px !important;
+        margin-bottom: 10px !important;
+      }
+      .referral-section input {
+        font-size: 11px !important;
+        padding: 6px 8px !important;
+      }
+      .referral-section button {
+        font-size: 11px !important;
+        padding: 6px 8px !important;
+      }
+      
+      /* Additional content small mobile */
+      .additional-content {
+        margin-top: 12px !important;
+        padding: 12px !important;
+        border-radius: 10px !important;
+      }
+      .additional-content h2 {
+        font-size: 18px !important;
+        margin-bottom: 12px !important;
+      }
+      .additional-content h3 {
+        font-size: 14px !important;
+        margin-bottom: 8px !important;
+      }
+      .additional-content p {
+        font-size: 13px !important;
+        margin-bottom: 10px !important;
+      }
+      .additional-content ul {
+        padding-left: 12px !important;
+      }
+      .additional-content li {
+        font-size: 13px !important;
+        margin-bottom: 4px !important;
+      }
+      .row { 
+        flex-direction: row; 
+        align-items: center; 
+        gap: 4px;
+        padding: 4px 0;
+        width: 100%;
+        min-width: 0;
+      }
+      .label { 
+        font-size: 9px; 
+        opacity: 0.95; 
+        font-weight: 600;
+        color: #aef3c6;
+        min-width: 60px;
+        max-width: 60px;
+        flex-shrink: 0;
+      }
+      .value { 
+        flex: 1; 
+        text-align: left; 
+        direction: ltr; 
+        font-size: 11px; 
+        word-break: break-all;
+        font-family: monospace;
+        background: rgba(0, 255, 136, 0.1);
+        padding: 2px 4px;
+        border-radius: 3px;
+        border: 1px solid rgba(0, 255, 136, 0.2);
+        min-width: 0;
+        overflow-wrap: break-word;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
+      }
+      [data-role="usd-inline"] {
+        margin-left: 3px;
+        font-size: 8px;
+        padding: 1px 2px;
+      }
+      #contract-card .value a {
+        font-size: 10px;
+      }
+      .pill { font-size: 11px; padding: 6px 8px; }
+      
+      /* Contract Info mobile improvements */
+      #contract-card {
+        padding: 8px;
+        overflow: visible;
+      }
+      #contract-card .row {
+        margin-bottom: 4px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid rgba(0, 255, 136, 0.1);
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      #contract-card .row:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+      }
+      #contract-card h2 {
+        font-size: 14px;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+      }
+      #contract-card .label {
+        font-size: 10px;
+        min-width: auto;
+        max-width: 100%;
+        width: 100%;
+        text-align: right;
+      }
+      #contract-card .value {
+        font-size: 10px;
+        padding: 3px 6px;
+        word-break: break-all;
+        white-space: normal;
+        overflow-wrap: break-word;
+        width: 100%;
+        text-align: right;
+      }
+      #contract-content {
+        overflow: visible;
+        width: 100%;
+      }
+      
+      /* Navigation menu small mobile styles */
+      .nav-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(5, auto);
+        gap: 6px;
+        width: 100%;
+      }
+      .nav-card {
+        padding: 10px 6px;
+        width: 100%;
+        min-height: 60px;
+        border-radius: 8px;
+      }
+      .nav-icon {
+        font-size: 18px;
+        margin-bottom: 5px;
+      }
+      .nav-label {
+        font-size: 11px;
+        font-weight: 600;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .container { padding: 12px; }
+      h1 { font-size: 16px; }
+      .card { padding: 12px; }
+      .row { padding: 6px 0; }
+      .pill { font-size: 10px; padding: 6px 8px; }
+      
+      /* Referral section extra small mobile */
+      .referral-section {
+        margin-top: 10px !important;
+        padding: 10px !important;
+        border-radius: 6px !important;
+      }
+      .referral-section h3 {
+        font-size: 13px !important;
+        margin-bottom: 8px !important;
+      }
+      .referral-section input {
+        font-size: 10px !important;
+        padding: 4px 6px !important;
+      }
+      .referral-section button {
+        font-size: 10px !important;
+        padding: 4px 6px !important;
+      }
+      
+      /* Additional content extra small mobile */
+      .additional-content {
+        margin-top: 10px !important;
+        padding: 10px !important;
+        border-radius: 8px !important;
+      }
+      .additional-content h2 {
+        font-size: 16px !important;
+        margin-bottom: 10px !important;
+      }
+      .additional-content h3 {
+        font-size: 13px !important;
+        margin-bottom: 6px !important;
+      }
+      .additional-content p {
+        font-size: 12px !important;
+        margin-bottom: 8px !important;
+      }
+      .additional-content ul {
+        padding-left: 10px !important;
+      }
+      .additional-content li {
+        font-size: 12px !important;
+        margin-bottom: 3px !important;
+      }
+      
+      /* Navigation menu extra small mobile styles */
+      .nav-grid {
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(5, auto);
+        gap: 4px;
+        width: 100%;
+      }
+      .nav-card {
+        padding: 8px 4px;
+        width: 100%;
+        min-height: 50px;
+        border-radius: 6px;
+      }
+      .nav-icon {
+        font-size: 16px;
+        margin-bottom: 4px;
+      }
+      .nav-label {
+        font-size: 10px;
+        font-weight: 600;
+      }
+    }
+    
+    /* Message Box Styles Removed */
+    
+    .simple-message-box.show {
+      display: block;
+      animation: fadeInScale 0.5s ease-out;
+    }
+    
+    @keyframes fadeInScale {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    
+    .simple-message-box .message-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+    }
+    
+    .simple-message-box .message-container {
+      background: rgba(20, 24, 37, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 16px;
+      padding: 20px;
+      max-width: 100%;
+      width: 100%;
+      position: relative;
+      z-index: 10001;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(12px) saturate(120%);
+      -webkit-backdrop-filter: blur(12px) saturate(120%);
+      margin: 0 auto;
+    }
+
+    /* Accent top bar */
+    .simple-message-box .message-container::before {
+      content: "";
+      position: absolute;
+      top: -1px;
+      left: -1px;
+      right: -1px;
+      height: 3px;
+      border-top-left-radius: 16px;
+      border-top-right-radius: 16px;
+      background: linear-gradient(90deg, #00ff88, #00c2ff, #a26bff);
+      opacity: 0.9;
+    }
+    
+    .simple-message-box .message-title {
+      color: #00ff88;
+      font-size: 24px;
+      margin: 0 0 16px 0;
+      font-weight: 700;
+      text-align: left;
+    }
+
+    /* Modern gradient title for the actual header element */
+    #message-title {
+      font-weight: 800;
+      letter-spacing: 0.2px;
+      background: linear-gradient(92deg, #a7f3d0, #99f6e4, #93c5fd);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      text-shadow: 0 0 12px rgba(0, 255, 136, 0.12);
+      white-space: pre-line;
+    }
+    
+    .simple-message-box .language-selector {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    
+    .simple-message-box #language-select {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      color: #e6eaf0;
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      outline: none;
+      min-width: 140px;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+    
+    .simple-message-box #language-select:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+    
+    .simple-message-box #language-select:focus {
+      border-color: rgba(147, 197, 253, 0.6);
+      box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.18);
+    }
+    
+    .simple-message-box .message-content {
+      color: #e6eaf0;
+      font-size: 16px;
+      line-height: 1.6;
+      text-align: center;
+    }
+    
+    .simple-message-box .message-text {
+      min-height: 60px;
+      padding: 14px 16px;
+      background: rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: 'Arial', sans-serif;
+      font-size: 16px;
+      line-height: 1.6;
+      direction: ltr;
+      text-align: left;
+      unicode-bidi: normal;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      word-spacing: normal;
+      letter-spacing: normal;
+    }
+    
+    .simple-message-box .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 20px;
+      background: #00ff88;
+      margin-left: 2px;
+      animation: blink 1s infinite;
+    }
+    
+    /* English text styling */
+    .simple-message-box[data-lang="en"] .message-text {
+      direction: ltr;
+      text-align: left;
+      font-family: 'Arial', sans-serif;
+      unicode-bidi: normal;
+      word-spacing: normal;
+      letter-spacing: normal;
+      writing-mode: horizontal-tb;
+      text-orientation: mixed;
+    }
+    
+    /* Responsive design for message box */
+    @media (max-width: 768px) {
+      .simple-message-box .message-container {
+        padding: 16px;
+        margin: 10px;
+        border-radius: 12px;
+      }
+      
+      .simple-message-box .message-title {
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+      
+      .simple-message-box .message-text {
+        font-size: 14px;
+        line-height: 1.5;
+        padding: 12px;
+      }
+      
+      .simple-message-box #language-select {
+        padding: 8px 12px;
+        font-size: 13px;
+        min-width: 120px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .simple-message-box .message-container {
+        padding: 12px;
+        margin: 8px;
+        border-radius: 10px;
+      }
+      
+      .simple-message-box .message-title {
+        font-size: 18px;
+        margin-bottom: 10px;
+      }
+      
+      .simple-message-box .message-text {
+        font-size: 13px;
+        line-height: 1.4;
+        padding: 10px;
+      }
+      
+      .simple-message-box #language-select {
+        padding: 6px 10px;
+        font-size: 12px;
+        min-width: 100px;
+      }
+    }
+    
+    @keyframes blink {
+      0%, 50% { opacity: 1; }
+      51%, 100% { opacity: 0; }
+    }
+    
+    /* Mobile responsiveness for simple message box */
+    @media (max-width: 768px) {
+      .simple-message-box .message-container {
+        margin: 20px;
+        padding: 16px;
+        max-width: calc(100% - 40px);
+      }
+      
+      .simple-message-box .message-title {
+        font-size: 20px;
+      }
+      
+      .simple-message-box .message-content {
+        font-size: 14px;
+      }
+      
+      .simple-message-box #language-select {
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .simple-message-box .message-container {
+        margin: 16px;
+        padding: 12px;
+      }
+      
+      .simple-message-box .message-title {
+        font-size: 18px;
+      }
+      
+      .simple-message-box .message-content {
+        font-size: 12px;
+      }
+      
+      .simple-message-box #language-select {
+        font-size: 11px;
+        padding: 4px 8px;
+      }
+    }
+    
+
+    
+    </style>
+</head>
+<body>
+    
+
+  <div class="container">
+    <h1>IAMPHOENIX Dashboard</h1>
+
+    <div class="statusbar top" id="status-bar-top">
+      <span class="pill" id="status-address">-</span>
+      <span class="pill" id="status-index">-</span>
+      <span class="pill" id="status-likes">👍 -</span>
+      <span class="pill" id="status-dislikes">👎 -</span>
+      <span class="pill" id="status-rank">⭐ -</span>
+    </div>
+
+    <div class="statusbar bottom" id="status-bar-bottom">
+      <span class="pill" id="status-matic">POL: -</span>
+      <span class="pill" id="status-dai">DAI: -</span>
+      <span class="pill" id="status-iam">IAM: -</span>
+    </div>
+        
+        
+
+    <!-- Navigation Menu - Creative Design -->
+    <div class="nav-menu" style="margin-bottom: 24px;">
+      <div class="nav-grid">
+        <a class="nav-card" href="about.html">
+          <div class="nav-icon">ℹ️</div>
+          <div class="nav-label">Presentation</div>
+        </a>
+        <a class="nav-card" href="swap.html">
+          <div class="nav-icon">🔄</div>
+          <div class="nav-label">Swap</div>
+        </a>
+        <a class="nav-card" href="register.html">
+          <div class="nav-icon">📝</div>
+          <div class="nav-label">Register</div>
+        </a>
+        <a class="nav-card" href="onboarding.html">
+          <div class="nav-icon">🎓</div>
+          <div class="nav-label">Onboarding</div>
+        </a>
+        <a class="nav-card" href="professional-tree.html">
+          <div class="nav-icon">🌳</div>
+          <div class="nav-label">Partners</div>
+        </a>
+        <a class="nav-card" href="transfer.html">
+          <div class="nav-icon">📤</div>
+          <div class="nav-label">Transfer</div>
+        </a>
+        <a class="nav-card" href="profile.html">
+          <div class="nav-icon">👤</div>
+          <div class="nav-label">Profile</div>
+        </a>
+        <a class="nav-card" href="sales.html">
+          <div class="nav-icon">💰</div>
+          <div class="nav-label">Sales</div>
+        </a>
+        <a class="nav-card" href="transfer-ownership.html">
+          <div class="nav-icon">🏗️</div>
+          <div class="nav-label">Ownership</div>
+        </a>
+        <a class="nav-card" href="utility.html">
+          <div class="nav-icon">🛠️</div>
+          <div class="nav-label">Utility</div>
+        </a>
+        <a class="nav-card" href="price-charts.html" target="_blank">
+          <div class="nav-icon">📊</div>
+          <div class="nav-label">Price Charts</div>
+        </a>
+        <a class="nav-card" href="iam.html">
+          <div class="nav-icon">🌟</div>
+          <div class="nav-label">I AM</div>
+        </a>
+        </div>
+    </div>
+
+
+    <!-- About IAM PHOENIX Section -->
+    <div class="additional-content" style="
+      margin: 20px 0;
+      padding: 24px;
+      background: linear-gradient(135deg, #1a1f2e 0%, #232946 100%);
+      border: 1px solid #00ff88;
+      border-radius: 16px;
+      color: #e6eaf0;
+      line-height: 1.7;
+      box-shadow: 0 8px 32px rgba(0, 255, 136, 0.1);
+    ">
+      <h2 style="margin: 0 0 20px; color: #00ff88; font-size: 24px; font-weight: 700; text-align: center;">
+        🚀 About IAM PHOENIX
+      </h2>
+      
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">🌟 Revolutionary Network Marketing Platform</h3>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          <strong>IAM PHOENIX</strong> is a cutting-edge Network Marketing platform that leverages blockchain technology and Web3 infrastructure to create a transparent, secure, and decentralized ecosystem. Our platform eliminates traditional intermediaries and creates direct, trustless relationships between participants through smart contracts.
+        </p>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          Built on the <strong>Polygon blockchain</strong>, IAM PHOENIX combines the power of network marketing with the security and transparency of blockchain technology. All network marketing activities, rewards, and commissions are automatically calculated and distributed through audited smart contracts, ensuring complete transparency and eliminating the possibility of fraud or manipulation.
+        </p>
+                </div>
+                
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">🔥 Phoenix Team Mission</h3>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          Our team, <strong>Phoenix</strong>, is currently supporting and developing the IAM token, which is built on the Polygon blockchain and backed by the decentralized stablecoin DAI. This stablecoin is fully decentralized, and no organization or authority has access to it. The IAM token itself is an independent project, in fact a startup. It does not support or rely on another startup, but rather aims to introduce and promote itself.
+        </p>
+                </div>
+                
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">📊 Subscription & Point System</h3>
+        <p style="margin: 0 0 12px; color: #b8c1ec; font-size: 15px;">
+          The IAM token has a subscription mechanism with the following distribution:
+        </p>
+        <ul style="margin: 0 0 16px; padding-left: 20px; color: #b8c1ec; font-size: 15px;">
+          <li style="margin-bottom: 8px;"><strong>10%</strong> for referral rewards (inviter)</li>
+          <li style="margin-bottom: 8px;"><strong>10%</strong> for token burning, which increases the token's value</li>
+          <li style="margin-bottom: 8px;"><strong>80%</strong> is distributed among users based on the points they earn</li>
+        </ul>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          Each person can earn up to <strong>5 points every 12 hours</strong>, with a maximum of <strong>10 points per day</strong>. Any extra points overflow onto other points, increasing the value of each point.
+        </p>
+                </div>
+                
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">💰 Subscription Refund Mechanism</h3>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          People who cannot earn points will have their full subscription amount refunded in tokens. This refund occurs monthly at <strong>3%</strong> until the full fee is returned.
+        </p>
+                </div>
+                
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">🔄 Activities and Rewards</h3>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          All activities are carried out with the IAM token. Each transaction has a <strong>2% fee</strong> deposited into the token's financial reserve.
+        </p>
+                </div>
+                
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">📈 How to Increase Points</h3>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          Users can purchase up to <strong>two additional points per month</strong> by paying one-third of the subscription fee for each point.
+        </p>
+                </div>
+                
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">📉 Deflationary Ecosystem</h3>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          This ecosystem experiences deflation. Instead of creating more tokens, the system continuously removes tokens from circulation, creating deflationary pressure that drives price appreciation.
+        </p>
+                </div>
+                
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">🎯 Our Mission</h3>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          Our goal is to collaborate with you to build a decentralized, healthy, secure, and sustainably rewarding community. Please review all platform sections and guidelines thoroughly before taking any steps.
+        </p>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          We stand with you throughout this journey to build a transparent and reliable future.
+        </p>
+                </div>
+                
+      <div style="text-align: center; padding-top: 16px; border-top: 1px solid rgba(0, 255, 136, 0.2);">
+        <p style="margin: 0; color: #00ff88; font-size: 16px; font-weight: 600;">
+          🌟 Together, we succeed! 🌟
+        </p>
+        <p style="margin: 8px 0 0; color: #9aa8c1; font-size: 14px;">
+          A decentralized network that will soon be recognized internationally
+        </p>
+            </div>
+                </div>
+
+    <section class="card" id="contract-card" style="text-align:left; direction:ltr;">
+      <h2 id="contract-header">Contract Info <span class="toggle-icon">▼</span></h2>
+      <div class="card-content" id="contract-content">
+        <div class="row"><div class="label">🔗 Contract Address</div><a class="value" id="c-address" href="#" target="_blank" rel="noopener noreferrer">-</a></div>
+        <div class="row"><div class="label">🏷️ Name</div><div class="value" id="c-name">-</div></div>
+        <div class="row"><div class="label">🧩 Symbol</div><div class="value" id="c-symbol">-</div></div>
+        <div class="row"><div class="label">#️⃣ Decimals</div><div class="value" id="c-decimals">-</div></div>
+        <div class="row"><div class="label">📦 Total Supply</div><div class="value" id="c-total-supply">-</div></div>
+        <div class="row"><div class="label">💰 Backing Pool</div><div class="value" id="c-dai-in-contract">-</div></div>
+        <div class="row"><div class="label">🧮 Binary Pool</div><div class="value" id="c-iam-in-contract">-</div></div>
+        <div class="row"><div class="label">💳 Registration Price</div><div class="value" id="c-registration-price">-</div></div>
+        <div class="row"><div class="label">💵 Token Price</div><div class="value" id="c-token-price">-</div></div>
+        <div class="row"><div class="label">🎯 Point Price</div><div class="value" id="c-point-price">-</div></div>
+        
+        
+        <div class="row"><div class="label">👛 Wallets Count</div><div class="value" id="c-wallets-count">-</div></div>
+        <div class="row"><div class="label">🎁 Claimable Points (Total)</div><div class="value" id="c-claimable-points">-</div></div>
+        
+        <div class="muted">Some values may remain empty if their functions do not exist on the contract.</div>
+        <div class="error" id="contract-error" style="display:none"></div>
+      </div>
+    </section>
+            
+    <!-- Referral Link - Permanent -->
+    <div class="referral-section" style="
+      margin-top: 24px;
+      padding: 20px;
+      background: linear-gradient(135deg, #1a1f2e 0%, #232946 100%);
+      border: 1px solid #00ff88;
+      border-radius: 12px;
+      color: #e6eaf0;
+      box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
+    ">
+      <h3 style="margin: 0 0 16px; color: #00ff88; font-size: 18px; text-align: center;">
+        🔗 Referral Link
+      </h3>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div id="referral-link-container" style="display: none;">
+          <label style="font-size: 12px; color: #9aa8c1; margin-bottom: 4px; display: block;">Your Referral Link:</label>
+          <div style="display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="referral-link" readonly 
+                   style="flex: 1; padding: 8px 12px; border: 1px solid #00ff88; border-radius: 6px; background: rgba(0, 255, 136, 0.1); color: #e6eaf0; font-size: 12px; font-family: monospace;">
+            <button id="copy-referral-btn" class="success small">
+              📋 Copy
+            </button>
+          </div>
+        </div>
+        <div id="referral-note" class="muted" style="text-align:center;">Connect your wallet to see your permanent referral link</div>
+      </div>
+    </div>
+                
+    <!-- Tree Navigation and Ranking Section -->
+    <div class="additional-content" style="
+      margin-top: 24px;
+      padding: 24px;
+      background: linear-gradient(135deg, #1a1f2e 0%, #232946 100%);
+      border: 1px solid #00ff88;
+      border-radius: 16px;
+      color: #e6eaf0;
+      line-height: 1.7;
+      box-shadow: 0 8px 32px rgba(0, 255, 136, 0.1);
+    ">
+      <h2 style="margin: 0 0 20px; color: #00ff88; font-size: 24px; font-weight: 700; text-align: center;">
+        🌳 Tree Navigation & Leaderboard
+      </h2>
+      
+      <div style="margin-bottom: 20px;">
+        <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">🌲 Binary Tree Explorer</h3>
+        <p style="margin: 0 0 16px; color: #b8c1ec; font-size: 15px;">
+          Navigate through the binary tree structure and discover the top performers who have claimed the most points in the network.
+        </p>
+        
+        <div id="tree-navigation" style="margin-bottom: 20px;">
+          <div style="margin-bottom: 15px;">
+            <div id="exploration-status" style="
+              color: #aef3c6;
+              font-size: 14px;
+              margin-bottom: 8px;
+              text-align: center;
+            ">⏳ Starting Tree Exploration...</div>
+            <div style="
+              background: rgba(0, 255, 136, 0.1);
+              border: 1px solid rgba(0, 255, 136, 0.3);
+              border-radius: 10px;
+              height: 20px;
+              overflow: hidden;
+              position: relative;
+            ">
+              <div id="progress-bar" style="
+                background: linear-gradient(135deg, #00ff88, #00cc6a);
+                height: 100%;
+                width: 0%;
+                transition: width 0.3s ease;
+                position: relative;
+              "></div>
+              <div id="progress-text" style="
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: #181c2a;
+                font-weight: bold;
+                font-size: 12px;
+                z-index: 1;
+              ">0%</div>
+            </div>
+          </div>
+          
+          <div id="tree-stats" style="
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: none;
+          ">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px;">
+              <div style="text-align: center;">
+                <div style="color: #00ff88; font-weight: bold; font-size: 18px;" id="total-users">-</div>
+                <div style="color: #aef3c6; font-size: 12px;">Total Users</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="color: #a786ff; font-weight: bold; font-size: 18px;" id="total-points">-</div>
+                <div style="color: #aef3c6; font-size: 12px;">Total Points</div>
+              </div>
+              <div style="text-align: center;">
+                <div style="color: #ff6b35; font-weight: bold; font-size: 18px;" id="claimed-points">-</div>
+                <div style="color: #aef3c6; font-size: 12px;">Claimed Points</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div id="leaderboard-container" style="display: none;">
+          <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">🏆 Top 10 Performers</h3>
+          <div id="leaderboard-list" style="
+            background: rgba(167, 134, 255, 0.1);
+            border: 1px solid rgba(167, 134, 255, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+          ">
+            <div style="text-align: center; color: #aef3c6; padding: 20px;">
+              Click "Explore Tree" to load the leaderboard
+            </div>
+          </div>
+        </div>
+        
+        <div id="popularity-container" style="display: block; margin-top: 20px;">
+          <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">❤️ Member Popularity</h3>
+          <div id="popularity-list" style="
+            background: rgba(255, 107, 51, 0.1);
+            border: 1px solid rgba(255, 107, 51, 0.3);
+            border-radius: 8px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+          ">
+            <div style="text-align: center; color: #aef3c6; padding: 20px;">
+              Loading popularity data...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+                
+        
+        
+    
+
+    
+        </div>
+        
+        
+  <!-- Ethers (v6) CDN if not already present on other pages -->
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.1/dist/ethers.umd.min.js"></script>
+        
+  <!-- Project scripts providing config and wallet connection/contract utils -->
+    <script src="js/config.js"></script>
+  <script src="js/network.js"></script>
+  <script src="js/web3-interactions.js"></script>
+  <script src="js/profile.js"></script>
+  <script src="js/auto-wallet-connect.js"></script>
+  <script src="js/swap.js"></script>
+  <!-- Floating Token Growth Card -->
+    <script src="js/floating-token-card.js"></script>
+    
+  <script>
+    function safeFormatUnits(value, decimals) {
+      try {
+        return (window.ethers && ethers.formatUnits) ? ethers.formatUnits(value, decimals) : String(value);
+      } catch { return String(value); }
+    }
+
+    function toNumberFromUnits(value, decimals) {
+      try {
+        const s = safeFormatUnits(value, decimals);
+        const n = Number(s);
+        return isNaN(n) ? 0 : n;
+      } catch { return 0; }
+    }
+
+    function formatUsdFromWeiProduct(productWeiBigInt) {
+      try {
+        const s = safeFormatUnits(productWeiBigInt, 18);
+        const n = Number(s);
+        if (!isFinite(n)) return '$0.00';
+        return '$' + n.toLocaleString('en-US', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 18 
+        });
+      } catch { return '$0.00'; }
+    }
+
+    function formatUsdFromWeiProduct2Decimals(productWeiBigInt) {
+      try {
+        const s = safeFormatUnits(productWeiBigInt, 18);
+        const n = Number(s);
+        if (!isFinite(n)) return '$0.00';
+        return '$' + n.toLocaleString('en-US', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 
+        });
+      } catch { return '$0.00'; }
+    }
+
+    function shortenAddress(address) {
+      if (!address || address === '-') return '-';
+      if (address.length < 10) return address;
+      return address.slice(0, 6) + '...' + address.slice(-4);
+    }
+
+    function ensureUsdInline(valueEl) {
+      if (!valueEl) return null;
+      let usdEl = valueEl.querySelector('[data-role="usd-inline"]');
+      if (!usdEl) {
+        usdEl = document.createElement('span');
+        usdEl.setAttribute('data-role', 'usd-inline');
+        valueEl.appendChild(usdEl);
+      }
+      return usdEl;
+    }
+
+    // Medium shorten for selector labels (a bit shorter, not too much)
+    function mediumShortAddress(address) {
+      try {
+        if (!address || typeof address !== 'string') return address;
+        if (address.length <= 22) return address;
+        return address.slice(0, 10) + '…' + address.slice(-8);
+      } catch { return address; }
+    }
+
+    function formatMax2(num) {
+      try { 
+        const n = Number(num);
+        if (!isFinite(n)) return String(num);
+        return n.toLocaleString('en-US', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 18 
+        });
+      } catch { return String(num); }
+    }
+
+    function format0(num) {
+      try { 
+        const n = Number(num);
+        if (!isFinite(n)) return String(num);
+        return n.toLocaleString('en-US', { 
+          minimumFractionDigits: 0, 
+          maximumFractionDigits: 18 
+        });
+      } catch { return String(num); }
+    }
+
+    function format2Decimals(num) {
+      try { 
+        const n = Number(num);
+        if (!isFinite(n)) return String(num);
+        return n.toLocaleString('en-US', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 
+        });
+      } catch { return String(num); }
+    }
+
+    function shortenAddress(addr) {
+      try { if (!addr || addr.length < 10) return addr || '-'; return addr.slice(0, 6) + '...' + addr.slice(-4); } catch { return addr || '-'; }
+    }
+
+    // Dynamically size pills based on their values
+    function setDynamicPillWidths(barType, values) {
+      try {
+        const isTopBar = barType === 'top';
+        const pillIds = isTopBar ? 
+          ['status-address', 'status-index', 'status-likes', 'status-dislikes', 'status-rank'] :
+          ['status-matic', 'status-dai', 'status-iam'];
+        
+        // Disable dynamic sizing on small screens
+        if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
+          pillIds.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.style.flex = '1'; el.style.minWidth = '0'; }
+          });
+          return;
+        }
+
+        const items = pillIds.map(id => {
+          const el = document.getElementById(id);
+          if (!el) return { id, value: 0, element: null };
+          
+          let value = 0;
+          if (values && values[id]) {
+            value = Number(values[id]) || 0;
+          } else {
+            // Try to parse from text content
+            const text = el.textContent || '';
+            const num = Number(text.replace(/[^0-9.\-]+/g, ''));
+            value = isFinite(num) ? num : 0;
+          }
+          
+          return { id, value: Math.max(0, value), element: el };
+        });
+
+        const total = items.reduce((sum, item) => sum + item.value, 0);
+        
+        // If all values are zero, use equal distribution
+        if (total === 0) {
+          items.forEach(item => {
+            if (item.element) {
+              item.element.style.flex = '1';
+              item.element.style.minWidth = '0';
+            }
+          });
+          return;
+        }
+
+        // Calculate widths
+        items.forEach(item => {
+          if (!item.element) return;
+          const el = item.element;
+          const proportion = item.value / total;
+
+          if (isTopBar) {
+            // Top bar: grow proportionally but stay in one row
+            const minGrow = 0.1; // Minimum 10%
+            const maxGrow = 0.6; // Maximum 60%
+            const grow = Math.max(minGrow, Math.min(maxGrow, proportion));
+            el.style.flex = `${grow} 1 0`;
+            el.style.minWidth = '0';
+          } else {
+            // Bottom bar: fixed proportions - IAM gets 2/3, POL and DAI share 1/3
+            let basisPercent;
+            if (item.id === 'status-iam') {
+              basisPercent = 66.67; // 2/3 of the width
+            } else {
+              basisPercent = 16.67; // 1/6 each for POL and DAI (1/3 ÷ 2)
+            }
+            el.style.flex = `0 1 ${basisPercent}%`;
+            el.style.minWidth = '0';
+            el.style.maxWidth = `${basisPercent}%`;
+          }
+        });
+      } catch {}
+    }
+
+    // Function to enable all buttons without restrictions
+    async function updateButtonStates() {
+      try {
+        const updateNavCards = document.querySelectorAll('.nav-card');
+        updateNavCards.forEach(card => {
+          card.classList.remove('disabled');
+          card.classList.add('enabled');
+          card.title = '';
+        });
+      } catch (error) {
+        console.error('Error updating button states:', error);
+      }
+    }
+
+    function updateStatusPills(data) {
+      const set = (id, label, value) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        // Icon labels
+        const iconLabel = (orig) => {
+          switch (id) {
+            case 'status-likes': return `❤️ ${orig}`;
+            case 'status-dislikes': return `💔 ${orig}`;
+            case 'status-rank': return `⭐ ${orig}`;
+            default: return orig;
+          }
+        };
+        // For likes/dislikes show icon + number
+        if (id === 'status-likes') { el.textContent = `❤️ ${value ?? 0}`; return; }
+        if (id === 'status-dislikes') { el.textContent = `💔 ${value ?? 0}`; return; }
+        if (id === 'status-rank') { el.textContent = (value && String(value).trim()) ? String(value) : '⭐'; return; }
+        // Normal rendering for others
+        if (id === 'status-address' || id === 'status-index') {
+          el.textContent = iconLabel(`${value ?? '-'}`);
+                        } else {
+          el.textContent = iconLabel(`${label}: ${value ?? '-'}`);
+        }
+      };
+      if (!data) return;
+      if (data.address !== undefined) set('status-address', 'Address', data.address);
+      if (data.index !== undefined) set('status-index', 'Index', data.index);
+      if (data.rank !== undefined) set('status-rank', 'Rank', data.rank);
+      if (data.matic !== undefined) set('status-matic', 'POL', data.matic);
+      if (data.dai !== undefined) set('status-dai', 'DAI', data.dai);
+      if (data.iam !== undefined) set('status-iam', 'IAM', data.iam);
+      
+      if (data.likes !== undefined) set('status-likes', 'Likes', data.likes);
+      if (data.dislikes !== undefined) set('status-dislikes', 'Dislikes', data.dislikes);
+
+      // Apply dynamic sizing after updating all values
+      setTimeout(() => {
+        // Top bar dynamic sizing
+        setDynamicPillWidths('top', {
+          'status-address': data.address ? 1 : 0, // Address always gets minimum width
+          'status-index': data.index,
+          'status-likes': data.likes,
+          'status-dislikes': data.dislikes,
+          'status-rank': data.rank ? 1 : 0 // Rank always gets minimum width
+        });
+
+        // Bottom bar dynamic sizing
+        setDynamicPillWidths('bottom', {
+          'status-matic': data.matic,
+          'status-dai': data.dai,
+          'status-iam': data.iam
+        });
+      }, 100);
+    }
+
+    // User Info removed
+
+    async function fetchContractInfo() {
+      const addrEl = document.getElementById('c-address');
+      const nameEl = document.getElementById('c-name');
+      const symbolEl = document.getElementById('c-symbol');
+      const decimalsEl = document.getElementById('c-decimals');
+      const supplyEl = document.getElementById('c-total-supply');
+      const daiInEl = document.getElementById('c-dai-in-contract');
+      const iamInEl = document.getElementById('c-iam-in-contract');
+      const regPriceEl = document.getElementById('c-registration-price');
+      const tokenPriceEl = document.getElementById('c-token-price');
+      const pointPriceEl = document.getElementById('c-point-price');
+      const deployerEl = null;
+      const usersCountEl = null;
+      const walletsCountEl = document.getElementById('c-wallets-count');
+      const claimablePointsEl = document.getElementById('c-claimable-points');
+      const errEl = document.getElementById('contract-error');
+      errEl.style.display = 'none';
+      errEl.textContent = '';
+      try {
+        if (!window.connectWallet) throw new Error('Wallet connection is not available');
+        const connection = await window.connectWallet();
+        if (!connection || !connection.contract) throw new Error('Contract connection is not available');
+        const { contract, provider, signer, address: connectedAddress } = connection;
+
+        const contractAddress = (contract && contract.target) ? String(contract.target) : (window.IAM_ADDRESS || '-');
+        addrEl.textContent = shortenAddress(contractAddress);
+        // Link to Polygonscan/Amoy based on network
+        try {
+          if (addrEl && addrEl.tagName === 'A' && contractAddress && contractAddress.startsWith('0x') && contractAddress.length === 42) {
+            let base = 'https://polygonscan.com';
+            try {
+              const net = provider && provider.getNetwork ? await provider.getNetwork() : null;
+              const chainId = net && net.chainId ? Number(net.chainId) : undefined;
+              if (chainId === 137) base = 'https://polygonscan.com';
+              else if (chainId === 80002 || chainId === 80001) base = 'https://amoy.polygonscan.com';
+            } catch {}
+            addrEl.setAttribute('href', base + '/address/' + contractAddress);
+          }
+        } catch {}
+        // Update status bar basic address immediately
+        try { const ua = connectedAddress || (signer ? await signer.getAddress() : null); if (ua) updateStatusPills({ address: shortenAddress(ua) }); } catch {}
+        
+        // Update button states based on user status
+        try { await updateButtonStates(); } catch {}
+
+        // Always read directly from contract (no cached meta)
+        nameEl.textContent = '';
+        symbolEl.textContent = '';
+        decimalsEl.textContent = '';
+        supplyEl.textContent = '';
+        
+        if (walletsCountEl) walletsCountEl.textContent = '';
+        
+
+        // Direct reads
+        try { if (typeof contract.name === 'function') nameEl.textContent = await contract.name(); } catch {}
+        try { if (typeof contract.symbol === 'function') symbolEl.textContent = await contract.symbol(); } catch {}
+        try { if (typeof contract.decimals === 'function') decimalsEl.textContent = (await contract.decimals()).toString(); } catch {}
+        let tokenPriceWei = null;
+        let totalSupplyWei = null;
+        try {
+          if (typeof contract.totalSupply === 'function') {
+            totalSupplyWei = await contract.totalSupply();
+            supplyEl.textContent = formatMax2(toNumberFromUnits(totalSupplyWei, 18));
+          }
+        } catch {}
+        
+        // Users count intentionally removed per request
+
+        // Wallets count: prefer explicit contract variable/getter for wallets
+        try {
+          let walletsCount = null;
+          if (typeof contract.wallets === 'function') walletsCount = await contract.wallets();
+          if (typeof contract.walletsCount === 'function') walletsCount = await contract.walletsCount();
+          else if (typeof contract.getWalletsCount === 'function') walletsCount = await contract.getWalletsCount();
+          else if (typeof contract.totalWallets === 'function') walletsCount = await contract.totalWallets();
+          else if (typeof contract.walletsLength === 'function') walletsCount = await contract.walletsLength();
+          else if (typeof contract.getWalletsLength === 'function') walletsCount = await contract.getWalletsLength();
+          if (walletsCountEl && walletsCount !== null && walletsCount !== undefined) walletsCountEl.textContent = (typeof walletsCount === 'bigint' ? walletsCount.toString() : String(walletsCount));
+        } catch {}
+
+        // IAM in contract (balanceOf self)
+        let iamBalanceSelf = null;
+        try {
+          if (typeof contract.balanceOf === 'function') {
+            iamBalanceSelf = await contract.balanceOf(contract.target);
+            if (iamInEl) iamInEl.textContent = formatMax2(toNumberFromUnits(iamBalanceSelf, 18));
+          }
+        } catch {}
+
+        // ===== Status bar: wallet balances =====
+        try {
+          const userAddr = connectedAddress || (signer ? await signer.getAddress() : null);
+          if (userAddr) {
+            // POL/MATIC
+            try {
+              const mBal = await provider.getBalance(userAddr);
+              updateStatusPills({ matic: format2Decimals(toNumberFromUnits(mBal, 18)) });
+              // Update button states when POL balance changes
+            } catch {}
+            // DAI
+            try {
+              const daiAddr = window.DAI_ADDRESS || (window.contractConfig && window.contractConfig.DAI_ADDRESS);
+              if (daiAddr) {
+                const minimalDaiAbi = [{"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}];
+                const Dai = new ethers.Contract(daiAddr, minimalDaiAbi, provider);
+                const dBal = await Dai.balanceOf(userAddr);
+                updateStatusPills({ dAI: undefined, dai: format2Decimals(toNumberFromUnits(dBal, 18)) });
+                // Update button states when DAI balance changes
+              }
+            } catch {}
+            // IAM balance
+            try {
+              if (typeof contract.balanceOf === 'function') {
+                const ib = await contract.balanceOf(userAddr);
+                updateStatusPills({ iam: format2Decimals(toNumberFromUnits(ib, 18)) });
+                // Update button states when IAM balance changes
+              }
+            } catch {}
+            // Users struct: index, likes, dislikes (preferred source)
+            let u = null;
+            try { if (typeof contract.users === 'function') u = await contract.users(userAddr); } catch {}
+            if (u) {
+              try {
+                if (u.index !== undefined) {
+                  updateStatusPills({ index: (typeof u.index === 'bigint') ? u.index.toString() : String(u.index) });
+                  // Update button states when user index changes
+                }
+                // Rank derived from binaryPointsClaimed (claimed count tiers)
+                try {
+                  const claimedRaw = u && u.binaryPointsClaimed !== undefined ? u.binaryPointsClaimed : undefined;
+                  const claimed = claimedRaw !== undefined ? ((typeof claimedRaw === 'bigint') ? Number(claimedRaw) : Number(claimedRaw||0)) : NaN;
+                  if (!isNaN(claimed)) {
+                    let stars = 0;
+                    if (claimed >= 10000) stars = 5;
+                    else if (claimed >= 1000) stars = 4;
+                    else if (claimed >= 100) stars = 3;
+                    else if (claimed >= 10) stars = 2;
+                    else if (claimed >= 1) stars = 1;
+                    updateStatusPills({ rank: (stars > 0 ? '⭐'.repeat(stars) : '-') });
+                    // Update button states when stars change
+                  }
+                } catch {}
+                // Likes/Dislikes totals from contract method
+                try {
+                  if (typeof contract.getVoteStatus === 'function') {
+                    const vs = await contract.getVoteStatus(userAddr);
+                    const likes = (vs && (vs[0] !== undefined || vs.totalLikes !== undefined)) ? Number(vs[0] ?? vs.totalLikes) : 0;
+                    const dislikes = (vs && (vs[1] !== undefined || vs.totalDislikes !== undefined)) ? Number(vs[1] ?? vs.totalDislikes) : 0;
+                    updateStatusPills({ likes, dislikes });
+                  }
+                } catch {}
+              } catch {}
+            } else {
+              // Fallbacks
+              try {
+                let idx = null;
+                if (typeof contract.addressToIndex === 'function') idx = await contract.addressToIndex(userAddr);
+                if (idx !== null && idx !== undefined) {
+                  updateStatusPills({ index: (typeof idx === 'bigint' ? idx.toString() : String(idx)) });
+                  // Update button states when user index changes
+                }
+              } catch {}
+              try {
+                if (typeof contract.getVoteStatus === 'function') {
+                  const vs = await contract.getVoteStatus(userAddr);
+                  const likes = (vs && (vs[0] !== undefined || vs.totalLikes !== undefined)) ? Number(vs[0] ?? vs.totalLikes) : 0;
+                  const dislikes = (vs && (vs[1] !== undefined || vs.totalDislikes !== undefined)) ? Number(vs[1] ?? vs.totalDislikes) : 0;
+                  updateStatusPills({ likes, dislikes });
+                }
+              } catch {}
+            }
+            // Index + Rank (ensure index present if not from struct)
+            try {
+              let ensuredIndex = document.getElementById('status-index')?.textContent;
+              if (!ensuredIndex || ensuredIndex === '-' || ensuredIndex.trim() === '# -') {
+                let idx = null;
+                if (typeof contract.addressToIndex === 'function') idx = await contract.addressToIndex(userAddr);
+                if (idx !== null && idx !== undefined) {
+                  updateStatusPills({ index: (typeof idx === 'bigint' ? idx.toString() : String(idx)) });
+                  // Update button states when user index changes
+                } else {
+                  updateStatusPills({ index: '-' });
+                  // Update button states when user has no index
+                }
+              }
+            } catch {}
+          }
+        } catch {}
+
+        // DAI in contract (best-effort via window.DAI_ADDRESS)
+        try {
+          const daiAddr = window.DAI_ADDRESS || (window.contractConfig && window.contractConfig.DAI_ADDRESS);
+          if (provider && daiAddr) {
+            const minimalDaiAbi = [{"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}];
+            const Dai = new ethers.Contract(daiAddr, minimalDaiAbi, provider);
+            const d = await Dai.balanceOf(contract.target);
+            if (daiInEl) daiInEl.textContent = toNumberFromUnits(d, 18).toLocaleString('en-US', { 
+              minimumFractionDigits: 2, 
+              maximumFractionDigits: 2 
+            });
+          }
+        } catch {}
+
+        // Registration price (only getRegPrice per request)
+        let regPriceWei = null;
+        try {
+          if (typeof contract.getRegPrice === 'function') {
+            const r = await contract.getRegPrice();
+            regPriceWei = (typeof r === 'bigint') ? r : BigInt(r);
+            if (regPriceEl) regPriceEl.textContent = formatMax2(toNumberFromUnits(regPriceWei, 18));
+          }
+        } catch {}
+
+        // Token price (try common names)
+        try {
+          let p;
+          if (typeof contract.getTokenPrice === 'function') p = await contract.getTokenPrice();
+          else if (typeof contract.tokenPrice === 'function') p = await contract.tokenPrice();
+          if (p !== undefined) {
+            tokenPriceWei = (typeof p === 'bigint') ? p : BigInt(p);
+            if (tokenPriceEl) tokenPriceEl.textContent = safeFormatUnits(tokenPriceWei, 18);
+          }
+        } catch {}
+
+        // Point price will be derived below from IAM-in-contract / total unclaimed points
+
+        // Claimable points total – read from its public variable/getter on contract
+        let totalUnclaimedPoints = null;
+        try {
+          const preferIntegerString = (v) => {
+            try { return (typeof v === 'bigint' ? v : BigInt(v)).toString(); } catch { return String(v); }
+          };
+          let cp;
+          if (typeof contract.totalClaimablePoints === 'function') cp = await contract.totalClaimablePoints();
+          else if (typeof contract.claimablePointsTotal === 'function') cp = await contract.claimablePointsTotal();
+          else if (typeof contract.getClaimablePoints === 'function') cp = await contract.getClaimablePoints();
+          else if (typeof contract.claimablePoints === 'function') cp = await contract.claimablePoints();
+          else if (typeof contract.totalUnclaimedPoints === 'function') cp = await contract.totalUnclaimedPoints();
+          else if (typeof contract.unclaimedPointsTotal === 'function') cp = await contract.unclaimedPointsTotal();
+          if (cp !== undefined) {
+            totalUnclaimedPoints = (typeof cp === 'bigint') ? cp : (()=>{ try{return BigInt(cp);}catch{return null;} })();
+            if (claimablePointsEl && totalUnclaimedPoints !== null) claimablePointsEl.textContent = totalUnclaimedPoints.toString();
+          }
+        } catch {}
+
+        // Derived Point Value = IAM in contract / total unclaimed points (IAM has 18 decimals; points are integer)
+        try {
+          if (pointPriceEl && iamBalanceSelf !== null && totalUnclaimedPoints !== null && totalUnclaimedPoints > 0n) {
+            const ONE = 1000000000000000000n; // 1e18
+            const priceWeiPerPoint = iamBalanceSelf / totalUnclaimedPoints;
+            pointPriceEl.textContent = formatMax2(toNumberFromUnits(priceWeiPerPoint, 18));
+            if (tokenPriceWei) {
+              const usdPerPointWei = (priceWeiPerPoint * tokenPriceWei) / ONE;
+              const usdEl = ensureUsdInline(pointPriceEl);
+              if (usdEl) usdEl.textContent = formatUsdFromWeiProduct2Decimals(usdPerPointWei);
+            }
+          }
+        } catch {}
+
+
+        // USD subline below Registration Price
+        try {
+          if (regPriceEl && regPriceWei && tokenPriceWei) {
+            // Convert to numbers for precise calculation
+            const regPriceNum = Number(ethers.formatUnits(regPriceWei, 18));
+            const tokenPriceNum = Number(ethers.formatUnits(tokenPriceWei, 18));
+            const usdValue = regPriceNum * tokenPriceNum;
+            const usdEl = ensureUsdInline(regPriceEl);
+            if (usdEl) usdEl.textContent = '$' + usdValue.toLocaleString('en-US', { 
+              minimumFractionDigits: 2, 
+              maximumFractionDigits: 2 
+            });
+          }
+        } catch {}
+
+        // USD under Total Supply
+        try {
+          if (totalSupplyWei && tokenPriceWei) {
+            const ONE = 1000000000000000000n;
+            const supplyUsdWei = (totalSupplyWei * tokenPriceWei) / ONE;
+            const usdEl = ensureUsdInline(supplyEl);
+            if (usdEl) usdEl.textContent = formatUsdFromWeiProduct2Decimals(supplyUsdWei);
+          }
+        } catch {}
+
+        // USD under IAM In Contract
+        try {
+          if (iamBalanceSelf !== null && tokenPriceWei) {
+            const ONE = 1000000000000000000n;
+            const iamUsdWei = (iamBalanceSelf * tokenPriceWei) / ONE;
+            const usdEl = ensureUsdInline(iamInEl);
+            if (usdEl) usdEl.textContent = formatUsdFromWeiProduct2Decimals(iamUsdWei);
+          }
+        } catch {}
+            } catch (e) {
+        errEl.textContent = e.message || 'Failed to load contract info';
+        errEl.style.display = 'block';
+      }
+    }
+
+    // Ensure connection before fetching; retry a few times
+    async function waitForContract(maxWaitMs = 10000, intervalMs = 500) {
+      const start = Date.now();
+      while (Date.now() - start < maxWaitMs) {
+        try {
+          if (window.contractConfig && window.contractConfig.contract) return true;
+          if (typeof window.connectWallet === 'function') {
+            const conn = await window.connectWallet();
+            if (conn && conn.contract) return true;
+          }
+        } catch {}
+        await new Promise(r => setTimeout(r, intervalMs));
+      }
+      return false;
+    }
+
+    async function refreshContractInfoSafe() {
+      const ok = await waitForContract(12000, 600);
+      if (!ok) return;
+      await fetchContractInfo();
+    }
+
+    // ==== Dynamic ABI UI builders ====
+    function parseInputValue(raw, solidityType) {
+      if (solidityType.startsWith('uint') || solidityType.startsWith('int')) {
+        // Accept decimal string -> BigInt
+        return (typeof raw === 'string' && raw.trim() !== '') ? BigInt(raw) : 0n;
+      }
+      if (solidityType === 'bool') {
+        return String(raw).toLowerCase() === 'true';
+      }
+      // bytes, address, string, arrays (as JSON)
+      if (solidityType.endsWith(']')) {
+        try { return JSON.parse(raw); } catch { return []; }
+      }
+      return raw;
+    }
+
+     function buildFunctionRow(fn, container, isWrite = false) {
+      const row = document.createElement('div');
+      row.style.border = '1px solid #263048';
+      row.style.borderRadius = '10px';
+      row.style.padding = '10px';
+      row.style.margin = '10px 0';
+
+      const title = document.createElement('div');
+      title.className = 'label';
+      title.textContent = `${fn.name}(${(fn.inputs||[]).map(i=>i.type).join(', ')})`;
+      row.appendChild(title);
+
+      const inputsWrap = document.createElement('div');
+      inputsWrap.style.display = 'grid';
+      inputsWrap.style.gridTemplateColumns = 'repeat(auto-fit, minmax(180px, 1fr))';
+      inputsWrap.style.gap = '8px';
+      const inputs = [];
+      (fn.inputs||[]).forEach((inp, idx) => {
+        const field = document.createElement('input');
+        field.placeholder = `${inp.name||'arg'+idx}: ${inp.type}`;
+        field.style.background = '#0f1220';
+        field.style.border = '1px solid #263048';
+        field.style.borderRadius = '8px';
+        field.style.color = '#e6eaf0';
+        field.style.padding = '8px';
+        inputsWrap.appendChild(field);
+        inputs.push({ field, type: inp.type });
+      });
+      row.appendChild(inputsWrap);
+
+      const actions = document.createElement('div');
+      actions.style.marginTop = '8px';
+      const btn = document.createElement('button');
+      btn.textContent = isWrite ? 'ارسال تراکنش' : 'فراخوانی';
+      btn.className = isWrite ? 'info' : 'secondary';
+      actions.appendChild(btn);
+      row.appendChild(actions);
+
+      const result = document.createElement('div');
+      result.className = 'value';
+      result.style.marginTop = '8px';
+      result.style.wordBreak = 'break-word';
+      row.appendChild(result);
+
+      btn.addEventListener('click', async () => {
+        try {
+          const args = inputs.map(i => parseInputValue(i.field.value, i.type));
+          const callName = fn.name;
+          const signature = `${fn.name}(${(fn.inputs||[]).map(i=>i.type).join(',')})`;
+          if (isWrite) {
+            result.textContent = '⏳ در حال ارسال تراکنش...';
+            const sender = (typeof window.sendWriteSignature === 'function') ? window.sendWriteSignature : window.sendWrite;
+            const receipt = await sender(signature, ...args);
+            result.textContent = `✅ تایید شد: ${receipt.transactionHash}`;
+                            } else {
+            result.textContent = '⏳ در حال خواندن...';
+            const reader = (typeof window.callReadSignature === 'function') ? window.callReadSignature : window.callRead;
+            const out = await reader(signature, ...args);
+            try { result.textContent = JSON.stringify(out, null, 2); }
+            catch { result.textContent = String(out); }
+          }
+            } catch (e) {
+          result.textContent = `❌ ${e.message||e}`;
+        }
+      });
+
+      container.appendChild(row);
+    }
+
+     function buildAbiUI() { /* write functions removed per request */ }
+
+    // Check claim status and show reminder if needed
+    async function checkClaimStatusAndRemind() {
+      try {
+        if (!window.connectWallet) return;
+        
+        const connection = await window.connectWallet();
+        if (!connection || !connection.contract || !connection.address) return;
+        
+        const { contract, address } = connection;
+        
+        // Get user data
+        const user = await contract.users(address);
+        if (!user || user.index === 0n) return; // User not registered
+        
+        const binaryPoints = Number(user.binaryPoints || 0);
+        const lastClaimTime = Number(user.lastClaimTime || 0);
+        const currentTime = Math.floor(Date.now() / 1000);
+        const timeSinceLastClaim = currentTime - lastClaimTime;
+        const twelveHours = 12 * 60 * 60; // 12 hours in seconds
+        
+        // Check if user has points and 12+ hours have passed since last claim
+        if (binaryPoints > 0 && timeSinceLastClaim >= twelveHours) {
+          showClaimReminderModal();
+        }
+      } catch (error) {
+        console.error('Error checking claim status:', error);
+      }
+    }
+    
+    // Execute claim function
+    async function executeClaim() {
+      try {
+        if (!window.connectWallet) {
+          throw new Error('Wallet connection not available');
+        }
+        
+        const connection = await window.connectWallet();
+        if (!connection || !connection.contract) {
+          throw new Error('Contract connection failed');
+        }
+        
+        const { contract } = connection;
+        
+        // Show loading message
+        const statusEl = document.getElementById('status-message') || createStatusElement();
+        statusEl.textContent = '⏳ Executing claim transaction...';
+        statusEl.style.display = 'block';
+        statusEl.style.color = '#00ff88';
+        
+        // Execute claim
+        const tx = await contract.claim();
+        
+        statusEl.textContent = '⏳ Waiting for transaction confirmation...';
+        
+        const receipt = await tx.wait();
+        
+        statusEl.textContent = `✅ Claim successful! Transaction: ${receipt.hash}`;
+        statusEl.style.color = '#00ff88';
+        
+        // Check if binary points are now zero and hide modal if so
+        setTimeout(async () => {
+          try {
+            const connection = await window.connectWallet();
+            if (connection && connection.contract && connection.address) {
+              const user = await connection.contract.users(connection.address);
+              const binaryPoints = Number(user.binaryPoints || 0);
+              
+              if (binaryPoints === 0) {
+                // Hide modal if points are zero
+                const modal = document.getElementById('claim-reminder-modal');
+                if (modal) {
+                  modal.remove();
+                }
+                // Refresh page
+                location.reload();
+              }
+            }
+          } catch (error) {
+            console.error('Error checking points after claim:', error);
+            // Refresh page anyway
+            location.reload();
+          }
+        }, 2000);
+        
+      } catch (error) {
+        console.error('Claim error:', error);
+        const statusEl = document.getElementById('status-message') || createStatusElement();
+        statusEl.textContent = `❌ Claim failed: ${error.message}`;
+        statusEl.style.color = '#ff6b6b';
+        statusEl.style.display = 'block';
+      }
+    }
+    
+    // Create status element if it doesn't exist
+    function createStatusElement() {
+      const statusEl = document.createElement('div');
+      statusEl.id = 'status-message';
+      statusEl.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.9);
+        color: #ffffff;
+        padding: 1rem;
+        border-radius: 8px;
+        border: 1px solid #00ff88;
+        z-index: 10001;
+        max-width: 300px;
+        word-wrap: break-word;
+      `;
+      document.body.appendChild(statusEl);
+      return statusEl;
+    }
+
+    // Show claim reminder modal
+    function showClaimReminderModal() {
+      // Remove existing modal if any
+      const existingModal = document.getElementById('claim-reminder-modal');
+      if (existingModal) {
+        existingModal.remove();
+      }
+      
+      // Create modal overlay
+      const modalOverlay = document.createElement('div');
+      modalOverlay.id = 'claim-reminder-modal';
+      modalOverlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 10000;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        backdrop-filter: blur(5px);
+      `;
+      
+      // Create modal content
+      const modalContent = document.createElement('div');
+      modalContent.style.cssText = `
+        background: linear-gradient(135deg, #1a1f2e, #2d3748);
+        border: 2px solid #00ff88;
+        border-radius: 15px;
+        padding: 2rem;
+        max-width: 500px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0, 255, 136, 0.3);
+        animation: slideIn 0.3s ease-out;
+      `;
+      
+      modalContent.innerHTML = `
+        <div style="color: #00ff88; font-size: 2rem; margin-bottom: 1rem;">💰</div>
+        <h2 style="color: #ffffff; margin-bottom: 1rem; font-size: 1.5rem;">⚠️ CLAIM REQUIRED!</h2>
+        <p style="color: #e2e8f0; margin-bottom: 1.5rem; line-height: 1.6;">
+          You have unclaimed binary rewards that MUST be claimed before you can continue using the platform.
+          <br><br>
+          <strong style="color: #ff6b6b; font-size: 1.1rem;">⚠️ You cannot proceed without claiming your rewards!</strong>
+          <br><br>
+          <span style="color: #00ff88; font-weight: 600;">This modal will remain open until you successfully claim your rewards.</span>
+        </p>
+        <div id="claimStatus" style="margin-bottom: 1rem; color: #e2e8f0; font-size: 0.9rem;"></div>
+        <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+          <button id="claimNowBtn" style="
+            background: linear-gradient(135deg, #00ff88, #00cc6a);
+            color: #0a0f1c;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+          ">💰 CLAIM NOW</button>
+        </div>
+      `;
+      
+      modalOverlay.appendChild(modalContent);
+      document.body.appendChild(modalOverlay);
+      
+      // Add animation keyframes
+      const style = document.createElement('style');
+      style.textContent = `
+        @keyframes slideIn {
+          from { transform: translateY(-50px); opacity: 0; }
+          to { transform: translateY(0); opacity: 1; }
+        }
+      `;
+      document.head.appendChild(style);
+      
+      // Event listeners
+      document.getElementById('claimNowBtn').addEventListener('click', async () => {
+        const btn = document.getElementById('claimNowBtn');
+        const status = document.getElementById('claimStatus');
+        
+        try {
+          btn.disabled = true;
+          btn.textContent = '⏳ Claiming...';
+          status.textContent = 'Processing your claim...';
+          
+          // Execute claim
+          await executeClaim();
+          
+          // Check if claim was successful by verifying points are now 0
+          setTimeout(async () => {
+            try {
+              const connection = await window.connectWallet();
+              if (connection && connection.contract && connection.address) {
+                const user = await connection.contract.users(connection.address);
+                const binaryPoints = Number(user.binaryPoints || 0);
+                
+                if (binaryPoints === 0) {
+                  // Success - close modal
+                  status.textContent = '✅ Claim successful! Closing...';
+                  setTimeout(() => {
+                    modalOverlay.remove();
+                    location.reload();
+                  }, 1500);
+                } else {
+                  // Still has points - keep modal open
+                  btn.disabled = false;
+                  btn.textContent = '💰 Claim Now';
+                  status.textContent = 'Claim failed or points still available. Please try again.';
+                }
+              }
+            } catch (error) {
+              btn.disabled = false;
+              btn.textContent = '💰 Claim Now';
+              status.textContent = 'Error checking claim status. Please try again.';
+            }
+          }, 3000);
+          
+        } catch (error) {
+          btn.disabled = false;
+          btn.textContent = '💰 Claim Now';
+          status.textContent = 'Claim failed. Please try again.';
+          console.error('Error executing claim:', error);
+        }
+      });
+      
+      // Prevent closing modal by clicking outside or ESC
+      modalOverlay.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+      
+      modalContent.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Connect button removed; keep auto-connect below
+      
+      // Auto try to load if connection is already present
+      try {
+        await refreshContractInfoSafe();
+        // buildAbiUI removed
+      } catch {}
+
+      // Disable all buttons immediately on page load
+      const initialNavCards = document.querySelectorAll('.nav-card');
+      initialNavCards.forEach(card => {
+        card.classList.add('disabled');
+        card.title = 'Please connect your wallet first';
+      });
+      
+      // Update button states on page load
+      await updateButtonStates();
+      
+      // Auto-connect on load for immediate data
+      try {
+        if (typeof window.connectWallet === 'function') {
+          const conn = await window.connectWallet();
+          if (conn && conn.address) {
+            await refreshContractInfoSafe();
+            // Update button states after auto-connect
+            await updateButtonStates();
+            
+            // Check claim status and show reminder if needed
+            await checkClaimStatusAndRemind();
+          }
+        }
+      } catch {}
+
+      // Refresh periodically
+      setInterval(() => { 
+        refreshContractInfoSafe(); 
+        // Also update button states periodically (less frequent)
+      }, 60000); // Increased to 60 seconds
+
+      // MetaMask events: keep info fresh
+      if (window.ethereum) {
+        try {
+          window.ethereum.on('accountsChanged', () => { 
+            refreshContractInfoSafe(); 
+          });
+          window.ethereum.on('chainChanged', () => { 
+            refreshContractInfoSafe(); 
+          });
+          window.ethereum.on('connect', () => { 
+            refreshContractInfoSafe(); 
+          });
+          window.ethereum.on('disconnect', () => { 
+          });
+        } catch {}
+      }
+      
+    // Setup permanent referral link
+    setupPermanentReferralLink();
+    
+    // Setup tree navigation and leaderboard
+    setupTreeNavigationAndLeaderboard();
+    
+    // Message box removed
+  });
+    
+    function setupPermanentReferralLink() {
+      const copyBtn = document.getElementById('copy-referral-btn');
+      const referralLinkInput = document.getElementById('referral-link');
+      const linkContainer = document.getElementById('referral-link-container');
+      const note = document.getElementById('referral-note');
+
+      if (!copyBtn || !referralLinkInput || !linkContainer) {
+        console.warn('Referral link elements not found');
+        return;
+      }
+
+      async function setPermanentLink() {
+        try {
+          let addr = null;
+          if (window.ethereum && window.ethereum.selectedAddress) addr = window.ethereum.selectedAddress;
+          if (!addr && window.contractConfig && window.contractConfig.address) addr = window.contractConfig.address;
+          if (!addr) return;
+
+          // Resolve user's index from status pill or contract if possible
+          let idx = document.getElementById('status-index')?.textContent?.replace('⭐', '').trim();
+          if (!idx || idx === '-' || idx === '# -') {
+            try {
+              if (window.contractConfig && window.contractConfig.contract) {
+                const c = window.contractConfig.contract;
+                if (typeof c.users === 'function') {
+                  const u = await c.users(addr);
+                  if (u && u.index !== undefined) idx = (typeof u.index === 'bigint') ? u.index.toString() : String(u.index);
+                }
+                if ((!idx || idx === '-' || idx === '0') && typeof c.addressToIndex === 'function') {
+                  const vi = await c.addressToIndex(addr);
+                  idx = (typeof vi === 'bigint') ? vi.toString() : String(vi);
+                }
+              }
+            } catch {}
+          }
+          if (!idx || idx === '-' || idx === '0') return;
+
+          const baseUrl = window.location.origin + '/register.html';
+          const referralUrl = `${baseUrl}?ref=${encodeURIComponent(idx)}`;
+          referralLinkInput.value = referralUrl;
+          // Removed open button per request
+          linkContainer.style.display = 'block';
+          if (note) note.style.display = 'none';
+        } catch {}
+      }
+
+      // Set immediately and on wallet events
+      setPermanentLink();
+      if (window.ethereum) {
+        try {
+          window.ethereum.on('accountsChanged', setPermanentLink);
+          window.ethereum.on('connect', setPermanentLink);
+          window.ethereum.on('chainChanged', setPermanentLink);
+        } catch {}
+      }
+
+      copyBtn.addEventListener('click', async function() {
+        try {
+          await navigator.clipboard.writeText(referralLinkInput.value);
+          copyBtn.textContent = '✅ Copied!';
+          copyBtn.style.background = 'linear-gradient(135deg, #00ff88, #00cc6a)';
+          setTimeout(() => {
+            copyBtn.textContent = '📋 Copy';
+            copyBtn.style.background = 'linear-gradient(135deg, #a786ff, #9670ff)';
+          }, 2000);
+        } catch (err) {
+          console.error('Failed to copy: ', err);
+          // Fallback for older browsers
+          referralLinkInput.select();
+                            document.execCommand('copy');
+          copyBtn.textContent = '✅ Copied!';
+          setTimeout(() => {
+            copyBtn.textContent = '📋 Copy';
+          }, 2000);
+        }
+      });
+    }
+
+    // Tree Navigation and Leaderboard System
+    function setupTreeNavigationAndLeaderboard() {
+      // Start exploration automatically
+      startAutomaticExploration();
+    }
+
+    // Automatic tree exploration
+    async function startAutomaticExploration() {
+      const statusEl = document.getElementById('exploration-status');
+      const progressBar = document.getElementById('progress-bar');
+      const progressText = document.getElementById('progress-text');
+      
+      if (!statusEl || !progressBar || !progressText) return;
+
+      try {
+        updateProgress(0, '⏳ Starting Tree Exploration...');
+        
+        await exploreBinaryTree();
+        
+        updateProgress(100, '✅ Tree Exploration Complete');
+      } catch (error) {
+        console.error('Error in automatic tree exploration:', error);
+        updateProgress(0, '❌ Exploration Failed - Check Console');
+        progressBar.style.background = 'linear-gradient(135deg, #ff4444, #cc0000)';
+      }
+    }
+
+    // Update progress bar
+    function updateProgress(percentage, statusText) {
+      const statusEl = document.getElementById('exploration-status');
+      const progressBar = document.getElementById('progress-bar');
+      const progressText = document.getElementById('progress-text');
+      
+      if (statusEl) statusEl.textContent = statusText;
+      if (progressBar) progressBar.style.width = percentage + '%';
+      if (progressText) progressText.textContent = Math.round(percentage) + '%';
+    }
+
+    // Main function to explore binary tree and create leaderboard
+    async function exploreBinaryTree() {
+      try {
+        if (!window.connectWallet) {
+          throw new Error('Wallet connection is not available');
+        }
+
+        updateProgress(10, '⏳ Connecting to Contract...');
+
+        const { contract } = await window.connectWallet();
+        if (!contract) {
+          throw new Error('Contract connection failed');
+        }
+
+        updateProgress(20, '⏳ Exploring Binary Tree...');
+
+        console.log('🌳 Starting binary tree exploration...');
+        
+        // Get all users from the tree
+        const allUsers = await getAllUsersFromTree(contract);
+        
+        updateProgress(70, '⏳ Processing Data...');
+        
+        // Sort by claimed points (descending)
+        const sortedUsers = allUsers.sort((a, b) => {
+          const aClaimed = Number(a.binaryPointsClaimed || 0);
+          const bClaimed = Number(b.binaryPointsClaimed || 0);
+          return bClaimed - aClaimed;
+        });
+
+        updateProgress(85, '⏳ Updating Statistics...');
+
+        // Update statistics
+        updateTreeStatistics(allUsers);
+        
+        updateProgress(95, '⏳ Displaying Leaderboard...');
+        
+        // Display top 10 leaderboard
+        displayLeaderboard(sortedUsers.slice(0, 10));
+        
+        // Display popularity data (already collected in allUsers)
+        displayPopularityList(allUsers);
+        
+        console.log(`✅ Tree exploration completed. Found ${allUsers.length} users.`);
+        
+      } catch (error) {
+        console.error('Error in tree exploration:', error);
+        throw error;
+      }
+    }
+
+    // Get all users from the binary tree using optimized traversal with likes/dislikes
+    async function getAllUsersFromTree(contract) {
+      const users = [];
+      const processedIndices = new Set();
+      const maxDepth = 10000000; // Increased per request to allow deep traversal
+      let processedCount = 0;
+      
+      // Start from root (index 1)
+      const rootIndex = 1n;
+      const stack = [{ index: rootIndex, depth: 0 }];
+      
+      while (stack.length > 0) {
+        const { index, depth } = stack.pop();
+        const indexStr = index.toString();
+        
+        // Skip if already processed or too deep
+        if (processedIndices.has(indexStr) || depth > maxDepth) continue;
+        processedIndices.add(indexStr);
+        
+        try {
+          // Get address for this index
+          const address = await contract.indexToAddress(index);
+          
+          if (address && address !== '0x0000000000000000000000000000000000000000') {
+            // Get user data and vote status in parallel
+            const [userData, voteStatus] = await Promise.all([
+              contract.users(address),
+              contract.getVoteStatus(address).catch(() => ({ 0: 0, 1: 0 })) // Fallback for vote errors
+            ]);
+            
+            if (userData && userData.index) {
+              const likes = Number(voteStatus[0] || voteStatus.totalLikes || 0);
+              const dislikes = Number(voteStatus[1] || voteStatus.totalDislikes || 0);
+              
+              users.push({
+                address: address,
+                index: userData.index,
+                binaryPoints: userData.binaryPoints || 0,
+                binaryPointsClaimed: userData.binaryPointsClaimed || 0,
+                leftPoints: userData.leftPoints || 0,
+                rightPoints: userData.rightPoints || 0,
+                totalPurchasedKind: userData.totalPurchasedKind || 0,
+                depositedAmount: userData.depositedAmount || 0,
+                likes: likes,
+                dislikes: dislikes,
+                popularityScore: likes - dislikes
+              });
+              
+              // Add children to stack
+              const leftChild = index * 2n;
+              const rightChild = index * 2n + 1n;
+              
+              stack.push({ index: rightChild, depth: depth + 1 });
+              stack.push({ index: leftChild, depth: depth + 1 });
+            }
+          }
+          
+          // Update progress every 10 processed nodes
+          processedCount++;
+          if (processedCount % 10 === 0) {
+            const progress = Math.min(20 + (processedCount * 0.5), 65);
+            updateProgress(progress, `⏳ Exploring... Found ${users.length} users`);
+          }
+        } catch (e) {
+          // Skip errors and continue
+          continue;
+        }
+      }
+      
+      return users;
+    }
+
+    // Update tree statistics display
+    function updateTreeStatistics(users) {
+      const totalUsersEl = document.getElementById('total-users');
+      const totalPointsEl = document.getElementById('total-points');
+      const claimedPointsEl = document.getElementById('claimed-points');
+      const treeStats = document.getElementById('tree-stats');
+      
+      if (!totalUsersEl || !totalPointsEl || !claimedPointsEl || !treeStats) return;
+      
+      const totalUsers = users.length;
+      const totalPoints = users.reduce((sum, user) => sum + Number(user.binaryPoints || 0), 0);
+      const claimedPoints = users.reduce((sum, user) => sum + Number(user.binaryPointsClaimed || 0), 0);
+      
+      totalUsersEl.textContent = totalUsers.toLocaleString();
+      totalPointsEl.textContent = totalPoints.toLocaleString();
+      claimedPointsEl.textContent = claimedPoints.toLocaleString();
+      
+      treeStats.style.display = 'block';
+    }
+
+    // Display leaderboard
+    function displayLeaderboard(topUsers) {
+      const leaderboardContainer = document.getElementById('leaderboard-container');
+      const leaderboardList = document.getElementById('leaderboard-list');
+      
+      if (!leaderboardContainer || !leaderboardList) return;
+      
+      if (topUsers.length === 0) {
+        leaderboardList.innerHTML = '<div style="text-align: center; color: #aef3c6; padding: 20px;">No users found</div>';
+        leaderboardContainer.style.display = 'block';
+        return;
+      }
+      
+      const leaderboardHTML = topUsers.map((user, index) => {
+        const rank = index + 1;
+        const claimedPoints = Number(user.binaryPointsClaimed || 0);
+        const totalPoints = Number(user.binaryPoints || 0);
+        const address = user.address;
+        const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown';
+        
+        // Rank styling
+        let rankStyle = '';
+        let rankIcon = '';
+        if (rank === 1) {
+          rankStyle = 'background: linear-gradient(135deg, #ffd700, #ffed4e); color: #181c2a;';
+          rankIcon = '👑';
+        } else if (rank === 2) {
+          rankStyle = 'background: linear-gradient(135deg, #c0c0c0, #e5e5e5); color: #181c2a;';
+          rankIcon = '🥈';
+        } else if (rank === 3) {
+          rankStyle = 'background: linear-gradient(135deg, #cd7f32, #daa520); color: #181c2a;';
+          rankIcon = '🥉';
+        } else {
+          rankStyle = 'background: rgba(167, 134, 255, 0.2); color: #aef3c6;';
+          rankIcon = `#${rank}`;
+        }
+        
+        return `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            margin: 8px 0;
+            background: rgba(0, 255, 136, 0.05);
+            border: 1px solid rgba(0, 255, 136, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+          " onmouseover="this.style.background='rgba(0, 255, 136, 0.1)'" onmouseout="this.style.background='rgba(0, 255, 136, 0.05)'">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="
+                ${rankStyle}
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-weight: bold;
+                font-size: 14px;
+                min-width: 40px;
+                text-align: center;
+              ">${rankIcon}</div>
+              <div>
+                <div style="color: #e6eaf0; font-weight: 600; font-family: monospace;">${shortAddress}</div>
+                <div style="color: #aef3c6; font-size: 12px;">Index: ${user.index}</div>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="color: #00ff88; font-weight: bold; font-size: 16px;">${claimedPoints.toLocaleString()}</div>
+              <div style="color: #aef3c6; font-size: 12px;">claimed points</div>
+              <div style="color: #a786ff; font-size: 11px;">${totalPoints.toLocaleString()} total</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      leaderboardList.innerHTML = leaderboardHTML;
+      leaderboardContainer.style.display = 'block';
+    }
+
+    // Display popularity list
+    function displayPopularityList(users) {
+      const popularityContainer = document.getElementById('popularity-container');
+      const popularityList = document.getElementById('popularity-list');
+      
+      if (!popularityContainer || !popularityList) return;
+      
+      // Show container
+      popularityContainer.style.display = 'block';
+      
+      if (users.length === 0) {
+        popularityList.innerHTML = '<div style="text-align: center; color: #aef3c6; padding: 20px;">No popularity data found</div>';
+        return;
+      }
+      
+      // Sort by popularity score (likes - dislikes) descending
+      const sortedByPopularity = users.sort((a, b) => (b.popularityScore || 0) - (a.popularityScore || 0));
+      
+      // Display top 10 most popular users
+      const popularUsers = sortedByPopularity.slice(0, 10);
+      
+      const popularityHTML = popularUsers.map((user, index) => {
+        const rank = index + 1;
+        const likes = user.likes || 0;
+        const dislikes = user.dislikes || 0;
+        const popularityScore = user.popularityScore || 0;
+        const address = user.address;
+        const shortAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : 'Unknown';
+        
+        // Rank styling
+        let rankStyle = '';
+        let rankIcon = '';
+        if (rank === 1) {
+          rankStyle = 'background: linear-gradient(135deg, #ffd700, #ffed4e); color: #181c2a;';
+          rankIcon = '👑';
+        } else if (rank === 2) {
+          rankStyle = 'background: linear-gradient(135deg, #c0c0c0, #e5e5e5); color: #181c2a;';
+          rankIcon = '🥈';
+        } else if (rank === 3) {
+          rankStyle = 'background: linear-gradient(135deg, #cd7f32, #daa520); color: #181c2a;';
+          rankIcon = '🥉';
+        } else {
+          rankStyle = 'background: rgba(255, 107, 51, 0.2); color: #aef3c6;';
+          rankIcon = `#${rank}`;
+        }
+        
+        // Popularity color based on score
+        let popularityColor = '#aef3c6'; // neutral
+        if (popularityScore > 0) popularityColor = '#00ff88'; // positive
+        else if (popularityScore < 0) popularityColor = '#ff4444'; // negative
+        
+        return `
+          <div style="
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            margin: 8px 0;
+            background: rgba(255, 107, 51, 0.05);
+            border: 1px solid rgba(255, 107, 51, 0.2);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+          " onmouseover="this.style.background='rgba(255, 107, 51, 0.1)'" onmouseout="this.style.background='rgba(255, 107, 51, 0.05)'">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <div style="
+                ${rankStyle}
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-weight: bold;
+                font-size: 14px;
+                min-width: 40px;
+                text-align: center;
+              ">${rankIcon}</div>
+              <div>
+                <div style="color: #e6eaf0; font-weight: 600; font-family: monospace;">${shortAddress}</div>
+                <div style="color: #aef3c6; font-size: 12px;">Index: ${user.index}</div>
+              </div>
+            </div>
+            <div style="text-align: right;">
+              <div style="display: flex; gap: 15px; align-items: center;">
+                <div style="text-align: center;">
+                  <div style="color: #00ff88; font-weight: bold; font-size: 16px;">${likes}</div>
+                  <div style="color: #aef3c6; font-size: 12px;">❤️ Likes</div>
+                </div>
+                <div style="text-align: center;">
+                  <div style="color: #ff4444; font-weight: bold; font-size: 16px;">${dislikes}</div>
+                  <div style="color: #aef3c6; font-size: 12px;">💔 Dislikes</div>
+                </div>
+                <div style="text-align: center;">
+                  <div style="color: ${popularityColor}; font-weight: bold; font-size: 16px;">${popularityScore >= 0 ? '+' : ''}${popularityScore}</div>
+                  <div style="color: #aef3c6; font-size: 12px;">📊 Score</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      popularityList.innerHTML = popularityHTML;
+    }
+
+    // Message Box System Removed
+    // Contract selector logic
+    (function(){
+      function promptForAddress(current) {
+        const input = prompt('Contract address (0x...)', current || (window.getIAMAddress ? window.getIAMAddress() : ''));
+        return input && input.trim() ? input.trim() : null;
+      }
+      function updateTopBarAddress(addr) {
+        try {
+          const pill = document.getElementById('status-address');
+          if (pill) pill.textContent = addr ? ('Contract: ' + shortenAddress(addr)) : '-';
+        } catch {}
+      }
+      document.addEventListener('DOMContentLoaded', function(){
+        // (Removed) top bar contract select button handler
+        // Init full-width contract selector under status bars
+        try {
+          const selector = document.getElementById('contract-selector-wide');
+          if (selector) {
+            const def = window.DEFAULT_IAM_ADDRESS;
+            const second = window.SECOND_IAM_ADDRESS;
+            const current = (window.getIAMAddress && typeof window.getIAMAddress === 'function') ? window.getIAMAddress() : (window.IAM_ADDRESS || '');
+
+            const options = [];
+            if (def) options.push({ key: 'old', label: 'Old Contract — ' + mediumShortAddress(def), value: def, color: '#ff8c00' });
+            if (second) options.push({ key: 'new', label: 'New Contract — ' + mediumShortAddress(second), value: second, color: '#00ff88' });
+            if (current && !options.find(o => o.value.toLowerCase() === current.toLowerCase())) {
+              options.push({ key: 'current', label: 'Current — ' + mediumShortAddress(current), value: current, color: '#e6eaf0' });
+            }
+
+            selector.innerHTML = '';
+            let defaultSelected = false;
+            options.forEach(o => {
+              const opt = document.createElement('option');
+              opt.value = o.value;
+              opt.textContent = o.label;
+              if (o.color) opt.style.color = o.color;
+              // Select old contract by default if no current selection or if current is not set
+              if ((!current || current === def) && o.value.toLowerCase() === def.toLowerCase()) {
+                opt.selected = true;
+                defaultSelected = true;
+              } else if (current && o.value.toLowerCase() === current.toLowerCase()) {
+                opt.selected = true;
+                defaultSelected = true;
+              }
+              selector.appendChild(opt);
+            });
+            
+            // If no selection was made, default to old contract
+            if (!defaultSelected && def) {
+              selector.value = def;
+            }
+
+            function applySelectorColor(addr) {
+              try {
+                let color = '#e6eaf0';
+                if (addr && def && addr.toLowerCase() === String(def).toLowerCase()) color = '#ff8c00';
+                if (addr && second && addr.toLowerCase() === String(second).toLowerCase()) color = '#00ff88';
+                selector.style.color = color;
+              } catch {}
+            }
+
+            applySelectorColor(selector.value || current);
+
+            selector.addEventListener('change', async function(){
+              const newAddr = selector.value;
+              if (!newAddr) return;
+              try {
+                if (window.setIAMAddress) {
+                  await window.setIAMAddress(newAddr);
+                  updateTopBarAddress(newAddr);
+                  applySelectorColor(newAddr);
+                  // Reload page to ensure all modules initialize with the selected contract
+                  location.reload();
+                }
+              } catch (e) {
+                alert('Failed to switch: ' + (e && e.message ? e.message : e));
+              }
+            });
+          }
+        } catch {}
+        try {
+          const addr = (window.getIAMAddress && typeof window.getIAMAddress === 'function') ? window.getIAMAddress() : (window.IAM_ADDRESS || '');
+          updateTopBarAddress(addr);
+        } catch {}
+      });
+    })();
+
+  </script>
+  
+  
+  
+  <!-- Collapsible Contract Info -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const contractHeader = document.getElementById('contract-header');
+      const contractContent = document.getElementById('contract-content');
+      
+      if (contractHeader && contractContent) {
+        contractHeader.addEventListener('click', function() {
+          contractContent.classList.toggle('collapsed');
+          contractHeader.classList.toggle('collapsed');
+        });
+        
+        // Start collapsed by default
+        contractContent.classList.add('collapsed');
+        contractHeader.classList.add('collapsed');
+      }
+    });
+  </script>
+  
+</body>
+</html>
+
+

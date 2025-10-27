@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>IAMPHOENIX - Swap</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Mono&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="css/floating-ai-assistant.css">
+    
+    
+    <!-- Web3 and Ethers.js - Load first -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    
+    <!-- Ensure ethers is loaded -->
+    <script>
+        if (typeof ethers === 'undefined') {
+            console.error('❌ Ethers.js not loaded properly');
+        } else {
+            console.log('✅ Ethers.js loaded:', ethers.version);
+        }
+    </script>
+</head>
+<body>
+    
+    <!-- Back Button -->
+    <a href="index.html" class="back-btn">← Back</a>
+
+    <!-- Main Content -->
+    <div class="main-container">
+        <!-- Swap Section -->
+        <div id="main-swap" class="page-section expandable-container" style="width:100%;max-width:none;margin:0;padding:0.5rem 0;">
+            
+            <div id="swap-main-content" style="display:block;">
+            <div class="expand-content" style="padding:1rem;">
+                    
+
+                    
+                    <!-- Exchange Form -->
+                    <div style="background:#1a1f2e;color:#ffffff;padding:1.5rem;border-radius:15px;margin-bottom:1rem;width:90%;max-width:800px;margin-left:auto;margin-right:auto;border:2px solid #00ff88;">
+                        
+                        <form id="swapForm" class="messenger-form" style="display:flex;flex-direction:column;gap:0.3rem;">
+                            
+                            <!-- Contract Selection -->
+                            <div class="form-group" style="margin-bottom:0.3rem;">
+                                <label for="contractSelector" style="display:block;color:#00ff88;margin-bottom:0.2rem;font-weight:600;font-size:0.85rem;">Contract:</label>
+                                <select id="contractSelector" required style="width:100%;background:#0a0f1c;border:2px solid #2a3441;color:#ffffff;padding:0.8rem;border-radius:12px;outline:none;transition:border-color 0.3s ease;font-size:0.85rem;">
+                                    <option value="new" style="color: #00ff88;">New Contract — 0x8dc3...2548</option>
+                                    <option value="old" style="color: #ff8c00;">Old Contract — 0x2D39...118D</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Contract Info Display -->
+                            <div id="contractInfo"></div>
+                            
+                            <!-- Exchange Type -->
+                            <div class="form-group" style="margin-bottom:0.3rem;">
+                                <label for="swapDirection" style="display:block;color:#00ff88;margin-bottom:0.2rem;font-weight:600;font-size:0.85rem;">Type:</label>
+                                <select id="swapDirection" required style="width:100%;background:#0a0f1c;border:2px solid #2a3441;color:#ffffff;padding:0.8rem;border-radius:12px;outline:none;transition:border-color 0.3s ease;font-size:0.85rem;">
+                                    <option value="dai-to-IAM">DAI → IAM</option>
+                                    <option value="IAM-to-dai">IAM → DAI</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Amount Input -->
+                            <div class="form-group" style="margin-bottom:0.3rem;">
+                                <label for="swapAmount" style="display:block;color:#00ff88;margin-bottom:0.2rem;font-weight:600;font-size:0.85rem;">Amount:</label>
+                                <div class="amount-input-group" style="display:flex;gap:0.5rem;align-items:center;">
+                                    <input type="number" id="swapAmount" placeholder="Enter amount" required step="1" inputmode="numeric" pattern="\\d*" style="flex:1;background:#0a0f1c;border:2px solid #2a3441;color:#ffffff;padding:0.8rem;border-radius:12px;outline:none;transition:border-color 0.3s ease;font-size:0.85rem;">
+                                    <button type="button" id="maxBtn" class="max-btn" style="background:linear-gradient(135deg,#a786ff,#00ff88);color:#0a0f1c;border:none;padding:0.8rem 1rem;border-radius:12px;font-weight:600;cursor:pointer;transition:all 0.3s ease;white-space:nowrap;font-size:0.85rem;">Max</button>
+                                </div>
+                            </div>
+                            
+                            <!-- USD Converter -->
+                            <div id="swap-usd-converter-row" style="display:none;margin-bottom:0.3rem;">
+                                <label for="swapUsdAmount" style="display:block;color:#00ff88;margin-bottom:0.2rem;font-weight:600;font-size:0.85rem;">USD:</label>
+                                <div class="usd-converter-container" style="display:flex;gap:0.5rem;align-items:center;">
+                                    <input type="number" id="swapUsdAmount" placeholder="5.00" style="flex:1;background:#0a0f1c;border:2px solid #2a3441;color:#ffffff;padding:0.8rem;border-radius:12px;outline:none;transition:border-color 0.3s ease;font-size:0.85rem;">
+                                    <button type="button" id="swapUsdToTokenBtn" style="background:linear-gradient(135deg,#00ff88,#a786ff);color:#0a0f1c;border:none;padding:0.8rem 1rem;border-radius:12px;font-weight:600;cursor:pointer;transition:all 0.3s ease;font-size:0.8rem;">🔄</button>
+                                </div>
+                            </div>
+                        
+                            <!-- Balance Display -->
+                            <div class="balance-display" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);border-radius:8px;padding:0.6rem;margin-bottom:0.3rem;">
+                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;">
+                                    <div style="text-align:center;background:rgba(0,255,136,0.1);border-radius:6px;padding:0.5rem;">
+                                        <div style="color:#00ff88;font-weight:bold;font-size:0.75rem;">DAI</div>
+                                        <div id="daiBalance" style="color:#ffffff;font-family:monospace;font-size:0.8rem;font-weight:600;">-</div>
+                                    </div>
+                                    <div style="text-align:center;background:rgba(167,134,255,0.1);border-radius:6px;padding:0.5rem;">
+                                        <div style="color:#a786ff;font-weight:bold;font-size:0.75rem;">IAM</div>
+                                        <div id="IAMBalance" style="color:#ffffff;font-family:monospace;font-size:0.8rem;font-weight:600;">-</div>
+                                        <div id="IAMUsdValue" style="color:#a786ff;font-size:0.65rem;margin-top:0.1rem;">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Exchange Button -->
+                            <button type="submit" class="exchange-btn" style="width:100%;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#0a0f1c;border:none;border-radius:10px;padding:0.8rem;font-weight:bold;cursor:pointer;transition:all 0.3s ease;font-size:0.9rem;margin-top:0.2rem;">💱 Swap</button>
+                            
+                        </form>
+                    </div>
+                    
+
+                            
+                    <!-- Status Message -->
+                    <div id="swapStatus" class="swap-status" style="max-width:100%;margin-bottom:0.5rem;"></div>
+            </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    
+    <script src="js/swap.js"></script>
+    
+    <!-- Wallet Connection and SwapManager Initialization -->
+    <script>
+        // Update wallet connection status (no display needed)
+        function updateWalletButton() {
+            console.log('🔄 Checking wallet connection...');
+            console.log('🔍 swapManager exists:', !!window.swapManager);
+            console.log('🔍 signer exists:', !!(window.swapManager && window.swapManager.signer));
+            
+            if (window.swapManager && window.swapManager.signer) {
+                console.log('✅ Wallet is connected');
+            } else {
+                console.log('⚠️ Wallet not connected');
+            }
+        }
+        
+        // Initialize SwapManager when page loads
+        let swapManagerInitialized = false;
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🚀 Starting SwapManager initialization on swap page...');
+            
+            // Update wallet button on page load
+            updateWalletButton();
+            
+            // SwapManager will handle wallet connection automatically
+            
+            // Initialize SwapManager only once
+            if (!swapManagerInitialized && typeof SwapManager !== 'undefined') {
+                try {
+                    console.log('✅ SwapManager class found');
+                    
+                    // Wait for DOM to fully load
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    
+                    // Check for required elements (updated list without removed elements)
+                    const requiredElements = ['swapForm', 'swapDirection', 'swapAmount', 'maxBtn', 'swapStatus'];
+                    const missingElements = requiredElements.filter(id => !document.getElementById(id));
+                    
+                    if (missingElements.length > 0) {
+                        console.warn('⚠️ The following elements were not found:', missingElements);
+                        console.log('🔄 Waiting additional time for DOM elements...');
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        // Check again
+                        const stillMissing = requiredElements.filter(id => !document.getElementById(id));
+                        if (stillMissing.length > 0) {
+                            console.error('❌ Still missing elements after additional wait:', stillMissing);
+                            return;
+                        }
+                    }
+                    
+                    console.log('✅ All required elements are present');
+                    
+                    // Check for required variables
+                    if (!window.DAI_ADDRESS || !window.DAI_ABI) {
+                        console.error('❌ DAI_ADDRESS or DAI_ABI variables are not defined');
+                        // Wait for config to load
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                    
+                    console.log('✅ DAI variables are present');
+                    
+                    // Create SwapManager instance
+                    window.swapManager = new SwapManager();
+                    console.log('✅ SwapManager instance created');
+                    
+                    // Initial setup
+                    await window.swapManager.initializeSwap();
+                    
+                    console.log('✅ SwapManager initialized successfully');
+                    swapManagerInitialized = true;
+                    
+                    // Update wallet display after successful initialization
+                    updateWalletButton();
+                    
+                } catch (error) {
+                    console.error('❌ Error initializing SwapManager:', error);
+                    // Show user-friendly error message
+                    const statusEl = document.getElementById('swapStatus');
+                    if (statusEl) {
+                        statusEl.innerHTML = '<div style="color: #ff4444; padding: 1rem; background: rgba(255, 68, 68, 0.1); border-radius: 8px;">⚠️ Failed to initialize swap functionality. Please refresh the page.</div>';
+                    }
+                }
+            } else if (swapManagerInitialized) {
+                console.log('✅ SwapManager already initialized, skipping...');
+            } else {
+                console.error('⚠️ SwapManager is not defined - swap.js file not loaded');
+            }
+        });
+        
+        // SwapManager handles its own wallet connection and refresh
+    </script>
+
+    <style>
+        :root{ --bg:#0b0f17; --card:#0f1420; --elev:#121a2a; --border:#22304a; --accent:#5da0ff; --accent2:#33d69f; --text:#e6eaf0; }
+        body{ background:var(--bg); color:var(--text); }
+        .main-container{ max-width:560px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.25); }
+        /* Back Button */
+        .back-btn {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            background: linear-gradient(135deg, #a786ff, #00ff88);
+            color: #0a0f1c;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9rem;
+            z-index: 1000;
+        }
+        
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(167, 134, 255, 0.3);
+        }
+        
+        /* Fix scrolling issue */
+        html, body {
+            overflow-x: hidden;
+            overflow-y: auto;
+            height: auto !important;
+            min-height: 100vh;
+        }
+        
+        .main-container { width:100%; min-height:100vh; overflow-y:auto; }
+        
+
+        
+        /* Swap specific styles */
+        .swap-status {
+            margin-top: 1rem;
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            text-align: center;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .swap-status.success { background: rgba(46, 204, 113, 0.1); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.25); }
+        
+        .swap-status.error { background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.25); }
+        
+        .swap-status.loading { background: rgba(93, 160, 255, 0.1); color: #5da0ff; border: 1px solid rgba(93, 160, 255, 0.25); }
+
+        /* Messenger animations */
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            #main-swap {
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                left: 0 !important;
+                right: 0 !important;
+                padding: 0.5rem !important;
+            }
+            
+            .expand-content {
+                padding: 0.5rem !important;
+            }
+            
+            .amount-input-group {
+                flex-direction: column !important;
+                gap: 0.3rem !important;
+            }
+            
+            .balance-display > div {
+                grid-template-columns: 1fr !important;
+            }
+        }
+        
+    </style>
+    
+</body>
+</html>
