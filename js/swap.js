@@ -3,6 +3,7 @@
 // Contract addresses
 const IAM_ADDRESS_OLD = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D'; // Old contract
 const IAM_ADDRESS_NEW = '0x8dc37ecF3198ce5062776b6A020B61146B5d2548'; // New contract
+const IAM_ADDRESS_LATEST = '0x9daBF5B043cbF761A4DB25387A509F4884063210'; // Latest contract
 // Use global DAI address from config to avoid redeclaration conflicts
 const SWAP_DAI_ADDRESS = (typeof window !== 'undefined' && window.DAI_ADDRESS) ? window.DAI_ADDRESS : '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
 
@@ -1476,13 +1477,16 @@ class SwapManager {
         console.log('✅ SwapManager created');
     }
 
-    // Switch between old and new contracts
+    // Switch between old, new, and latest contracts
     async switchContract(contractType) {
         console.log('🔄 Switching contract to:', contractType);
         
         if (contractType === 'old') {
             SWAP_IAM_ADDRESS = IAM_ADDRESS_OLD;
             this.selectedContract = 'old';
+        } else if (contractType === 'latest') {
+            SWAP_IAM_ADDRESS = IAM_ADDRESS_LATEST;
+            this.selectedContract = 'latest';
         } else {
             SWAP_IAM_ADDRESS = IAM_ADDRESS_NEW;
             this.selectedContract = 'new';
@@ -1491,9 +1495,9 @@ class SwapManager {
         // Recreate contract instance if wallet is connected
         if (this.signer) {
             this.contract = new ethers.Contract(SWAP_IAM_ADDRESS, IAM_ABI, this.signer);
-            console.log('✅ Using old contract:', SWAP_IAM_ADDRESS);
+            console.log('✅ Using contract:', SWAP_IAM_ADDRESS);
             
-            // Refresh data with old contract
+            // Refresh data with selected contract
             await this.refreshSwapData();
         }
     }
@@ -1739,12 +1743,16 @@ class SwapManager {
             // Update the option text with correct addresses
             const newOption = contractSelector.querySelector('option[value="new"]');
             const oldOption = contractSelector.querySelector('option[value="old"]');
+            const latestOption = contractSelector.querySelector('option[value="latest"]');
             
             if (newOption) {
                 newOption.textContent = `New Contract — ${IAM_ADDRESS_NEW.substring(0, 6)}...${IAM_ADDRESS_NEW.substring(38)}`;
             }
             if (oldOption) {
                 oldOption.textContent = `Old Contract — ${IAM_ADDRESS_OLD.substring(0, 6)}...${IAM_ADDRESS_OLD.substring(38)}`;
+            }
+            if (latestOption) {
+                latestOption.textContent = `Latest Contract — ${IAM_ADDRESS_LATEST.substring(0, 6)}...${IAM_ADDRESS_LATEST.substring(38)}`;
             }
             
             contractSelector.value = this.selectedContract;
@@ -1759,6 +1767,10 @@ class SwapManager {
                 nameLabel = 'Old Contract';
                 addressLabel = IAM_ADDRESS_OLD;
                 nameColor = '#ff8c00'; // Orange for old contract
+            } else if (this.selectedContract === 'latest') {
+                nameLabel = 'Latest Contract';
+                addressLabel = IAM_ADDRESS_LATEST;
+                nameColor = '#00ff88'; // Green for latest contract
             } else {
                 nameLabel = 'New Contract';
                 addressLabel = IAM_ADDRESS_NEW;
