@@ -2785,9 +2785,15 @@
                 nodeElement.classList.add('migration-node');
             }
             
-            // Skip rendering empty nodes (but keep migration nodes)
+            // Skip rendering empty nodes ONLY if it's an empty right child when left is also empty
+            // But allow empty left child to be rendered (for registration)
             if (isEmptyNode) {
-                return;
+                // Check if this is an empty right child when left is also empty
+                // If so, skip it (left-first policy)
+                if (node.position === 'right') {
+                    return;
+                }
+                // Otherwise, allow empty left child to be rendered
             }
             
             // Create migration indicator text
@@ -3565,7 +3571,7 @@
                 
                 // Helper function to create child node
                 function createChildNode(index, address, position, type = 'node') {
-                    return {
+                    const node = {
                         id: type === 'migration' ? `migration_node_${index}` : (address !== zero ? `node_${index}` : `empty_node_${index}`),
                         index: String(index),
                         address: address !== zero ? address : null,
@@ -3576,6 +3582,14 @@
                         parentIndex: nodeIndex,
                         position: position
                     };
+                    
+                    // For migration nodes, add old contract index and address
+                    if (type === 'migration' && address !== zero) {
+                        node.oldContractIndex = index; // Index in old contract
+                        node.oldContractAddress = address; // Address in old contract
+                    }
+                    
+                    return node;
                 }
                 
                 // Determine which address to check in OLD contract
