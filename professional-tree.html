@@ -2942,7 +2942,19 @@
                 document.getElementById('reg-newuser').value = '';
             }
             
-            document.getElementById('reg-status').style.display = 'none';
+            // Reset submit button and status on each open
+            const statusDiv = document.getElementById('reg-status');
+            if (statusDiv) {
+                statusDiv.style.display = 'none';
+                statusDiv.textContent = '';
+                statusDiv.removeAttribute('style');
+                statusDiv.style.display = 'none';
+            }
+            const regSubmitBtn = document.getElementById('reg-submit-btn');
+            if (regSubmitBtn) {
+                regSubmitBtn.disabled = false;
+                regSubmitBtn.style.opacity = '1';
+            }
             
             // Show modal
             document.getElementById('registration-modal').style.display = 'flex';
@@ -4561,8 +4573,12 @@
                 }
             });
             
-            // Handle registration submission
-            regSubmitBtn.addEventListener('click', async () => {
+            // Handle registration submission (re-attach fresh handler each open)
+            // Remove previous listener by cloning the button
+            const freshSubmit = regSubmitBtn.cloneNode(true);
+            regSubmitBtn.parentNode.replaceChild(freshSubmit, regSubmitBtn);
+            
+            freshSubmit.addEventListener('click', async () => {
                 const referrer = document.getElementById('reg-referrer').value.trim();
                 const upper = document.getElementById('reg-upper').value.trim();
                 const newUser = document.getElementById('reg-newuser').value.trim();
@@ -4599,8 +4615,8 @@
                     statusDiv.style.background = 'rgba(0,255,136,0.1)';
                     statusDiv.style.color = '#00ff88';
                     statusDiv.textContent = '⏳ Registering... Please wait';
-                    regSubmitBtn.disabled = true;
-                    regSubmitBtn.style.opacity = '0.5';
+                    freshSubmit.disabled = true;
+                    freshSubmit.style.opacity = '0.5';
                     
                     // Get contract
                     const contract = window.contractConfig?.contract;
@@ -4654,7 +4670,7 @@
                             console.log('🔄 Falling back to full page reload');
                             location.reload();
                         }
-                    }, 2000);
+                    }, 1200);
                     
                 } catch (error) {
                     console.error('❌ Registration error:', error);
@@ -4662,8 +4678,8 @@
                     statusDiv.style.background = 'rgba(255,100,100,0.2)';
                     statusDiv.style.color = '#ff6464';
                     statusDiv.textContent = `❌ Registration failed: ${error.message}`;
-                    regSubmitBtn.disabled = false;
-                    regSubmitBtn.style.opacity = '1';
+                    freshSubmit.disabled = false;
+                    freshSubmit.style.opacity = '1';
                 }
             });
         });
