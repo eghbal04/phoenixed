@@ -1927,8 +1927,10 @@
             try { if (typeof contract.users === 'function') u = await contract.users(userAddr); } catch {}
             if (u) {
               try {
-                if (u.index !== undefined) {
-                  updateStatusPills({ index: (typeof u.index === 'bigint') ? u.index.toString() : String(u.index) });
+                // Support both 'index' (old) and 'num' (new contract) field names
+                const userIndex = u.index !== undefined ? u.index : (u.num !== undefined ? u.num : undefined);
+                if (userIndex !== undefined) {
+                  updateStatusPills({ index: (typeof userIndex === 'bigint') ? userIndex.toString() : String(userIndex) });
                   // Update button states when user index changes
                 }
                 // Rank derived from binaryPointsClaimed (claimed count tiers)
@@ -1957,10 +1959,11 @@
                 } catch {}
               } catch {}
             } else {
-              // Fallbacks
+              // Fallbacks - try multiple methods for getting user number
               try {
                 let idx = null;
-                if (typeof contract.addressToIndex === 'function') idx = await contract.addressToIndex(userAddr);
+                if (typeof contract.getUserNumber === 'function') idx = await contract.getUserNumber(userAddr);
+                else if (typeof contract.addressToIndex === 'function') idx = await contract.addressToIndex(userAddr);
                 if (idx !== null && idx !== undefined) {
                   updateStatusPills({ index: (typeof idx === 'bigint' ? idx.toString() : String(idx)) });
                   // Update button states when user index changes
@@ -1980,7 +1983,9 @@
               let ensuredIndex = document.getElementById('status-index')?.textContent;
               if (!ensuredIndex || ensuredIndex === '-' || ensuredIndex.trim() === '# -') {
                 let idx = null;
-                if (typeof contract.addressToIndex === 'function') idx = await contract.addressToIndex(userAddr);
+                // Support both getUserNumber (new) and addressToIndex (old)
+                if (typeof contract.getUserNumber === 'function') idx = await contract.getUserNumber(userAddr);
+                else if (typeof contract.addressToIndex === 'function') idx = await contract.addressToIndex(userAddr);
                 if (idx !== null && idx !== undefined) {
                   updateStatusPills({ index: (typeof idx === 'bigint' ? idx.toString() : String(idx)) });
                   // Update button states when user index changes
@@ -2225,7 +2230,9 @@
         
         // Get user data
         const user = await contract.users(address);
-        if (!user || user.index === 0n) return; // User not registered
+        // Support both 'index' (old) and 'num' (new contract) field names
+        const userIndex = user.index !== undefined ? user.index : (user.num !== undefined ? user.num : 0n);
+        if (!user || userIndex === 0n) return; // User not registered
         
         const binaryPoints = Number(user.binaryPoints || 0);
         const lastClaimTime = Number(user.lastClaimTime || 0);
@@ -2557,11 +2564,19 @@
                 const c = window.contractConfig.contract;
                 if (typeof c.users === 'function') {
                   const u = await c.users(addr);
-                  if (u && u.index !== undefined) idx = (typeof u.index === 'bigint') ? u.index.toString() : String(u.index);
+                  // Support both 'index' (old) and 'num' (new contract) field names
+                  const userIndex = u && (u.index !== undefined ? u.index : (u.num !== undefined ? u.num : undefined));
+                  if (userIndex !== undefined) idx = (typeof userIndex === 'bigint') ? userIndex.toString() : String(userIndex);
                 }
-                if ((!idx || idx === '-' || idx === '0') && typeof c.addressToIndex === 'function') {
-                  const vi = await c.addressToIndex(addr);
-                  idx = (typeof vi === 'bigint') ? vi.toString() : String(vi);
+                // Support both getUserNumber (new) and addressToIndex (old)
+                if ((!idx || idx === '-' || idx === '0')) {
+                  if (typeof c.getUserNumber === 'function') {
+                    const vi = await c.getUserNumber(addr);
+                    idx = (typeof vi === 'bigint') ? vi.toString() : String(vi);
+                  } else if (typeof c.addressToIndex === 'function') {
+                    const vi = await c.addressToIndex(addr);
+                    idx = (typeof vi === 'bigint') ? vi.toString() : String(vi);
+                  }
                 }
               }
             } catch {}
@@ -2728,19 +2743,21 @@
               contract.getVoteStatus(address).catch(() => ({ 0: 0, 1: 0 })) // Fallback for vote errors
             ]);
             
-            if (userData && userData.index) {
+            // Support both 'index' (old) and 'num' (new contract) field names
+            const userIndex = userData && (userData.index !== undefined ? userData.index : (userData.num !== undefined ? userData.num : undefined));
+            if (userData && userIndex) {
               const likes = Number(voteStatus[0] || voteStatus.totalLikes || 0);
               const dislikes = Number(voteStatus[1] || voteStatus.totalDislikes || 0);
               
               users.push({
                 address: address,
-                index: userData.index,
+                index: userIndex,
                 binaryPoints: userData.binaryPoints || 0,
                 binaryPointsClaimed: userData.binaryPointsClaimed || 0,
                 leftPoints: userData.leftPoints || 0,
                 rightPoints: userData.rightPoints || 0,
                 totalPurchasedKind: userData.totalPurchasedKind || 0,
-                depositedAmount: userData.depositedAmount || 0,
+                depositedAmount: userData.depositedAmount !== undefined ? userData.depositedAmount : 0,
                 likes: likes,
                 dislikes: dislikes,
                 popularityScore: likes - dislikes
@@ -2988,12 +3005,12 @@
           const selector = document.getElementById('contract-selector-wide');
           if (selector) {
             const def = window.DEFAULT_IAM_ADDRESS;
-            const second = window.SECOND_IAM_ADDRESS;
+            const second = window.LATEST_IAM_ADDRESS || window.SECOND_IAM_ADDRESS;
             const current = (window.getIAMAddress && typeof window.getIAMAddress === 'function') ? window.getIAMAddress() : (window.IAM_ADDRESS || '');
 
             const options = [];
             if (def) options.push({ key: 'old', label: 'Old Contract — ' + mediumShortAddress(def), value: def, color: '#ff8c00' });
-            if (second) options.push({ key: 'new', label: 'New Contract — ' + mediumShortAddress(second), value: second, color: '#00ff88' });
+            if (second) options.push({ key: 'latest', label: 'Latest Contract — ' + mediumShortAddress(second), value: second, color: '#00ff88' });
             if (current && !options.find(o => o.value.toLowerCase() === current.toLowerCase())) {
               options.push({ key: 'current', label: 'Current — ' + mediumShortAddress(current), value: current, color: '#e6eaf0' });
             }
@@ -3005,10 +3022,12 @@
               opt.value = o.value;
               opt.textContent = o.label;
               if (o.color) opt.style.color = o.color;
-              // Select old contract by default if no current selection or if current is not set
-              if ((!current || current === def) && o.value.toLowerCase() === def.toLowerCase()) {
-                opt.selected = true;
-                defaultSelected = true;
+              // Select latest contract by default if no current selection or if current is not set
+              if (!current || (current === def || !current)) {
+                if (second && o.value.toLowerCase() === second.toLowerCase()) {
+                  opt.selected = true;
+                  defaultSelected = true;
+                }
               } else if (current && o.value.toLowerCase() === current.toLowerCase()) {
                 opt.selected = true;
                 defaultSelected = true;
@@ -3016,8 +3035,11 @@
               selector.appendChild(opt);
             });
             
-            // If no selection was made, default to old contract
-            if (!defaultSelected && def) {
+            // If no selection was made, default to latest contract, then old contract
+            if (!defaultSelected && second) {
+              selector.value = second;
+              defaultSelected = true;
+            } else if (!defaultSelected && def) {
               selector.value = def;
             }
 
@@ -3026,6 +3048,7 @@
                 let color = '#e6eaf0';
                 if (addr && def && addr.toLowerCase() === String(def).toLowerCase()) color = '#ff8c00';
                 if (addr && second && addr.toLowerCase() === String(second).toLowerCase()) color = '#00ff88';
+                if (addr && window.LATEST_IAM_ADDRESS && addr.toLowerCase() === String(window.LATEST_IAM_ADDRESS).toLowerCase()) color = '#00ff88';
                 selector.style.color = color;
               } catch {}
             }

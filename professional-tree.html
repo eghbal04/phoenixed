@@ -574,6 +574,38 @@
         .empty-info:hover {
             color: #ff5722 !important;
         }
+
+        /* Migration node styles - Grey color for nodes from OLD contract */
+        .migration-node {
+            background: linear-gradient(135deg, rgba(150, 150, 150, 0.15), rgba(120, 120, 120, 0.15)) !important;
+            border: 2px solid rgba(150, 150, 150, 0.6) !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            color: #b0b0b0 !important;
+        }
+        
+        .migration-node:hover {
+            background: linear-gradient(135deg, rgba(150, 150, 150, 0.25), rgba(120, 120, 120, 0.25)) !important;
+            border-color: rgba(150, 150, 150, 0.9) !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 12px rgba(150, 150, 150, 0.4) !important;
+            color: #ffffff !important;
+        }
+        
+        .migration-label {
+            color: #969696 !important;
+            font-weight: 600 !important;
+        }
+        
+        .migration-info {
+            color: #b0b0b0 !important;
+            font-weight: 500 !important;
+            cursor: pointer !important;
+        }
+        
+        .migration-info:hover {
+            color: #ffffff !important;
+        }
         .tree-expand-btn {
             background: linear-gradient(135deg, rgba(0,255,136,0.85), rgba(0,212,255,0.85));
             border: none;
@@ -662,6 +694,48 @@
             </style>
         </div>
     </div>
+
+    <!-- Registration Modal -->
+    <div id="registration-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:2001;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+        <div style="width:90%;max-width:600px;background:linear-gradient(135deg, rgba(15,23,42,0.98), rgba(10,15,30,0.98));border:2px solid rgba(0,255,136,0.3);border-radius:16px;backdrop-filter:blur(12px);padding:28px;color:#e6fff5;box-shadow:0 20px 60px rgba(0,255,136,0.2);">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                <h2 style="font-weight:700;color:#00ff88;font-size:22px;margin:0;">📝 Register New User</h2>
+                <button id="registration-modal-close" style="background:transparent;border:none;color:#00ff88;font-size:24px;cursor:pointer;padding:4px 12px;transition:transform 0.2s;" onmouseover="this.style.transform='rotate(90deg)'" onmouseout="this.style.transform='rotate(0deg)'">✕</button>
+            </div>
+            
+            <div style="margin-bottom:20px;padding:16px;background:rgba(0,255,136,0.05);border-radius:10px;border-left:3px solid #00ff88;">
+                <div style="font-size:13px;color:#00ff88;margin-bottom:8px;">ℹ️ Node Information</div>
+                <div style="font-family:monospace;font-size:12px;color:#b0b0b0;">Index: <span id="reg-node-index" style="color:#00ff88;"></span></div>
+                <div style="font-family:monospace;font-size:12px;color:#b0b0b0;">Position: <span id="reg-node-position" style="color:#00ff88;"></span></div>
+                <div style="font-family:monospace;font-size:12px;color:#b0b0b0;" id="reg-migration-info" style="display:none;">Type: <span style="color:#ff8c00;">Migration Node</span></div>
+            </div>
+
+            <form id="registration-form">
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;margin-bottom:8px;font-weight:600;color:#00ff88;font-size:14px;">🔗 Referrer Address</label>
+                    <input type="text" id="reg-referrer" placeholder="0x..." style="width:100%;padding:12px;background:rgba(0,255,136,0.05);border:2px solid rgba(0,255,136,0.2);border-radius:8px;color:#ffffff;font-family:monospace;font-size:14px;outline:none;transition:border-color 0.3s;" onfocus="this.style.borderColor='#00ff88'" onblur="this.style.borderColor='rgba(0,255,136,0.2)'" />
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <label style="display:block;margin-bottom:8px;font-weight:600;color:#00ff88;font-size:14px;">👤 Upper (Parent) Address</label>
+                    <input type="text" id="reg-upper" placeholder="0x..." readonly style="width:100%;padding:12px;background:rgba(0,255,136,0.05);border:2px solid rgba(0,255,136,0.2);border-radius:8px;color:#888888;font-family:monospace;font-size:14px;outline:none;cursor:not-allowed;" />
+                </div>
+
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;margin-bottom:8px;font-weight:600;color:#00ff88;font-size:14px;">🎯 New User Address</label>
+                    <input type="text" id="reg-newuser" placeholder="Enter new wallet address" style="width:100%;padding:12px;background:rgba(0,255,136,0.05);border:2px solid rgba(0,255,136,0.2);border-radius:8px;color:#ffffff;font-family:monospace;font-size:14px;outline:none;transition:border-color 0.3s;" onfocus="this.style.borderColor='#00ff88'" onblur="this.style.borderColor='rgba(0,255,136,0.2)'" />
+                    <button type="button" id="reg-use-current-btn" style="margin-top:8px;padding:8px 16px;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);border-radius:6px;color:#00ff88;font-size:12px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(0,255,136,0.2)'" onmouseout="this.style.background='rgba(0,255,136,0.1)'">📱 Use Current Wallet</button>
+                </div>
+
+                <div style="display:flex;gap:12px;">
+                    <button type="button" id="reg-submit-btn" style="flex:1;padding:14px;background:linear-gradient(135deg, #00ff88, #00d4ff);border:none;border-radius:10px;color:#0b1320;font-weight:700;font-size:16px;cursor:pointer;transition:transform 0.2s,box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 30px rgba(0,255,136,0.3)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">✅ Register</button>
+                    <button type="button" id="reg-cancel-btn" style="flex:1;padding:14px;background:rgba(255,100,100,0.2);border:2px solid rgba(255,100,100,0.3);border-radius:10px;color:#ff6464;font-weight:600;font-size:16px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,100,100,0.3)';this.style.borderColor='rgba(255,100,100,0.5)'" onmouseout="this.style.background='rgba(255,100,100,0.2)';this.style.borderColor='rgba(255,100,100,0.3)'">❌ Cancel</button>
+                </div>
+
+                <div id="reg-status" style="margin-top:16px;padding:12px;border-radius:8px;display:none;"></div>
+            </form>
+        </div>
+    </div>
     <!-- Back Button -->
     <a href="index.html" class="back-btn modern-btn" aria-label="Back to Dashboard" title="Back to Dashboard">
         ← Back
@@ -734,7 +808,11 @@
             try {
                 if (typeof contract.users === 'function') {
                     const u = await contract.users(address);
-                    if (u && (u.index !== undefined)) return BigInt(u.index);
+                    // Support both 'index' (old) and 'num' (new contract) field names
+                    if (u) {
+                        const userNum = u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined);
+                        if (userNum !== undefined) return BigInt(userNum);
+                    }
                 }
             } catch {}
             return 0n;
@@ -743,15 +821,252 @@
         // Add missing getAddressByIndex function
         window.getAddressByIndex = async function(contract, index) {
             if (!contract || !index) return '0x0000000000000000000000000000000000000000';
+            
+            const zero = '0x0000000000000000000000000000000000000000';
+            
+            // Try multiple method names for getting address by index
+            let address = null;
+            
             try {
                 if (typeof contract.indexToAddress === 'function') {
-                    const address = await contract.indexToAddress(index);
-                    return address || '0x0000000000000000000000000000000000000000';
+                    address = await contract.indexToAddress(index);
+                    if (address && address !== zero) return address;
+                }
+            } catch {}
+            
+            try {
+                if (typeof contract.getAddressByNumber === 'function') {
+                    address = await contract.getAddressByNumber(index);
+                    if (address && address !== zero) return address;
+                }
+            } catch {}
+            
+            try {
+                if (typeof contract.numToAddress === 'function') {
+                    address = await contract.numToAddress(index);
+                    if (address && address !== zero) return address;
+                }
+            } catch {}
+            
+            try {
+                if (typeof contract.getAddressByIndex === 'function') {
+                    address = await contract.getAddressByIndex(index);
+                    if (address && address !== zero) return address;
+                }
+            } catch {}
+            
+            return zero;
+        };
+
+        // Get children from OLD contract by wallet address
+        // Process: address → index in OLD contract → calculate children indexes → get their addresses
+        window.getChildrenFromOldContractByAddress = async function(address) {
+            if (!window.DEFAULT_IAM_ADDRESS || !window.IAM_ABI || !address) return null;
+            
+            try {
+                if (!window.ethereum) return null;
+                
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                // OLD contract ABI - only needed functions
+                // Note: users(address) returns uint256 (index) directly, not an object
+                const OLD_ABI = [
+                    {"inputs":[{"internalType":"uint256","name":"","type":"uint256"}],"name":"indexToAddress","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+                    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"users","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+                ];
+                
+                const oldContract = new ethers.Contract(
+                    window.DEFAULT_IAM_ADDRESS,
+                    OLD_ABI,
+                    provider
+                );
+                
+                // Step 1: Get index from OLD contract using address → users(address).index
+                let parentIndex = null;
+                
+                try {
+                    console.log(`🔍 Checking OLD contract for address: ${address}`);
+                    const userData = await oldContract.users(address);
+                    console.log(`📊 OLD contract userData:`, userData);
+                    
+                    // In OLD contract, users(address) returns uint256 (index) directly, not an object
+                    // Check if it's a BigInt or an object
+                    if (typeof userData === 'bigint') {
+                        parentIndex = userData;
+                    } else if (userData && typeof userData === 'object') {
+                        // If it returns an object with index field
+                        parentIndex = userData.index || userData;
+                    } else {
+                        parentIndex = userData;
+                    }
+                    
+                    if (!parentIndex || parentIndex === 0n) {
+                        console.log(`⚠️ Address ${address} has index 0 in OLD contract (not registered)`);
+                        return null;
+                    }
+                    
+                    console.log(`✅ Found index in OLD contract: ${parentIndex} for address ${address}`);
+            } catch (error) {
+                    console.log(`⚠️ Error getting user data from OLD contract:`, error.message);
+                    return null;
+                }
+                
+                // Step 2: Calculate children indexes (OLD contract logic: left=index*2, right=index*2+1)
+                const parentIndexNum = parseInt(parentIndex.toString());
+                const leftIndex = parentIndexNum * 2;
+                const rightIndex = parentIndexNum * 2 + 1;
+                
+                console.log(`📊 Calculated children indexes: left=${leftIndex}, right=${rightIndex}`);
+                
+                // Step 3: Get LEFT address first (left-first policy for OLD contract too)
+                try {
+                    const leftAddress = await oldContract.indexToAddress(leftIndex).catch(() => '0x0000000000000000000000000000000000000000');
+                    
+                    console.log(`✅ Got children addresses from OLD: left=${leftAddress}`);
+                    
+                    const children = [];
+                    let hasLeftNonEmpty = false;
+                    
+                    // First, process LEFT child
+                    if (leftAddress && leftAddress !== '0x0000000000000000000000000000000000000000') {
+                        children.push({ index: leftIndex.toString(), address: leftAddress });
+                        console.log(`✅ LEFT child found: index=${leftIndex}, address=${leftAddress}`);
+                        hasLeftNonEmpty = true;
+                    }
+                    
+                    // Only get RIGHT child if LEFT is non-empty (left-first policy)
+                    if (hasLeftNonEmpty) {
+                        const rightAddress = await oldContract.indexToAddress(rightIndex).catch(() => '0x0000000000000000000000000000000000000000');
+                        console.log(`✅ RIGHT address from OLD: ${rightAddress}`);
+                        
+                        if (rightAddress && rightAddress !== '0x0000000000000000000000000000000000000000') {
+                            children.push({ index: rightIndex.toString(), address: rightAddress });
+                            console.log(`✅ RIGHT child found: index=${rightIndex}, address=${rightAddress}`);
+                        }
+                    }
+                    
+                    return children.length > 0 ? children : null;
+                } catch (error) {
+                    console.log(`⚠️ Error getting children addresses:`, error.message);
+                    return null;
                 }
             } catch (error) {
-                console.error('Error getting address for index:', index, error);
+                console.log(`⚠️ Error getting children from OLD contract for address ${address}:`, error.message);
             }
+            
+            return null;
+        };
+
+        // Get address from OLD contract by index (fallback method)
+        window.getAddressFromOldContract = async function(index) {
+            if (!window.DEFAULT_IAM_ADDRESS || !window.IAM_ABI) return null;
+            
+            try {
+                if (!window.ethereum) return null;
+                
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const oldContract = new ethers.Contract(
+                    window.DEFAULT_IAM_ADDRESS,
+                    window.IAM_ABI,
+                    provider
+                );
+                
+                // Try different function names
+                let address = null;
+                
+                try {
+                    address = await oldContract.indexToAddress(index);
+                } catch {}
+                
+                if (!address || address === '0x0000000000000000000000000000000000000000') {
+                    try {
+                        address = await oldContract.getAddressByNumber(index);
+                    } catch {}
+                }
+                
+                if (!address || address === '0x0000000000000000000000000000000000000000') {
+                    try {
+                        address = await oldContract.numToAddress(index);
+                    } catch {}
+                }
+                
+                if (!address || address === '0x0000000000000000000000000000000000000000') {
+                    try {
+                        address = await oldContract.getAddressByIndex(index);
+                    } catch {}
+                }
+                
+                if (address && address !== '0x0000000000000000000000000000000000000000') {
+                    console.log(`✅ Found address in OLD contract for index ${index}:`, address);
+                    return address;
+                }
+            } catch (error) {
+                console.log(`⚠️ Error getting address from OLD contract for index ${index}:`, error.message);
+            }
+            
+            return null;
+        };
+
+        // Get children addresses from OLD contract by index
+        // In OLD contract: left = index * 2, right = index * 2 + 1
+        window.getChildrenFromOldContract = async function(index) {
+            if (!window.DEFAULT_IAM_ADDRESS || !window.IAM_ABI) return null;
+            
+            try {
+                if (!window.ethereum) return null;
+                
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const oldContract = new ethers.Contract(
+                    window.DEFAULT_IAM_ADDRESS,
+                    window.IAM_ABI,
+                    provider
+                );
+                
+                const indexNum = parseInt(index);
+                const leftIndex = indexNum * 2;
+                const rightIndex = indexNum * 2 + 1;
+                
+                // Helper function to try multiple methods
+                const getAddressByIndex = async (contract, idx) => {
+                    // Try different method names
+                    try {
+                        return await contract.indexToAddress(idx);
+                    } catch {}
+                    try {
+                        return await contract.getAddressByNumber(idx);
+                    } catch {}
+                    try {
+                        return await contract.numToAddress(idx);
+                    } catch {}
+                    try {
+                        return await contract.getAddressByIndex(idx);
+                    } catch {}
             return '0x0000000000000000000000000000000000000000';
+                };
+                
+                // Get addresses from OLD contract
+                const [leftAddress, rightAddress] = await Promise.all([
+                    getAddressByIndex(oldContract, leftIndex),
+                    getAddressByIndex(oldContract, rightIndex)
+                ]);
+                
+                const children = [];
+                
+                if (leftAddress && leftAddress !== '0x0000000000000000000000000000000000000000') {
+                    children.push({ index: leftIndex.toString(), address: leftAddress });
+                    console.log(`✅ Found LEFT child in OLD contract: index=${leftIndex}, address=${leftAddress}`);
+                }
+                
+                if (rightAddress && rightAddress !== '0x0000000000000000000000000000000000000000') {
+                    children.push({ index: rightIndex.toString(), address: rightAddress });
+                    console.log(`✅ Found RIGHT child in OLD contract: index=${rightIndex}, address=${rightAddress}`);
+                }
+                
+                return children.length > 0 ? children : null;
+            } catch (error) {
+                console.log(`⚠️ Error getting children from OLD contract for index ${index}:`, error.message);
+            }
+            
+            return null;
         };
     </script>
     
@@ -1021,49 +1336,95 @@
                 
                 console.log('✅ User is registered with index:', userIndex.toString());
                 
-                // Get user's children using getUserTree
+                // Get user's children using User structure (leftChild, rightChild)
                 let children = [];
                 try {
-                    const userTree = await contract.getUserTree(currentUserAddress);
-                    console.log('✅ User tree data:', userTree);
+                    // Get user data
+                    const userData = await contract.users(currentUserAddress);
+                    console.log('✅ User data:', userData);
                     
-                    // userTree returns [leftAddress, rightAddress, activated, ...]
+                    // Extract leftChild and rightChild directly from User structure
+                    const leftChild = userData.leftChild;
+                    const rightChild = userData.rightChild;
+                    
+                    // Get indices for left and right children
+                    if (leftChild && leftChild !== '0x0000000000000000000000000000000000000000') {
+                        const leftIndex = await window.getIndexByAddress(contract, leftChild);
+                        if (leftIndex && leftIndex > 0n) {
+                            children.push({
+                                index: leftIndex.toString(),
+                                address: leftChild
+                            });
+                        }
+                    }
+                    
+                    if (rightChild && rightChild !== '0x0000000000000000000000000000000000000000') {
+                        const rightIndex = await window.getIndexByAddress(contract, rightChild);
+                        if (rightIndex && rightIndex > 0n) {
+                            children.push({
+                                index: rightIndex.toString(),
+                                address: rightChild
+                            });
+                        }
+                    }
+                    } catch (error) {
+                    console.log('⚠️ Direct user data access failed, trying getUserTree...');
+                    try {
+                        // Fallback to getUserTree method
+                    const userTree = await contract.getUserTree(currentUserAddress);
+                        console.log('✅ User tree data (fallback):', userTree);
+                    
+                        // Support both old and new getUserTree signatures
+                        // New: [left, right, binaryPoints, binaryPointCap, refclimed]
+                        // Old: [left, right, activated, binaryPoints, binaryPointCap]
                     const leftAddress = userTree[0];
                     const rightAddress = userTree[1];
-                    const activated = userTree[2];
+                        const activated = Array.isArray(userTree) && userTree.length > 2 ? userTree[2] : true;
                     
                     if (activated) {
-                        // Get indices for left and right children
                         if (leftAddress && leftAddress !== '0x0000000000000000000000000000000000000000') {
                             const leftIndex = await window.getIndexByAddress(contract, leftAddress);
                             if (leftIndex && leftIndex > 0n) {
-                                children.push(leftIndex);
+                                    children.push({
+                                        index: leftIndex.toString(),
+                                        address: leftAddress
+                                    });
                             }
                         }
                         
                         if (rightAddress && rightAddress !== '0x0000000000000000000000000000000000000000') {
                             const rightIndex = await window.getIndexByAddress(contract, rightAddress);
                             if (rightIndex && rightIndex > 0n) {
-                                children.push(rightIndex);
+                                    children.push({
+                                        index: rightIndex.toString(),
+                                        address: rightAddress
+                                    });
                             }
                         }
                     }
-                    } catch (error) {
-                    console.log('⚠️ getUserTree failed, trying getLeftChild/getRightChild...');
+                    } catch (error2) {
+                        console.log('⚠️ getUserTree also failed, trying getLeftChild/getRightChild...');
                     try {
                         // Try using getLeftChild and getRightChild
                         const leftChildIndex = await contract.getLeftChild(userIndex);
                         const rightChildIndex = await contract.getRightChild(userIndex);
                         
                         if (leftChildIndex && leftChildIndex > 0n) {
-                            children.push(leftChildIndex);
+                                children.push({
+                                    index: leftChildIndex.toString(),
+                                    address: null
+                                });
                         }
                         if (rightChildIndex && rightChildIndex > 0n) {
-                            children.push(rightChildIndex);
+                                children.push({
+                                    index: rightChildIndex.toString(),
+                                    address: null
+                                });
                         }
-                    } catch (error2) {
-                        console.log('⚠️ getLeftChild/getRightChild also failed, using empty children');
+                        } catch (error3) {
+                            console.log('⚠️ getLeftChild/getRightChild also failed');
                         children = [];
+                        }
                     }
                 }
                 console.log('✅ User children indices:', children);
@@ -1074,7 +1435,8 @@
                 if (children && children.length > 0) {
                     pyramidData.root.children = children.map((child, index) => ({
                         id: index + 2,
-                        index: child.toString(),
+                        index: child.index || child.toString(),
+                        address: child.address || null,
                         expanded: false,
                         children: []
                     }));
@@ -1149,17 +1511,30 @@
 
                 const contract = window.contractConfig.contract;
                 let userAddress = null;
-                
-                // Get user address by index using the existing function
+                // Prefer the node's known address (especially for migration nodes)
                 try {
-                    userAddress = await window.getAddressByIndex(contract, nodeIndex);
-                } catch (error) {
-                    console.log(`⚠️ Could not get address for index ${nodeIndex}:`, error);
-                    return;
+                    const nodeObj = findNodeByIndex(fileManagerData.treeData, String(nodeIndex));
+                    if (nodeObj && nodeObj.address) {
+                        userAddress = nodeObj.address;
+                    }
+                } catch (_) {}
+                
+                // If address not known yet (e.g., non-migration node), resolve by index
+                if (!userAddress) {
+                    try {
+                        userAddress = await window.getAddressByIndex(contract, nodeIndex);
+                    } catch (error) {
+                        console.log(`⚠️ Could not get address for index ${nodeIndex}:`, error);
+                        return;
+                    }
                 }
 
                 if (!userAddress || userAddress === '0x0000000000000000000000000000000000000000') {
-                    console.log(`⚠️ No valid address for index ${nodeIndex}`);
+                    // For migration-only nodes, the address may not exist in NEW contract; skip quietly
+                    const maybeNode = (() => { try { return findNodeByIndex(fileManagerData.treeData, String(nodeIndex)); } catch(_) { return null; } })();
+                    if (!(maybeNode && maybeNode.type === 'migration')) {
+                        console.log(`⚠️ No valid address for index ${nodeIndex}`);
+                    }
                     return;
                 }
 
@@ -1339,31 +1714,69 @@
                         return;
                     }
                     
-                    // Get user tree for this child
-                    const userTree = await contract.getUserTree(childAddress);
-                    console.log(`✅ User tree for ${node.index}:`, userTree);
+                    // Get user data directly (new contract uses leftChild/rightChild fields)
+                    const userData = await contract.users(childAddress);
+                    console.log(`✅ User data for ${node.index}:`, userData);
                     
+                    // Extract leftChild and rightChild directly from User structure
+                    const leftChild = userData.leftChild;
+                    const rightChild = userData.rightChild;
+                    
+                    // IMPORTANT: In new contract, leftChild and rightChild are ADDRESSES, not indices!
+                    // We need to get indices for these addresses to display them correctly
+                    if (leftChild && leftChild !== '0x0000000000000000000000000000000000000000') {
+                        const leftIndex = await window.getIndexByAddress(contract, leftChild);
+                        if (leftIndex && leftIndex > 0n) {
+                            children.push({
+                                index: leftIndex.toString(),
+                                address: leftChild
+                            });
+                        }
+                    }
+                    
+                    if (rightChild && rightChild !== '0x0000000000000000000000000000000000000000') {
+                        const rightIndex = await window.getIndexByAddress(contract, rightChild);
+                        if (rightIndex && rightIndex > 0n) {
+                            children.push({
+                                index: rightIndex.toString(),
+                                address: rightChild
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.log(`⚠️ Direct user data access failed for ${iamId}, trying getUserTree...`);
+                    try {
+                        // Fallback to getUserTree method
+                    const userTree = await contract.getUserTree(childAddress);
+                        console.log(`✅ User tree (fallback) for ${node.index}:`, userTree);
+                    
+                        // Support both old and new getUserTree signatures
                     const leftAddress = userTree[0];
                     const rightAddress = userTree[1];
-                    const activated = userTree[2];
+                        const activated = Array.isArray(userTree) && userTree.length > 2 ? userTree[2] : true;
                     
                     if (activated) {
-                        // Get indices for left and right children
                         if (leftAddress && leftAddress !== '0x0000000000000000000000000000000000000000') {
                             const leftIndex = await window.getIndexByAddress(contract, leftAddress);
                             if (leftIndex && leftIndex > 0n) {
-                                children.push(leftIndex);
+                                    children.push({
+                                        index: leftIndex.toString(),
+                                        address: leftAddress
+                                    });
                             }
                         }
                         
                         if (rightAddress && rightAddress !== '0x0000000000000000000000000000000000000000') {
                             const rightIndex = await window.getIndexByAddress(contract, rightAddress);
                             if (rightIndex && rightIndex > 0n) {
-                                children.push(rightIndex);
+                                    children.push({
+                                        index: rightIndex.toString(),
+                                        address: rightAddress
+                                    });
                             }
                         }
                     }
-                } catch (error) {
+                    } catch (error2) {
                     console.log(`⚠️ getUserTree failed for ${iamId}, trying getLeftChild/getRightChild...`);
                     try {
                         // Try using getLeftChild and getRightChild
@@ -1371,22 +1784,30 @@
                         const rightChildIndex = await contract.getRightChild(iamId);
                         
                         if (leftChildIndex && leftChildIndex > 0n) {
-                            children.push(leftChildIndex);
+                                children.push({
+                                    index: leftChildIndex.toString(),
+                                    address: null
+                                });
                         }
                         if (rightChildIndex && rightChildIndex > 0n) {
-                            children.push(rightChildIndex);
+                                children.push({
+                                    index: rightChildIndex.toString(),
+                                    address: null
+                                });
                         }
-                    } catch (error2) {
+                        } catch (error3) {
                         console.log(`⚠️ getLeftChild/getRightChild also failed for ${iamId}`);
                         children = [];
+                        }
                     }
                 }
                 console.log(`✅ Children indices for ${node.index}:`, children);
                 
                 if (children && children.length > 0) {
-                    node.children = children.map((child, index) => ({
-                        id: node.id * 10 + index + 1,
-                        index: child.toString(),
+                    node.children = children.map((child, idx) => ({
+                        id: node.id * 10 + idx + 1,
+                        index: child.index || child.toString(),
+                        address: child.address || null,
                         expanded: false,
                         children: [], // Will be loaded when this child is expanded
                         loading: false // Children don't have loading state
@@ -1394,10 +1815,10 @@
                     
                     console.log(`✅ Created ${node.children.length} children for node ${node.index}`);
                 } else {
-                    // Create empty nodes for left and right positions
+                    // Left-first policy: when both are empty, render ONLY left slot
                     const nodeIndex = parseInt(node.index);
                     const leftIndex = nodeIndex * 2;
-                    const rightIndex = nodeIndex * 2 + 1;
+                    // const rightIndex = nodeIndex * 2 + 1; // Right is deferred until left is filled
                     
                     node.children = [
                         {
@@ -1410,21 +1831,10 @@
                             hasChildren: false,
                             parentIndex: nodeIndex,
                             position: 'left'
-                        },
-                        {
-                            id: `empty_node_${rightIndex}`,
-                            index: rightIndex.toString(),
-                            address: null,
-                            type: 'empty',
-                            expanded: false,
-                            children: [],
-                            hasChildren: false,
-                            parentIndex: nodeIndex,
-                            position: 'right'
                         }
                     ];
                     
-                    console.log(`📝 Created 2 empty children for node ${node.index}`);
+                    console.log(`📝 Created LEFT-only empty child for node ${node.index}`);
                 }
                 
             } catch (error) {
@@ -1682,7 +2092,9 @@
             
             // Get user info
             const user = await contract.users(userAddress);
-            const userIndex = user.index ? user.index.toString() : '1';
+            // Support both 'index' (old) and 'num' (new contract) field names
+            const userNum = user.num !== undefined ? user.num : (user.index !== undefined ? user.index : undefined);
+            const userIndex = userNum ? userNum.toString() : '1';
             
             // Create root node
             fileManagerData.treeData = {
@@ -2175,20 +2587,8 @@
                         // Recursively create next level
                         await createTreeLevel(rightChild, level + 1, maxLevel);
                     } else {
-                        // Create empty node for right position
-                        const rightEmptyChild = {
-                            id: `empty_node_${rightIndex}`,
-                            index: rightIndex.toString(),
-                            address: null,
-                            type: 'empty',
-                            expanded: false,
-                            children: [],
-                            hasChildren: false,
-                            parentIndex: nodeIndex,
-                            position: 'right'
-                        };
-                        parentNode.children.push(rightEmptyChild);
-                        console.log(`📝 Added empty right child: ${rightEmptyChild.id}`);
+                        // Left-first policy: do NOT create empty right if left is not filled yet
+                        console.log(`📝 Skipping empty RIGHT for ${parentNode.id} (left-first policy)`);
                     }
                     
                 } catch (error) {
@@ -2278,7 +2678,38 @@
             console.log(`🔍 Node ${node.id} - expanded: ${isExpanded}, hasChildren: ${node.children && node.children.length > 0}, childrenCount: ${node.children ? node.children.length : 0}`);
             
             if (isExpanded && node.children && node.children.length > 0) {
-                node.children.forEach(child => {
+                // Left-first policy: Filter out right empty nodes if left is also empty
+                const filteredChildren = [];
+                let hasLeftNonEmpty = false;
+                
+                // Check all children to determine if left is non-empty
+                for (let child of node.children) {
+                    if (child.position === 'left' && child.type !== 'empty') {
+                        hasLeftNonEmpty = true;
+                        break;
+                    }
+                }
+                
+                // Now filter based on left-first policy
+                for (let child of node.children) {
+                    if (child.position === 'left') {
+                        // Always include left child
+                        filteredChildren.push(child);
+                    } else if (child.position === 'right') {
+                        // Only include right child if left is non-empty
+                        if (hasLeftNonEmpty) {
+                            filteredChildren.push(child);
+                        } else {
+                            // Left is empty, skip right (left-first policy)
+                            console.log(`🚫 Skipping empty RIGHT child: ${child.id} (left-first policy)`);
+                        }
+                    } else {
+                        // No position defined, include it (backward compatibility)
+                        filteredChildren.push(child);
+                    }
+                }
+                
+                filteredChildren.forEach(child => {
                     console.log(`👶 Rendering child ${child.id} at depth ${depth + 1}`);
                     renderFlatTree(child, container, depth + 1);
                 });
@@ -2345,27 +2776,36 @@
             const isExpanded = fileManagerData.expandedNodes.has(node.id);
             const hasChildren = node.hasChildren || (node.children && node.children.length > 0);
             
-            // Check if this is an empty node - skip rendering empty nodes
+            // Check if this is an empty node or migration node
             const isEmptyNode = node.type === 'empty';
+            const isMigrationNode = node.type === 'migration';
             
-            // Skip rendering empty nodes
+            // Apply migration node styling if needed
+            if (isMigrationNode) {
+                nodeElement.classList.add('migration-node');
+            }
+            
+            // Skip rendering empty nodes (but keep migration nodes)
             if (isEmptyNode) {
                 return;
             }
             
+            // Create migration indicator text
+            const migrationText = isMigrationNode ? '<span style="font-size: 0.7em; color: #969696;">(Migration)</span>' : '';
+            
             nodeElement.innerHTML = `
                 <div class="tree-node-content ${isExpanded ? 'expanded' : ''}" data-node-id="${node.id}">
-                    ${hasChildren ? `
+                    ${hasChildren && !isMigrationNode ? `
                         <button class="tree-expand-btn ${isExpanded ? 'expanded' : ''}" data-node-id="${node.id}">
                             ${isExpanded ? '−' : '+'}
                         </button>
                     ` : '<div style="width: 14px;"></div>'}
                     
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 1px;">
-                        <span class="tree-node-label">IAM ${node.index}</span>
+                        <span class="tree-node-label">IAM ${node.index} ${migrationText}</span>
                         <span class="star-rating" id="star-${node.id}" style="font-size: 12px; color: #ffd700; text-align: center;"></span>
                     </div>
-                    ${!isMobile() ? `<span class="tree-node-info" onclick="copyToClipboard('${node.address}')" title="Click to copy full address">${node.address ? node.address.substring(0, 6) + '...' + node.address.substring(node.address.length - 4) : ''}</span>` : ''}
+                    ${!isMobile() ? `<span class="tree-node-info ${isMigrationNode ? 'migration-info' : ''}" onclick="copyToClipboard('${node.address}')" title="Click to copy full address">${node.address ? node.address.substring(0, 6) + '...' + node.address.substring(node.address.length - 4) : ''}</span>` : ''}
                 </div>
             `;
             
@@ -2381,14 +2821,16 @@
             if (expandBtn) {
                 expandBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    // Disable expansion for migration nodes (slots should not expand)
+                    if (isMigrationNode) return;
                     toggleNodeExpansion(node.id);
                 });
             }
             
             const nodeContent = nodeElement.querySelector('.tree-node-content');
             nodeContent.addEventListener('click', () => {
-                if (isEmptyNode) {
-                    // For empty nodes, open registration form
+                if (isEmptyNode || isMigrationNode) {
+                    // For empty nodes or migration nodes, open registration form
                     openRegistrationForm(node);
                 } else {
                     // On click, show typewriter modal with full user details
@@ -2399,22 +2841,54 @@
 
 
 
-        // Open registration form for empty nodes
+        // Open registration form for empty nodes or migration nodes
         function openRegistrationForm(emptyNode) {
-            console.log('📝 Opening registration form for empty node:', emptyNode);
+            console.log('📝 Opening registration modal for node:', emptyNode);
             
-            // Get parent address (upper) - this is the parent node in the tree
+            // Check if this is a migration node (has address but not registered in new contract)
+            const isMigrationNode = emptyNode.type === 'migration';
+            
             let upperAddress = null;
+            let registrationType = 'new';
+            
+            if (isMigrationNode && emptyNode.address) {
+                // For migration nodes:
+                // - newUser = address from OLD contract (emptyNode.address)
+                // - upper = parent address (same as empty nodes)
+                // - referrer = current user
+                console.log('🔄 Migration registration detected');
+                
+                // Get parent address from parent node
             if (emptyNode.parentIndex) {
-                // Find parent node in tree
-                const parentNode = findNodeInTree(fileManagerData.treeData, `unlimited_node_${emptyNode.parentIndex}`);
+                    // Try different possible node IDs
+                    let parentNode = findNodeInTree(fileManagerData.treeData, `unlimited_node_${emptyNode.parentIndex}`);
+                    if (!parentNode) {
+                        parentNode = findNodeInTree(fileManagerData.treeData, `node_${emptyNode.parentIndex}`);
+                    }
+                    // If still not found, try by index (for root node)
+                    if (!parentNode) {
+                        parentNode = findNodeByIndex(fileManagerData.treeData, emptyNode.parentIndex.toString());
+                    }
                 if (parentNode && parentNode.address) {
                     upperAddress = parentNode.address;
+                    }
+                }
+                registrationType = 'migration';
+                console.log('🔄 Migration registration - parent:', upperAddress);
                 } else {
-                    // If parent not found in unlimited tree, try to find in regular tree
-                    const regularParentNode = findNodeInTree(fileManagerData.treeData, `node_${emptyNode.parentIndex}`);
-                    if (regularParentNode && regularParentNode.address) {
-                        upperAddress = regularParentNode.address;
+                // For empty nodes, get parent address (upper) - this is the parent node in the tree
+                if (emptyNode.parentIndex) {
+                    // Try different possible node IDs
+                    let parentNode = findNodeInTree(fileManagerData.treeData, `unlimited_node_${emptyNode.parentIndex}`);
+                    if (!parentNode) {
+                        parentNode = findNodeInTree(fileManagerData.treeData, `node_${emptyNode.parentIndex}`);
+                    }
+                    // If still not found, try by index (for root node)
+                    if (!parentNode) {
+                        parentNode = findNodeByIndex(fileManagerData.treeData, emptyNode.parentIndex.toString());
+                    }
+                    if (parentNode && parentNode.address) {
+                        upperAddress = parentNode.address;
                     }
                 }
             }
@@ -2424,28 +2898,54 @@
                 return;
             }
             
-            // Calculate slot number (emptyIndex divided by 2)
-            const slotNumber = Math.floor(parseInt(emptyNode.index) / 2);
-            
             console.log('📍 Registration parameters:');
+            console.log(`  Type: ${registrationType}`);
             console.log(`  Upper (parent): ${upperAddress}`);
             console.log(`  Empty Index: ${emptyNode.index}`);
-            console.log(`  Slot Number: ${slotNumber} (${emptyNode.index} ÷ 2)`);
             console.log(`  Position: ${emptyNode.position}`);
             
-            // Create registration URL with parameters (only upper address)
-            const baseUrl = window.location.origin + '/register.html';
-            const params = new URLSearchParams();
-            params.set('upper', upperAddress);
-            params.set('emptyIndex', slotNumber.toString());
-            params.set('position', emptyNode.position);
+            // Get current user address
+            const currentAddress = window.contractConfig?.userAddress || window.ethereum?.selectedAddress;
             
-            const registrationUrl = `${baseUrl}?${params.toString()}`;
+            // Populate modal
+            document.getElementById('reg-node-index').textContent = emptyNode.index;
+            document.getElementById('reg-node-position').textContent = emptyNode.position || 'unknown';
+            document.getElementById('reg-upper').value = upperAddress;
             
-            console.log('🔗 Registration URL:', registrationUrl);
+            // Show migration info if needed
+            const migrationInfo = document.getElementById('reg-migration-info');
+            if (isMigrationNode) {
+                migrationInfo.style.display = 'block';
+            } else {
+                migrationInfo.style.display = 'none';
+            }
             
-            // Open registration form in new tab
-            window.open(registrationUrl, '_blank');
+            // Set default values based on type
+            if (isMigrationNode && emptyNode.address) {
+                // For migration nodes:
+                // - newUser = address from OLD contract
+                // - referrer = current user
+                // - upper = current user (parent in NEW contract)
+                document.getElementById('reg-newuser').value = emptyNode.address;
+                document.getElementById('reg-referrer').value = currentAddress || '';
+            } else {
+                // For empty nodes:
+                // - newUser = empty or current wallet
+                // - referrer = current user
+                // - upper = parent address (already set)
+                document.getElementById('reg-referrer').value = currentAddress || '';
+                document.getElementById('reg-newuser').value = '';
+            }
+            
+            document.getElementById('reg-status').style.display = 'none';
+            
+            // Show modal
+            document.getElementById('registration-modal').style.display = 'flex';
+            
+            // Store node info in modal
+            window.currentRegistrationNode = emptyNode;
+            window.currentRegistrationUpper = upperAddress;
+            window.currentRegistrationType = registrationType;
         }
 
         // Toggle node expansion for flat structure
@@ -2564,7 +3064,11 @@
             const d = {};
             d['IAM Index'] = iamIndex?.toString?.() || String(iamIndex ?? '');
             d['Address'] = shortenAddress(address || '');
-            d['index'] = toText(userData?.index);
+            // Support both 'index' (old) and 'num' (new contract) field names
+            d['index/num'] = userData?.num !== undefined ? toText(userData.num) : toText(userData?.index);
+            d['parent'] = userData?.parent ? shortenAddress(userData.parent) : '-';
+            d['leftChild'] = userData?.leftChild ? shortenAddress(userData.leftChild) : '-';
+            d['rightChild'] = userData?.rightChild ? shortenAddress(userData.rightChild) : '-';
             d['binaryPoints'] = toText(userData?.binaryPoints);
             d['binaryPointCap'] = toText(userData?.binaryPointCap);
             d['binaryPointsClaimed'] = toText(userData?.binaryPointsClaimed);
@@ -2577,6 +3081,7 @@
             d['totalMonthlyRewarded'] = toText(userData?.totalMonthlyRewarded);
             d['refclimed'] = toText(userData?.refclimed);
             d['depositedAmount'] = toText(userData?.depositedAmount);
+            d['registrationDate'] = toText(userData?.registrationDate);
 
             // Fields that represent token amounts: format to scientific
             const scientificKeys = new Set([
@@ -2593,7 +3098,7 @@
             }
 
             // Human-readable dates for timestamp fields
-            const dateKeys = ['upgradeTime', 'lastClaimTime', 'lastMonthlyClaim'];
+            const dateKeys = ['upgradeTime', 'lastClaimTime', 'lastMonthlyClaim', 'registrationDate'];
             for (const k of dateKeys) {
                 d[k] = formatDateTimeFromSeconds(d[k]);
             }
@@ -2604,11 +3109,28 @@
         async function getChildAddresses(contract, nodeIndex) {
             try {
                 const idx = (typeof nodeIndex === 'bigint') ? nodeIndex : BigInt(nodeIndex);
+                
+                // Convert index to address first
+                const nodeAddress = await window.getAddressByIndex(contract, idx);
+                if (!nodeAddress || nodeAddress === '0x0000000000000000000000000000000000000000') {
+                    return { leftAddress: '0x0000000000000000000000000000000000000000', rightAddress: '0x0000000000000000000000000000000000000000' };
+                }
+                
+                // Get user data directly (new contract uses leftChild/rightChild fields)
+                try {
+                    const userData = await contract.users(nodeAddress);
+                    return {
+                        leftAddress: userData.leftChild || '0x0000000000000000000000000000000000000000',
+                        rightAddress: userData.rightChild || '0x0000000000000000000000000000000000000000'
+                    };
+                } catch (e) {
+                    // Fallback to getLeftAddress/getRightAddress
                 const [leftAddress, rightAddress] = await Promise.all([
-                    contract.getLeftAddress(idx),
-                    contract.getRightAddress(idx)
+                        contract.getLeftAddress(idx).catch(() => '0x0000000000000000000000000000000000000000'),
+                        contract.getRightAddress(idx).catch(() => '0x0000000000000000000000000000000000000000')
                 ]);
                 return { leftAddress, rightAddress };
+                }
             } catch (e) {
                 return { leftAddress: '0x0000000000000000000000000000000000000000', rightAddress: '0x0000000000000000000000000000000000000000' };
             }
@@ -2772,6 +3294,18 @@
             }
             return null;
         }
+        
+        function findNodeByIndex(node, index) {
+            if (node.index === index) return node;
+            
+            if (node.children && node.children.length > 0) {
+                for (let child of node.children) {
+                    const found = findNodeByIndex(child, index);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
 
         // Select node
         function selectNode(node) {
@@ -2877,8 +3411,9 @@
                 
                 console.log('👤 User data:', user);
                 
-                // Validate user data
-                if (!user || user.index === undefined) {
+                // Validate user data - support both 'index' (old) and 'num' (new contract) field names
+                const userNum = user?.num !== undefined ? user.num : (user?.index !== undefined ? user.index : undefined);
+                if (!user || userNum === undefined) {
                     console.log('❌ Invalid user data received');
                     return;
                 }
@@ -2959,14 +3494,51 @@
         async function loadNodeChildren(node, depth) {
             try {
                 console.log(`🔄 UNLIMITED LOADING children for node ${node.id} (index: ${node.index}) at depth ${depth}`);
+                console.log(`📊 Node data:`, { 
+                    id: node.id, 
+                    index: node.index, 
+                    address: node.address, 
+                    type: node.type,
+                    parentIndex: node.parentIndex 
+                });
                 
                 const contract = window.contractConfig.contract;
                 const nodeIndex = parseInt(node.index);
                 const zero = '0x0000000000000000000000000000000000000000';
                 
-                // Try primary methods
+                // Get user data directly (new contract uses leftChild/rightChild fields)
                 let leftAddress = zero;
                 let rightAddress = zero;
+                let nodeAddress = zero;
+                
+                // For migration nodes, use their own address instead of getting from NEW contract
+                if (node.type === 'migration' && node.address) {
+                    nodeAddress = node.address;
+                    console.log(`🔄 Migration node detected, using migration address: ${nodeAddress}`);
+                    // For migration nodes, we'll check children from OLD contract later
+                    // Don't try to get from NEW contract
+                } else if (node.type === 'empty') {
+                    // For empty nodes, we don't have an address yet
+                    nodeAddress = zero;
+                    console.log(`📝 Empty node detected, no address available`);
+                } else {
+                    // For regular nodes, get from NEW contract
+                    // Try to get from User structure first (preferred method for new contract)
+                    try {
+                        nodeAddress = await window.getAddressByIndex(contract, nodeIndex);
+                        if (nodeAddress && nodeAddress !== zero) {
+                            const userData = await contract.users(nodeAddress);
+                            leftAddress = userData.leftChild || zero;
+                            rightAddress = userData.rightChild || zero;
+                            console.log(`✅ Got children from User structure: Left=${leftAddress}, Right=${rightAddress}`);
+                        }
+                    } catch (error) {
+                        console.log(`⚠️ Could not get children from User structure:`, error.message);
+                    }
+                }
+                
+                // Fallback to getLeftAddress/getRightAddress if needed
+                if (leftAddress === zero || rightAddress === zero) {
                 try {
                     if (typeof contract.getLeftAddress === 'function') {
                         console.log(`🔥 FORCE CALLING getLeftAddress(${nodeIndex})...`);
@@ -2979,8 +3551,9 @@
                         rightAddress = await contract.getRightAddress(nodeIndex);
                     }
                 } catch(_) {}
+                }
                 
-                // Fallback: derive from indices using indexToAddress
+                // Final fallback: derive from indices using indexToAddress
                 const leftIndexNum = nodeIndex * 2;
                 const rightIndexNum = nodeIndex * 2 + 1;
                 if (leftAddress === zero && typeof contract.indexToAddress === 'function') {
@@ -2992,74 +3565,159 @@
                 
                 console.log(`📍 Node ${node.id} - Left: ${leftAddress}, Right: ${rightAddress}`);
                 
-                // Always create two children (placeholders if address is zero)
+                // Algorithm: Priority to LEFT first, only show RIGHT when LEFT is filled
+                // 1. Check LEFT child in NEW contract
+                // 2. If empty in NEW → check OLD contract
+                // 3. Only show RIGHT when LEFT is filled (exists or migrated)
+                
                 const children = [];
                 
-                // Left child
+                // Helper function to create child node
+                function createChildNode(index, address, position, type = 'node') {
+                    return {
+                        id: type === 'migration' ? `migration_node_${index}` : (address !== zero ? `node_${index}` : `empty_node_${index}`),
+                        index: String(index),
+                        address: address !== zero ? address : null,
+                        type: address !== zero ? type : (type === 'migration' ? 'migration' : 'empty'),
+                        expanded: false,
+                        children: [],
+                        hasChildren: address !== zero,
+                        parentIndex: nodeIndex,
+                        position: position
+                    };
+                }
+                
+                // Determine which address to check in OLD contract
+                // For migration nodes: use their own address
+                // For regular nodes: use node's own address (from NEW contract)
+                // For nodes without address: try to find parent's address
+                let addressToCheck = zero;
+                if (node.type === 'migration' && node.address) {
+                    addressToCheck = node.address;
+                } else if (node.address) {
+                    addressToCheck = node.address;
+                } else if (node.parentIndex) {
+                    // Try to find parent node and use its address
+                    const parentNode = findNodeByIndex(fileManagerData.treeData, node.parentIndex.toString());
+                    if (parentNode && parentNode.address) {
+                        addressToCheck = parentNode.address;
+                        console.log(`📝 Using parent (${parentNode.id}) address: ${addressToCheck}`);
+                    }
+                }
+                
+                // Cache OLD children if needed
+                let cachedOldChildren = null;
+                
+                // Step 1: Process LEFT child
+                let leftChildExists = false;
+                let leftChildAddress = zero;
+                let leftFromNew = false; // track origin of left child
+                
                 if (leftAddress !== zero) {
-                    const leftChild = {
-                        id: `node_${leftIndexNum}`,
-                        index: String(leftIndexNum),
-                        address: leftAddress,
-                        type: 'node',
-                        expanded: false,
-                        children: [],
-                        hasChildren: true
-                    };
-                    children.push(leftChild);
-                    console.log(`✅ Added left child: ${leftChild.id} (index: ${leftChild.index})`);
+                    // LEFT exists in NEW contract
+                    console.log(`✅ LEFT child exists in NEW contract: ${leftAddress}`);
+                    children.push(createChildNode(leftIndexNum, leftAddress, 'left', 'node'));
+                    leftChildExists = true;
+                    leftChildAddress = leftAddress;
+                    leftFromNew = true;
                 } else {
-                    // Create empty node for left position
-                    const leftEmptyChild = {
-                        id: `empty_node_${leftIndexNum}`,
-                        index: String(leftIndexNum),
-                        address: null,
-                        type: 'empty',
-                        expanded: false,
-                        children: [],
-                        hasChildren: false,
-                        parentIndex: nodeIndex,
-                        position: 'left'
-                    };
-                    children.push(leftEmptyChild);
-                    console.log(`📝 Added empty left child: ${leftEmptyChild.id} (index: ${leftEmptyChild.index})`);
+                    // LEFT empty in NEW → check OLD contract
+                    console.log(`🔄 LEFT child empty in NEW contract, checking OLD contract...`);
+                    
+                    if (addressToCheck && addressToCheck !== zero) {
+                        console.log(`🔍 Checking OLD contract with address: ${addressToCheck}`);
+                        
+                        // Get children using OLD contract (cache result)
+                        if (!cachedOldChildren) {
+                            cachedOldChildren = await window.getChildrenFromOldContractByAddress(addressToCheck);
+                        }
+                        
+                        // Calculate indexes based on OLD contract logic
+                        // For migration nodes, the index in OLD contract may differ from NEW
+                        // Just use the first child as LEFT and second as RIGHT
+                        if (cachedOldChildren && cachedOldChildren.length > 0) {
+                            const leftChildFromOld = cachedOldChildren[0]; // First child (LEFT in OLD)
+                            const leftChildOldIndex = parseInt(leftChildFromOld.index);
+                            
+                            // Use the OLD contract's index, not NEW contract's index
+                            console.log(`✅ Found LEFT child in OLD contract: ${leftChildFromOld.address} (index in OLD: ${leftChildOldIndex})`);
+                            children.push(createChildNode(leftChildOldIndex, leftChildFromOld.address, 'left', 'migration'));
+                            leftChildExists = true;
+                            leftChildAddress = leftChildFromOld.address;
+                            leftFromNew = false;
+                        } else {
+                            // Not found in OLD → empty node
+                            console.log(`📝 LEFT child not found in OLD contract, creating empty node`);
+                            children.push(createChildNode(leftIndexNum, zero, 'left', 'empty'));
+                        }
+                    } else {
+                        // No parent address → empty LEFT
+                        console.log(`📝 No parent address, creating empty LEFT node`);
+                        children.push(createChildNode(leftIndexNum, zero, 'left', 'empty'));
+                    }
                 }
                 
-                // Right child
-                if (rightAddress !== zero) {
-                    const rightChild = {
-                        id: `node_${rightIndexNum}`,
-                        index: String(rightIndexNum),
-                        address: rightAddress,
-                        type: 'node',
-                        expanded: false,
-                        children: [],
-                        hasChildren: true
-                    };
-                    children.push(rightChild);
-                    console.log(`✅ Added right child: ${rightChild.id} (index: ${rightChild.index})`);
-                } else {
-                    // Create empty node for right position
-                    const rightEmptyChild = {
-                        id: `empty_node_${rightIndexNum}`,
-                        index: String(rightIndexNum),
-                        address: null,
-                        type: 'empty',
-                        expanded: false,
-                        children: [],
-                        hasChildren: false,
-                        parentIndex: nodeIndex,
-                        position: 'right'
-                    };
-                    children.push(rightEmptyChild);
-                    console.log(`📝 Added empty right child: ${rightEmptyChild.id} (index: ${rightEmptyChild.index})`);
+                // Step 2: Only consider RIGHT if LEFT exists in NEW contract (not migration)
+                if (leftChildExists && leftFromNew) {
+                    // LEFT exists → show RIGHT too
+                    if (rightAddress !== zero) {
+                        // RIGHT exists in NEW contract
+                        console.log(`✅ RIGHT child exists in NEW contract: ${rightAddress}`);
+                        children.push(createChildNode(rightIndexNum, rightAddress, 'right', 'node'));
+                    } else {
+                        // RIGHT empty in NEW → check OLD contract
+                        console.log(`🔄 RIGHT child empty in NEW contract, checking OLD contract...`);
+                        
+                        if (addressToCheck && addressToCheck !== zero) {
+                            console.log(`🔍 Checking OLD contract with address: ${addressToCheck}`);
+                            
+                            // Get children using OLD contract (use cached if available)
+                            if (!cachedOldChildren) {
+                                cachedOldChildren = await window.getChildrenFromOldContractByAddress(addressToCheck);
+                            }
+                            
+                            // Check if there's a second child in OLD contract
+                            if (cachedOldChildren && cachedOldChildren.length >= 2) {
+                                const rightChildFromOld = cachedOldChildren[1]; // Second child (RIGHT in OLD)
+                                
+                                // Add RIGHT if it exists in OLD contract
+                                if (rightChildFromOld && rightChildFromOld.address && rightChildFromOld.address !== zero) {
+                                    const rightChildOldIndex = parseInt(rightChildFromOld.index);
+                                    console.log(`✅ Found RIGHT child in OLD contract: ${rightChildFromOld.address} (index in OLD: ${rightChildOldIndex})`);
+                                    children.push(createChildNode(rightChildOldIndex, rightChildFromOld.address, 'right', 'migration'));
+                                } else {
+                                    // No RIGHT child in OLD → Left-first policy: DO NOT create empty RIGHT
+                                    console.log(`📝 RIGHT child not found in OLD contract, skipping RIGHT (left-first policy)`);
+                                }
+                            } else {
+                                // Not found in OLD → Left-first policy: DO NOT create empty RIGHT
+                                console.log(`📝 No RIGHT child in OLD contract, skipping RIGHT (left-first policy)`);
+                            }
+                        } else {
+                            // No parent address → Left-first policy: DO NOT create empty RIGHT
+                            console.log(`📝 No parent address, skipping RIGHT (left-first policy)`);
+                        }
+                    }
                 }
+                // If LEFT doesn't exist, don't show RIGHT (priority: LEFT first)
                 
-                // Update node with children (always two)
+                // Update node with children
                 node.children = children;
-                node.hasChildren = true;
+                node.hasChildren = children.some(child => child.address && child.address !== zero);
                 
-                console.log(`🎯 Node ${node.id} now has ${children.length} children`);
+                console.log(`🎯 Node ${node.id} now has ${node.children ? node.children.length : 0} children`);
+                console.log(`📋 Children details:`, children.map(c => `${c.position}: ${c.type} (${c.address ? c.address.substring(0, 10) + '...' : 'empty'})`));
+                
+                // Apply left-first policy: Remove empty right child if left is also empty
+                if (node.children.length > 1) {
+                    const leftChild = node.children.find(c => c.position === 'left');
+                    const rightChild = node.children.find(c => c.position === 'right');
+                    
+                    if (leftChild && leftChild.type === 'empty' && rightChild && rightChild.type === 'empty') {
+                        console.log(`🚫 Removing empty RIGHT child (left-first policy)`);
+                        node.children = node.children.filter(c => c.position !== 'right');
+                    }
+                }
                 
                 // Re-render the entire tree to show new children
                 renderTreeView();
@@ -3280,11 +3938,42 @@
                     return [];
                 }
                 
-                // Get user tree
+                // Get user data directly (new contract uses leftChild/rightChild fields)
+                const userData = await contract.users(nodeAddress);
+                
+                // Extract leftChild and rightChild directly from User structure
+                const leftChild = userData.leftChild;
+                const rightChild = userData.rightChild;
+                
+                const children = [];
+                
+                if (leftChild && leftChild !== '0x0000000000000000000000000000000000000000') {
+                    const leftIndex = await window.getIndexByAddress(contract, leftChild);
+                    if (leftIndex && leftIndex > 0n) {
+                        children.push(leftIndex);
+                    }
+                }
+                
+                if (rightChild && rightChild !== '0x0000000000000000000000000000000000000000') {
+                    const rightIndex = await window.getIndexByAddress(contract, rightChild);
+                    if (rightIndex && rightIndex > 0n) {
+                        children.push(rightIndex);
+                    }
+                }
+                
+                return children;
+            } catch (error) {
+                // Fallback to getUserTree method
+                try {
+                    const nodeAddress = await window.getAddressByIndex(contract, nodeIndex);
+                    if (!nodeAddress || nodeAddress === '0x0000000000000000000000000000000000000000') {
+                        return [];
+                    }
+                    
                 const userTree = await contract.getUserTree(nodeAddress);
                 const leftAddress = userTree[0];
                 const rightAddress = userTree[1];
-                const activated = userTree[2];
+                    const activated = Array.isArray(userTree) && userTree.length > 2 ? userTree[2] : true;
                 
                 const children = [];
                 
@@ -3305,9 +3994,10 @@
                 }
                 
                 return children;
-            } catch (error) {
-                console.warn(`⚠️ Error getting children for index ${nodeIndex}:`, error);
+                } catch (error2) {
+                    console.warn(`⚠️ Error getting children for index ${nodeIndex}:`, error2);
                 return [];
+                }
             }
         }
 
@@ -3830,6 +4520,124 @@
                     window.location.reload();
                 });
             }
+            
+            // Setup registration modal event listeners
+            const regModal = document.getElementById('registration-modal');
+            const regCloseBtn = document.getElementById('registration-modal-close');
+            const regCancelBtn = document.getElementById('reg-cancel-btn');
+            const regSubmitBtn = document.getElementById('reg-submit-btn');
+            const regUseCurrentBtn = document.getElementById('reg-use-current-btn');
+            
+            // Close modal on close button click
+            regCloseBtn.addEventListener('click', () => {
+                regModal.style.display = 'none';
+            });
+            
+            // Close modal on cancel button click
+            regCancelBtn.addEventListener('click', () => {
+                regModal.style.display = 'none';
+            });
+            
+            // Close modal on outside click
+            regModal.addEventListener('click', (e) => {
+                if (e.target === regModal) {
+                    regModal.style.display = 'none';
+                }
+            });
+            
+            // Use current wallet button
+            regUseCurrentBtn.addEventListener('click', () => {
+                const currentAddress = window.contractConfig?.userAddress || window.ethereum?.selectedAddress;
+                if (currentAddress) {
+                    document.getElementById('reg-newuser').value = currentAddress;
+                    document.getElementById('reg-referrer').value = currentAddress;
+                } else {
+                    alert('No wallet connected');
+                }
+            });
+            
+            // Handle registration submission
+            regSubmitBtn.addEventListener('click', async () => {
+                const referrer = document.getElementById('reg-referrer').value.trim();
+                const upper = document.getElementById('reg-upper').value.trim();
+                const newUser = document.getElementById('reg-newuser').value.trim();
+                const statusDiv = document.getElementById('reg-status');
+                
+                // Validate inputs
+                if (!referrer || !ethers.isAddress(referrer)) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.background = 'rgba(255,100,100,0.2)';
+                    statusDiv.style.color = '#ff6464';
+                    statusDiv.textContent = '❌ Please enter a valid referrer address';
+                    return;
+                }
+                
+                if (!upper || !ethers.isAddress(upper)) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.background = 'rgba(255,100,100,0.2)';
+                    statusDiv.style.color = '#ff6464';
+                    statusDiv.textContent = '❌ Upper address is not valid';
+                    return;
+                }
+                
+                if (!newUser || !ethers.isAddress(newUser)) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.background = 'rgba(255,100,100,0.2)';
+                    statusDiv.style.color = '#ff6464';
+                    statusDiv.textContent = '❌ Please enter a valid new user address';
+                    return;
+                }
+                
+                try {
+                    // Show loading
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.background = 'rgba(0,255,136,0.1)';
+                    statusDiv.style.color = '#00ff88';
+                    statusDiv.textContent = '⏳ Registering... Please wait';
+                    regSubmitBtn.disabled = true;
+                    regSubmitBtn.style.opacity = '0.5';
+                    
+                    // Get contract
+                    const contract = window.contractConfig?.contract;
+                    if (!contract) {
+                        throw new Error('Contract not initialized');
+                    }
+                    
+                    console.log('📝 Registering user:', {
+                        referrer,
+                        upper,
+                        newUser
+                    });
+                    
+                    // Call registerAndActivate
+                    const tx = await contract.registerAndActivate(referrer, upper, newUser);
+                    console.log('✅ Transaction sent:', tx.hash);
+                    
+                    statusDiv.textContent = `⏳ Transaction sent: ${tx.hash.substring(0, 10)}...`;
+                    
+                    // Wait for confirmation
+                    await tx.wait();
+                    console.log('✅ Transaction confirmed');
+                    
+                    statusDiv.style.background = 'rgba(0,255,136,0.2)';
+                    statusDiv.textContent = '✅ Registration successful! Reloading tree...';
+                    
+                    // Reload tree after 2 seconds
+                    setTimeout(() => {
+                        regModal.style.display = 'none';
+                        location.reload();
+                    }, 2000);
+                    
+                } catch (error) {
+                    console.error('❌ Registration error:', error);
+                    statusDiv.style.display = 'block';
+                    statusDiv.style.background = 'rgba(255,100,100,0.2)';
+                    statusDiv.style.color = '#ff6464';
+                    statusDiv.textContent = `❌ Registration failed: ${error.message}`;
+                    regSubmitBtn.disabled = false;
+                    regSubmitBtn.style.opacity = '1';
+                }
+            });
         });
         
         // Test function to create empty nodes manually
@@ -3846,7 +4654,7 @@
                     const leftIndex = nodeIndex * 2;
                     const rightIndex = nodeIndex * 2 + 1;
                     
-                    // Add empty nodes
+                    // Add empty nodes (left-first policy: only left)
                     firstChild.children = [
                         {
                             id: `empty_node_${leftIndex}`,
@@ -3858,17 +4666,6 @@
                             hasChildren: false,
                             parentIndex: nodeIndex,
                             position: 'left'
-                        },
-                        {
-                            id: `empty_node_${rightIndex}`,
-                            index: rightIndex.toString(),
-                            address: null,
-                            type: 'empty',
-                            expanded: false,
-                            children: [],
-                            hasChildren: false,
-                            parentIndex: nodeIndex,
-                            position: 'right'
                         }
                     ];
                     
@@ -3915,19 +4712,9 @@
                             console.log(`📝 Added empty left node ${leftIndex} to ${node.id}`);
                         }
                         
+                        // Left-first policy: do not auto-add empty right slot
                         if (!rightExists) {
-                            node.children.push({
-                                id: `empty_node_${rightIndex}`,
-                                index: rightIndex.toString(),
-                                address: null,
-                                type: 'empty',
-                                expanded: false,
-                                children: [],
-                                hasChildren: false,
-                                parentIndex: nodeIndex,
-                                position: 'right'
-                            });
-                            console.log(`📝 Added empty right node ${rightIndex} to ${node.id}`);
+                            console.log(`📝 Skipping empty right node ${rightIndex} for ${node.id} (left-first policy)`);
                         }
                     }
                     

@@ -1,31 +1,23 @@
 // Minimal config (cleaned)
 
 // Contract addresses (supports dynamic IAM address via localStorage)
-const DEFAULT_IAM_ADDRESS = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D'; // Old contract
-const LATEST_IAM_ADDRESS = '0x9daBF5B043cbF761A4DB25387A509F4884063210'; // Latest contract (default)
+const DEFAULT_IAM_ADDRESS = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D';
 let IAM_ADDRESS = (() => {
     try {
         const saved = localStorage.getItem('iam_selected_address');
-        // If saved address is the old contract, automatically migrate to new contract
-        if (saved && typeof saved === 'string' && saved.toLowerCase() === DEFAULT_IAM_ADDRESS.toLowerCase()) {
-            // Auto-migrate to latest contract
-            localStorage.setItem('iam_selected_address', LATEST_IAM_ADDRESS);
-            return LATEST_IAM_ADDRESS;
-        }
-        return (saved && typeof saved === 'string' && saved.length > 0) ? saved : LATEST_IAM_ADDRESS;
+        return (saved && typeof saved === 'string' && saved.length > 0) ? saved : DEFAULT_IAM_ADDRESS;
     } catch {
-        return LATEST_IAM_ADDRESS;
+        return DEFAULT_IAM_ADDRESS;
     }
 })();
 const DAI_ADDRESS = '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
 // Optional: second preset IAM address
-const SECOND_IAM_ADDRESS = LATEST_IAM_ADDRESS;
+const SECOND_IAM_ADDRESS = '0x9daBF5B043cbF761A4DB25387A509F4884063210';
 
 // Expose to window
 window.IAM_ADDRESS = IAM_ADDRESS;
 window.DAI_ADDRESS = DAI_ADDRESS;
 window.DEFAULT_IAM_ADDRESS = DEFAULT_IAM_ADDRESS;
-window.LATEST_IAM_ADDRESS = LATEST_IAM_ADDRESS;
 window.SECOND_IAM_ADDRESS = SECOND_IAM_ADDRESS;
 
 // Basic config placeholder for other scripts

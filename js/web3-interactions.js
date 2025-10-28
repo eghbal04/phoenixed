@@ -104,14 +104,28 @@ async function getUserTree(userAddress) {
         }
         
         const { contract } = connection;
-        const [left, right, activated, binaryPoints, binaryPointCap] = await contract.getUserTree(userAddress);
+        // Support both old (with activated) and new (without activated) contract signatures
+        const treeData = await contract.getUserTree(userAddress);
+        
+        // Old contract format: [left, right, activated, binaryPoints, binaryPointCap]
+        // New contract format: [left, right, binaryPoints, binaryPointCap, refclimed]
+        let left, right, binaryPoints, binaryPointCap, refclimed, activated;
+        
+        if (treeData.length === 5) {
+            // New contract format: [left, right, binaryPoints, binaryPointCap, refclimed]
+            [left, right, binaryPoints, binaryPointCap, refclimed] = treeData;
+        } else if (treeData.length >= 4) {
+            // Old contract format: [left, right, activated, binaryPoints, binaryPointCap]
+            [left, right, activated, binaryPoints, binaryPointCap] = treeData;
+        }
         
         return {
             left,
             right,
-            activated,
-            binaryPoints: ethers.formatUnits(binaryPoints, 18),
-            binaryPointCap: parseInt(ethers.formatUnits(binaryPointCap, 18))
+            activated: activated || (left !== '0x0000000000000000000000000000000000000000' || right !== '0x0000000000000000000000000000000000000000'),
+            binaryPoints: typeof binaryPoints === 'bigint' ? ethers.formatUnits(binaryPoints, 18) : String(binaryPoints),
+            binaryPointCap: binaryPointCap !== undefined ? (typeof binaryPointCap === 'bigint' ? parseInt(ethers.formatUnits(binaryPointCap, 18)) : parseInt(binaryPointCap)) : undefined,
+            refclimed: refclimed !== undefined ? (typeof refclimed === 'bigint' ? refclimed.toString() : String(refclimed)) : undefined
         };
     } catch (error) {
         console.error('Web3: Error getting user tree:', error);

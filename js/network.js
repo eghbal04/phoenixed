@@ -629,23 +629,31 @@ async function renderVerticalNodeLazy(index, container, level = 0, autoExpand = 
                 const timeoutPromise = new Promise((_, reject) => 
                     setTimeout(() => reject(new Error('User tree fetch timeout')), 60000)
                 );
-                tree = await Promise.race([treePromise, timeoutPromise]);
+                const treeData = await Promise.race([treePromise, timeoutPromise]);
+                // Support both old and new contract signatures
+                // Old: [left, right, activated, binaryPoints, binaryPointCap]
+                // New: [left, right, binaryPoints, binaryPointCap, refclimed]
+                tree = Array.isArray(treeData) 
+                    ? { left: treeData[0], right: treeData[1] }
+                    : treeData;
             } catch(e) { 
                 console.warn('Error getting user tree, using fallback:', e);
                 tree = { left:'0x0000000000000000000000000000000000000000', right:'0x0000000000000000000000000000000000000000' }; 
             }
             
-            if (tree.left && tree.left !== '0x0000000000000000000000000000000000000000') {
+            if (tree && tree.left && tree.left !== '0x0000000000000000000000000000000000000000') {
                 try {
                     const leftUserPromise = contract.users(tree.left);
                     const leftTimeoutPromise = new Promise((_, reject) => 
                         setTimeout(() => reject(new Error('Left user fetch timeout')), 60000)
                     );
                     leftUser = await Promise.race([leftUserPromise, leftTimeoutPromise]);
-                    if (leftUser && leftUser.index && BigInt(leftUser.index) > 0n) { 
+                    // Support both 'index' (old) and 'num' (new contract) field names
+                    const leftUserIndex = leftUser && (leftUser.index !== undefined ? leftUser.index : (leftUser.num !== undefined ? leftUser.num : undefined));
+                    if (leftUser && leftUserIndex && BigInt(leftUserIndex) > 0n) { 
                         hasDirects = true; 
                         leftActive = true; 
-                        console.log(`✅ Left child active for node ${index}, leftUser.index: ${leftUser.index}`);
+                        console.log(`✅ Left child active for node ${index}, leftUser.index: ${leftUserIndex}`);
                     } else {
                         console.log(`❌ Left child not active for node ${index}, leftUser:`, leftUser);
                     }
@@ -661,10 +669,12 @@ async function renderVerticalNodeLazy(index, container, level = 0, autoExpand = 
                         setTimeout(() => reject(new Error('Right user fetch timeout')), 60000)
                     );
                     rightUser = await Promise.race([rightUserPromise, rightTimeoutPromise]);
-                    if (rightUser && rightUser.index && BigInt(rightUser.index) > 0n) { 
+                    // Support both 'index' (old) and 'num' (new contract) field names
+                    const rightUserIndex = rightUser && (rightUser.index !== undefined ? rightUser.index : (rightUser.num !== undefined ? rightUser.num : undefined));
+                    if (rightUser && rightUserIndex && BigInt(rightUserIndex) > 0n) { 
                         hasDirects = true; 
                         rightActive = true; 
-                        console.log(`✅ Right child active for node ${index}, rightUser.index: ${rightUser.index}`);
+                        console.log(`✅ Right child active for node ${index}, rightUser.index: ${rightUserIndex}`);
                     } else {
                         console.log(`❌ Right child not active for node ${index}, rightUser:`, rightUser);
                     }

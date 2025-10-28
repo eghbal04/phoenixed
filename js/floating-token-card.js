@@ -132,7 +132,7 @@ class FloatingTokenGrowthCard {
       </div>
       <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-top:4px;">
         <span style="opacity:.85">Initial Price:</span>
-        <span id="initial-token-price" style="font-weight:700">1e-15</span>
+        <span id="initial-token-price" style="font-weight:700">0.01</span>
       </div>
     `;
   }
@@ -151,7 +151,7 @@ class FloatingTokenGrowthCard {
   async getTokenGrowthData() {
     try {
     
-      const initialPrice = 1e-15;
+      const initialPrice = 0.01;
             let currentPrice = null;
       
       if (window.priceHistoryManager && window.priceHistoryManager.tokenHistory.length > 0) {
@@ -242,8 +242,8 @@ class FloatingTokenGrowthCard {
     // Update status
     if (this.isExpanded) {
       this.statusElement.innerHTML = `
-        <div style="margin-bottom: 8px;">Current Price: <span style="font-weight: bold;">${currentPrice.toExponential(4)}</span></div>
-        <div>Initial Price: <span style="font-weight: bold;">1e-15</span></div>
+        <div style="margin-bottom: 8px;">Current Price: <span style="font-weight: bold;">${currentPrice.toFixed(4)}</span></div>
+        <div>Initial Price: <span style="font-weight: bold;">0.01</span></div>
         <div style="margin-top: 5px; font-size: 0.6rem; opacity: 0.8;">Source: ${source}</div>
       `;
     } else {
