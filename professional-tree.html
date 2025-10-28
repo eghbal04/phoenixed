@@ -2802,10 +2802,9 @@
                     ` : '<div style="width: 14px;"></div>'}
                     
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 1px;">
-                        <span class="tree-node-label">IAM ${node.index} ${migrationText}</span>
+                        <span class="tree-node-label" onclick="copyToClipboard('${node.address}')" title="Click to copy full address">${node.address ? node.address.substring(0, 10) + '...' + node.address.substring(node.address.length - 4) : 'Empty'} ${migrationText}</span>
                         <span class="star-rating" id="star-${node.id}" style="font-size: 12px; color: #ffd700; text-align: center;"></span>
                     </div>
-                    ${!isMobile() ? `<span class="tree-node-info ${isMigrationNode ? 'migration-info' : ''}" onclick="copyToClipboard('${node.address}')" title="Click to copy full address">${node.address ? node.address.substring(0, 6) + '...' + node.address.substring(node.address.length - 4) : ''}</span>` : ''}
                 </div>
             `;
             
@@ -3506,35 +3505,27 @@
                 const nodeIndex = parseInt(node.index);
                 const zero = '0x0000000000000000000000000000000000000000';
                 
-                // Get user data directly (new contract uses leftChild/rightChild fields)
+                // Get user data directly using address (not index)
                 let leftAddress = zero;
                 let rightAddress = zero;
                 let nodeAddress = zero;
                 
-                // For migration nodes, use their own address instead of getting from NEW contract
-                if (node.type === 'migration' && node.address) {
+                // Always use address if available (NEW contract logic)
+                if (node.address) {
                     nodeAddress = node.address;
-                    console.log(`🔄 Migration node detected, using migration address: ${nodeAddress}`);
-                    // For migration nodes, we'll check children from OLD contract later
-                    // Don't try to get from NEW contract
-                } else if (node.type === 'empty') {
-                    // For empty nodes, we don't have an address yet
-                    nodeAddress = zero;
-                    console.log(`📝 Empty node detected, no address available`);
-                } else {
-                    // For regular nodes, get from NEW contract
-                    // Try to get from User structure first (preferred method for new contract)
+                    console.log(`✅ Using node address for fetching children: ${nodeAddress}`);
+                    
                     try {
-                        nodeAddress = await window.getAddressByIndex(contract, nodeIndex);
-                        if (nodeAddress && nodeAddress !== zero) {
-                            const userData = await contract.users(nodeAddress);
-                            leftAddress = userData.leftChild || zero;
-                            rightAddress = userData.rightChild || zero;
-                            console.log(`✅ Got children from User structure: Left=${leftAddress}, Right=${rightAddress}`);
-                        }
+                        // Get children directly from User structure using address
+                        const userData = await contract.users(nodeAddress);
+                        leftAddress = userData.leftChild || zero;
+                        rightAddress = userData.rightChild || zero;
+                        console.log(`✅ Got children from User structure: Left=${leftAddress}, Right=${rightAddress}`);
                     } catch (error) {
                         console.log(`⚠️ Could not get children from User structure:`, error.message);
                     }
+                } else {
+                    console.log(`📝 No address available for node (empty or migration), will check OLD contract`);
                 }
                 
                 // Fallback to getLeftAddress/getRightAddress if needed
@@ -4620,12 +4611,35 @@
                     console.log('✅ Transaction confirmed');
                     
                     statusDiv.style.background = 'rgba(0,255,136,0.2)';
-                    statusDiv.textContent = '✅ Registration successful! Reloading tree...';
+                    statusDiv.textContent = '✅ Registration successful! Updating node...';
                     
-                    // Reload tree after 2 seconds
-                    setTimeout(() => {
+                    // Update only the specific node instead of reloading entire tree
+                    setTimeout(async () => {
                         regModal.style.display = 'none';
-                        location.reload();
+                        
+                        try {
+                            // Find the parent node that contains this registration slot
+                            const parentIndex = parseInt(document.getElementById('reg-node-position').textContent === 'left' ? 
+                                (parseInt(document.getElementById('reg-node-index').textContent) / 2) : 
+                                ((parseInt(document.getElementById('reg-node-index').textContent) - 1) / 2));
+                            
+                            console.log(`🔄 Updating parent node ${parentIndex}`);
+                            
+                            // Find the parent node in the tree
+                            const parentNode = findNodeByIndex(fileManagerData.treeData, parentIndex.toString());
+                            if (parentNode) {
+                                // Refresh only this parent node's children
+                                console.log(`🔄 Refreshing children for parent node ${parentNode.id}`);
+                                await loadNodeChildren(parentNode, 0);
+                            } else {
+                                console.log('⚠️ Parent node not found, doing full tree refresh');
+                                location.reload();
+                            }
+                        } catch (refreshError) {
+                            console.error('⚠️ Error updating node:', refreshError);
+                            console.log('🔄 Falling back to full page reload');
+                            location.reload();
+                        }
                     }, 2000);
                     
                 } catch (error) {
