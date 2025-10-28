@@ -12,7 +12,7 @@ let IAM_ADDRESS = (() => {
 })();
 const DAI_ADDRESS = '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
 // Optional: second preset IAM address
-const SECOND_IAM_ADDRESS = '0x9daBF5B043cbF761A4DB25387A509F4884063210';
+const SECOND_IAM_ADDRESS = '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf';
 
 // Expose to window
 window.IAM_ADDRESS = IAM_ADDRESS;

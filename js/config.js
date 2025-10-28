@@ -2,17 +2,24 @@
 
 // Contract addresses (supports dynamic IAM address via localStorage)
 const DEFAULT_IAM_ADDRESS = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D'; // Old contract
-const LATEST_IAM_ADDRESS = '0x9daBF5B043cbF761A4DB25387A509F4884063210'; // Latest contract (default)
+const LATEST_IAM_ADDRESS = '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf'; // Latest contract (default)
 let IAM_ADDRESS = (() => {
     try {
         const saved = localStorage.getItem('iam_selected_address');
-        // If saved address is the old contract, automatically migrate to new contract
-        if (saved && typeof saved === 'string' && saved.toLowerCase() === DEFAULT_IAM_ADDRESS.toLowerCase()) {
-            // Auto-migrate to latest contract
-            localStorage.setItem('iam_selected_address', LATEST_IAM_ADDRESS);
-            return LATEST_IAM_ADDRESS;
+        // Force migration to latest contract - always use LATEST_IAM_ADDRESS
+        if (saved && typeof saved === 'string') {
+            const savedLower = saved.toLowerCase();
+            const defaultLower = DEFAULT_IAM_ADDRESS.toLowerCase();
+            const latestLower = LATEST_IAM_ADDRESS.toLowerCase();
+            
+            // If saved is old default, or any other address, migrate to latest
+            if (savedLower === defaultLower || (savedLower !== latestLower)) {
+                localStorage.setItem('iam_selected_address', LATEST_IAM_ADDRESS);
+                return LATEST_IAM_ADDRESS;
+            }
+            return saved; // Already latest
         }
-        return (saved && typeof saved === 'string' && saved.length > 0) ? saved : LATEST_IAM_ADDRESS;
+        return LATEST_IAM_ADDRESS;
     } catch {
         return LATEST_IAM_ADDRESS;
     }

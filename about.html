@@ -1564,7 +1564,7 @@
           const provider = window.ethereum ? new ethers.BrowserProvider(window.ethereum) : null;
           if (!provider || !window.IAM_ADDRESS || !window.DAI_ADDRESS) return;
 
-          const IAM = new ethers.Contract(window.IAM_ADDRESS, window.IAM_ABI || [], provider);
+          const IAM = new ethers.Contract(window.IAM_ADDRESS || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf', window.IAM_ABI || [], provider);
           const dai = new ethers.Contract(window.DAI_ADDRESS, window.DAI_ABI || [], provider);
 
           // Update wallets count
@@ -1575,7 +1575,7 @@
 
           // Update DAI balance
           try {
-            const daiBalance = await dai.balanceOf(window.IAM_ADDRESS);
+            const daiBalance = await dai.balanceOf(window.IAM_ADDRESS || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf');
             const daiFormatted = ethers.formatUnits(daiBalance, 18);
             document.getElementById('about-dai-balance').textContent = Number(daiFormatted).toLocaleString(undefined, {maximumFractionDigits: 2}) + ' DAI';
           } catch(e) {}
@@ -1605,7 +1605,7 @@
 
           // Update dynamic limits and fees
           try {
-            const daiBalance = await dai.balanceOf(window.IAM_ADDRESS);
+            const daiBalance = await dai.balanceOf(window.IAM_ADDRESS || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf');
             const daiNum = Number(ethers.formatUnits(daiBalance, 18));
             
             // Max buy cap

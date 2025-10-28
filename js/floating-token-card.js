@@ -127,7 +127,7 @@ class FloatingTokenGrowthCard {
     // Show more information
     this.statusElement.innerHTML = `
       <div style="display:flex; gap:8px; align-items:center; justify-content:center;">
-        <span style="opacity:.85">Current Price:</span>
+        <span style="opacity:.85">Current:</span>
         <span id="current-token-price" style="font-weight:700">--</span>
       </div>
       <div style="display:flex; gap:8px; align-items:center; justify-content:center; margin-top:4px;">
@@ -242,7 +242,7 @@ class FloatingTokenGrowthCard {
     // Update status
     if (this.isExpanded) {
       this.statusElement.innerHTML = `
-        <div style="margin-bottom: 8px;">Current Price: <span style="font-weight: bold;">${currentPrice.toFixed(4)}</span></div>
+        <div style="margin-bottom: 8px;">Current Price: <span style="font-weight: bold;">${currentPrice.toFixed(5)}</span></div>
         <div>Initial Price: <span style="font-weight: bold;">0.01</span></div>
         <div style="margin-top: 5px; font-size: 0.6rem; opacity: 0.8;">Source: ${source}</div>
       `;

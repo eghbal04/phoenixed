@@ -431,7 +431,7 @@
     <!-- Contract Configuration -->
     <script>
         // Contract Configuration - Updated to new contract
-        window.IAM_ADDRESS = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D';
+        window.IAM_ADDRESS = '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf';
         
         // Use the full ABI from config.js instead of limited ABI
         // The full ABI will be loaded from config.js
@@ -683,11 +683,17 @@
                 const signer = await provider.getSigner();
                 const abi = window.IAM_ABI || [];
                 const contract = new ethers.Contract(window.IAM_ADDRESS, abi, signer);
+                // New contract: getAddressByNumber(uint256)
+                if (typeof contract.getAddressByNumber === 'function') {
+                    const addr = await contract.getAddressByNumber(parseInt(index, 10));
+                    return addr;
+                }
+                // Legacy fallback
                 if (typeof contract.indexToAddress === 'function') {
                     const addr = await contract.indexToAddress(parseInt(index, 10));
                     return addr;
                 }
-                throw new Error('indexToAddress not available in ABI');
+                throw new Error('Address resolver not available in ABI');
             } catch (error) {
                 console.error('❌ Error in convertIndexToAddress:', error);
                 throw error;

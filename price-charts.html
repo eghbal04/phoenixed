@@ -536,7 +536,7 @@
           try {
             console.log('🔄 Loading historical data first...');
             const provider = new ethers.BrowserProvider(window.ethereum);
-            const address = (typeof window.getIAMAddress === 'function') ? window.getIAMAddress() : (window.IAM_ADDRESS || window.DEFAULT_IAM_ADDRESS);
+            const address = (typeof window.getIAMAddress === 'function') ? window.getIAMAddress() : (window.IAM_ADDRESS || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf');
             if (address) {
               await loadHistoricalPriceData(provider, address);
             }
@@ -627,7 +627,7 @@
       }
       try {
         const provider = new ethers.BrowserProvider(window.ethereum);
-        const address = (typeof window.getIAMAddress === 'function') ? window.getIAMAddress() : (window.IAM_ADDRESS || window.DEFAULT_IAM_ADDRESS);
+        const address = (typeof window.getIAMAddress === 'function') ? window.getIAMAddress() : (window.IAM_ADDRESS || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf');
         if (!address) {
           console.warn('⚠️ No IAM address available');
           return;

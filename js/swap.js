@@ -3,12 +3,12 @@
 // Contract addresses
 const IAM_ADDRESS_OLD = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D'; // Old contract
 const IAM_ADDRESS_NEW = '0x8dc37ecF3198ce5062776b6A020B61146B5d2548'; // New contract
-const IAM_ADDRESS_LATEST = '0x9daBF5B043cbF761A4DB25387A509F4884063210'; // Latest contract
+const IAM_ADDRESS_LATEST = '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf'; // Latest contract
 // Use global DAI address from config to avoid redeclaration conflicts
 const SWAP_DAI_ADDRESS = (typeof window !== 'undefined' && window.DAI_ADDRESS) ? window.DAI_ADDRESS : '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
 
-// Use new contract as default
-let SWAP_IAM_ADDRESS = IAM_ADDRESS_NEW;
+// Use latest contract as default
+let SWAP_IAM_ADDRESS = IAM_ADDRESS_LATEST;
 
 // DAI ABI (minimal for swap functionality)
 const DAI_ABI = [
@@ -1484,12 +1484,10 @@ class SwapManager {
         if (contractType === 'old') {
             SWAP_IAM_ADDRESS = IAM_ADDRESS_OLD;
             this.selectedContract = 'old';
-        } else if (contractType === 'latest') {
+        } else {
+            // Default to latest contract
             SWAP_IAM_ADDRESS = IAM_ADDRESS_LATEST;
             this.selectedContract = 'latest';
-        } else {
-            SWAP_IAM_ADDRESS = IAM_ADDRESS_NEW;
-            this.selectedContract = 'new';
         }
         
         // Recreate contract instance if wallet is connected

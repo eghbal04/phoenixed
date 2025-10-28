@@ -4,7 +4,7 @@ const DAI_ADDRESS_TRANSFER = '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
 const POL_ADDRESS = '0x0000000000000000000000000000000000000000'; // Native MATIC
 
 // Use the contract address from config.js
-let IAM_ADDRESS_TRANSFER = window.IAM_ADDRESS || '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D';
+let IAM_ADDRESS_TRANSFER = window.IAM_ADDRESS || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf';
 
 const DAI_ABI_TRANSFER = [
     "function balanceOf(address owner) view returns (uint256)",
@@ -386,15 +386,15 @@ class TransferManager {
                 new Promise((_, r) => setTimeout(() => r(new Error('Timeout resolving index')) , ms))
             ]);
 
-            // 1) getUserAddress(uint)
+            // 1) getAddressByNumber(uint)
             try {
-                if (typeof this.contract.getUserAddress === 'function') {
-                    const addr = await withTimeout(this.contract.getUserAddress(index));
+                if (typeof this.contract.getAddressByNumber === 'function') {
+                    const addr = await withTimeout(this.contract.getAddressByNumber(index));
                     if (addr && isAddress(addr)) return addr;
                 }
             } catch {}
 
-            // 2) indexToAddress(uint)
+            // 2) indexToAddress(uint) legacy
             try {
                 if (typeof this.contract.indexToAddress === 'function') {
                     const addr = await withTimeout(this.contract.indexToAddress(index));
@@ -402,7 +402,7 @@ class TransferManager {
                 }
             } catch {}
 
-            // 3) wallets(uint) 0-based
+            // 3) wallets(uint) 0-based (legacy alternative)
             try {
                 if (typeof this.contract.wallets === 'function') {
                     const addr = await withTimeout(this.contract.wallets(index - 1));
@@ -905,24 +905,18 @@ class TransferManager {
                 this.showEnglishPopup('⏳ MATIC transfer submitted! Waiting for blockchain confirmation...', 'loading');
                 await tx.wait();
                 
-                // Get sender and recipient indices for MATIC
+                // Get sender and recipient numbers for MATIC
                 let senderIndex = null;
                 let recipientIndex = null;
                 try {
                     const senderAddress = await this.signer.getAddress();
-                    
-                    if (this.contract && typeof this.contract.addressToIndex === 'function') {
-                        const senderIndexRaw = await this.contract.addressToIndex(senderAddress);
-                        const senderIndexNum = parseInt(senderIndexRaw.toString());
-                        if (senderIndexNum > 0) {
-                            senderIndex = senderIndexNum.toString();
-                        }
-                        
-                        const recipientIndexRaw = await this.contract.addressToIndex(to);
-                        const recipientIndexNum = parseInt(recipientIndexRaw.toString());
-                        if (recipientIndexNum > 0) {
-                            recipientIndex = recipientIndexNum.toString();
-                        }
+                    if (this.contract && typeof this.contract.getUserNumber === 'function') {
+                        const senderNumRaw = await this.contract.getUserNumber(senderAddress);
+                        const senderNum = parseInt(senderNumRaw.toString());
+                        if (senderNum > 0) senderIndex = senderNum.toString();
+                        const recipientNumRaw = await this.contract.getUserNumber(to);
+                        const recipientNum = parseInt(recipientNumRaw.toString());
+                        if (recipientNum > 0) recipientIndex = recipientNum.toString();
                     }
                 } catch (error) {
                     console.log('Could not get user indices for MATIC:', error);
@@ -958,24 +952,18 @@ class TransferManager {
                 this.showEnglishPopup('⏳ DAI transfer submitted! Waiting for blockchain confirmation...', 'loading');
                 await tx.wait();
                 
-                // Get sender and recipient indices for DAI
+                // Get sender and recipient numbers for DAI
                 let senderIndex = null;
                 let recipientIndex = null;
                 try {
                     const senderAddress = await this.signer.getAddress();
-                    
-                    if (this.contract && typeof this.contract.addressToIndex === 'function') {
-                        const senderIndexRaw = await this.contract.addressToIndex(senderAddress);
-                        const senderIndexNum = parseInt(senderIndexRaw.toString());
-                        if (senderIndexNum > 0) {
-                            senderIndex = senderIndexNum.toString();
-                        }
-                        
-                        const recipientIndexRaw = await this.contract.addressToIndex(to);
-                        const recipientIndexNum = parseInt(recipientIndexRaw.toString());
-                        if (recipientIndexNum > 0) {
-                            recipientIndex = recipientIndexNum.toString();
-                        }
+                    if (this.contract && typeof this.contract.getUserNumber === 'function') {
+                        const senderNumRaw = await this.contract.getUserNumber(senderAddress);
+                        const senderNum = parseInt(senderNumRaw.toString());
+                        if (senderNum > 0) senderIndex = senderNum.toString();
+                        const recipientNumRaw = await this.contract.getUserNumber(to);
+                        const recipientNum = parseInt(recipientNumRaw.toString());
+                        if (recipientNum > 0) recipientIndex = recipientNum.toString();
                     }
                 } catch (error) {
                     console.log('Could not get user indices for DAI:', error);
@@ -1047,30 +1035,19 @@ class TransferManager {
                     console.log('Could not get token price for USD display:', error);
                 }
                 
-                // Get sender and recipient indices
+                // Get sender and recipient numbers
                 let senderIndex = null;
                 let recipientIndex = null;
                 try {
                     const senderAddress = await this.signer.getAddress();
-                    
-                    // Get sender index
-                    if (this.contract && typeof this.contract.addressToIndex === 'function') {
-                        const senderIndexRaw = await this.contract.addressToIndex(senderAddress);
-                        const senderIndexNum = parseInt(senderIndexRaw.toString());
-                        if (senderIndexNum > 0) {
-                            senderIndex = senderIndexNum.toString();
-                        }
-                        console.log('Sender index lookup:', { address: senderAddress, index: senderIndexRaw.toString(), valid: senderIndexNum > 0 });
-                    }
-                    
-                    // Get recipient index
-                    if (this.contract && typeof this.contract.addressToIndex === 'function') {
-                        const recipientIndexRaw = await this.contract.addressToIndex(to);
-                        const recipientIndexNum = parseInt(recipientIndexRaw.toString());
-                        if (recipientIndexNum > 0) {
-                            recipientIndex = recipientIndexNum.toString();
-                        }
-                        console.log('Recipient index lookup:', { address: to, index: recipientIndexRaw.toString(), valid: recipientIndexNum > 0 });
+                    if (this.contract && typeof this.contract.getUserNumber === 'function') {
+                        const senderNumRaw = await this.contract.getUserNumber(senderAddress);
+                        const senderNum = parseInt(senderNumRaw.toString());
+                        if (senderNum > 0) senderIndex = senderNum.toString();
+                        const recipientNumRaw = await this.contract.getUserNumber(to);
+                        const recipientNum = parseInt(recipientNumRaw.toString());
+                        if (recipientNum > 0) recipientIndex = recipientNum.toString();
+                        console.log('Number lookup:', { sender: senderNum, recipient: recipientNum });
                     }
                 } catch (error) {
                     console.log('Could not get user indices:', error);

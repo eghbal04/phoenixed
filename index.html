@@ -1827,7 +1827,7 @@
         if (!connection || !connection.contract) throw new Error('Contract connection is not available');
         const { contract, provider, signer, address: connectedAddress } = connection;
 
-        const contractAddress = (contract && contract.target) ? String(contract.target) : (window.IAM_ADDRESS || '-');
+            const contractAddress = (contract && contract.target) ? String(contract.target) : (window.IAM_ADDRESS || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf');
         addrEl.textContent = shortenAddress(contractAddress);
         // Link to Polygonscan/Amoy based on network
         try {
@@ -2029,7 +2029,10 @@
           else if (typeof contract.tokenPrice === 'function') p = await contract.tokenPrice();
           if (p !== undefined) {
             tokenPriceWei = (typeof p === 'bigint') ? p : BigInt(p);
-            if (tokenPriceEl) tokenPriceEl.textContent = safeFormatUnits(tokenPriceWei, 18);
+            if (tokenPriceEl) {
+              const priceNum = Number(ethers.formatUnits(tokenPriceWei, 18));
+              tokenPriceEl.textContent = priceNum.toFixed(5);
+            }
           }
         } catch {}
 
@@ -3073,7 +3076,7 @@
           }
         } catch {}
         try {
-          const addr = (window.getIAMAddress && typeof window.getIAMAddress === 'function') ? window.getIAMAddress() : (window.IAM_ADDRESS || '');
+          const addr = (window.getIAMAddress && typeof window.getIAMAddress === 'function') ? window.getIAMAddress() : (window.IAM_ADDRESS || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf');
           updateTopBarAddress(addr);
         } catch {}
       });
