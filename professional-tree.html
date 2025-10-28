@@ -2678,36 +2678,32 @@
             console.log(`🔍 Node ${node.id} - expanded: ${isExpanded}, hasChildren: ${node.children && node.children.length > 0}, childrenCount: ${node.children ? node.children.length : 0}`);
             
             if (isExpanded && node.children && node.children.length > 0) {
-                // Left-first policy: Filter out right empty nodes if left is also empty
+                // Filter children based on left-first policy
                 const filteredChildren = [];
-                let hasLeftNonEmpty = false;
                 
-                // Check all children to determine if left is non-empty
-                for (let child of node.children) {
-                    if (child.position === 'left' && child.type !== 'empty') {
-                        hasLeftNonEmpty = true;
-                        break;
-                    }
+                // Get left and right children
+                const leftChild = node.children.find(c => c.position === 'left');
+                const rightChild = node.children.find(c => c.position === 'right');
+                
+                // Always include left child (empty or not)
+                if (leftChild) {
+                    filteredChildren.push(leftChild);
                 }
                 
-                // Now filter based on left-first policy
-                for (let child of node.children) {
-                    if (child.position === 'left') {
-                        // Always include left child
-                        filteredChildren.push(child);
-                    } else if (child.position === 'right') {
-                        // Only include right child if left is non-empty
-                        if (hasLeftNonEmpty) {
-                            filteredChildren.push(child);
-                        } else {
-                            // Left is empty, skip right (left-first policy)
-                            console.log(`🚫 Skipping empty RIGHT child: ${child.id} (left-first policy)`);
-                        }
-                    } else {
-                        // No position defined, include it (backward compatibility)
+                // Only show right if left is NOT empty
+                if (leftChild && leftChild.type !== 'empty' && rightChild) {
+                    filteredChildren.push(rightChild);
+                } else if (leftChild && leftChild.type === 'empty' && rightChild) {
+                    // Both left and right are empty - show only left (left-first policy)
+                    console.log(`🚫 Skipping empty RIGHT child when left is also empty (left-first policy)`);
+                }
+                
+                // Also include children without position (backward compatibility)
+                node.children.forEach(child => {
+                    if (!child.position && !filteredChildren.includes(child)) {
                         filteredChildren.push(child);
                     }
-                }
+                });
                 
                 filteredChildren.forEach(child => {
                     console.log(`👶 Rendering child ${child.id} at depth ${depth + 1}`);
@@ -2785,16 +2781,8 @@
                 nodeElement.classList.add('migration-node');
             }
             
-            // Skip rendering empty nodes ONLY if it's an empty right child when left is also empty
-            // But allow empty left child to be rendered (for registration)
-            if (isEmptyNode) {
-                // Check if this is an empty right child when left is also empty
-                // If so, skip it (left-first policy)
-                if (node.position === 'right') {
-                    return;
-                }
-                // Otherwise, allow empty left child to be rendered
-            }
+            // Always render empty nodes - they are needed for registration slots
+            // The filtering happens in renderFlatTree based on parent's children state
             
             // Create migration indicator text
             const migrationText = isMigrationNode ? '<span style="font-size: 0.7em; color: #969696;">(Migration)</span>' : '';
@@ -2928,10 +2916,13 @@
             // Set default values based on type
             if (isMigrationNode && emptyNode.address) {
                 // For migration nodes:
-                // - newUser = address from OLD contract
+                // - newUser = address from OLD contract (pre-filled but editable)
                 // - referrer = current user
                 // - upper = current user (parent in NEW contract)
                 document.getElementById('reg-newuser').value = emptyNode.address;
+                document.getElementById('reg-newuser').readOnly = false;
+                document.getElementById('reg-newuser').style.cursor = 'text';
+                document.getElementById('reg-newuser').style.color = '#ffffff';
                 document.getElementById('reg-referrer').value = currentAddress || '';
             } else {
                 // For empty nodes:
@@ -2940,6 +2931,9 @@
                 // - upper = parent address (already set)
                 document.getElementById('reg-referrer').value = currentAddress || '';
                 document.getElementById('reg-newuser').value = '';
+                document.getElementById('reg-newuser').readOnly = false;
+                document.getElementById('reg-newuser').style.cursor = 'text';
+                document.getElementById('reg-newuser').style.color = '#ffffff';
             }
             
             // Reset submit button and status on each open
@@ -3674,9 +3668,10 @@
                     }
                 }
                 
-                // Step 2: Only consider RIGHT if LEFT exists in NEW contract (not migration)
-                if (leftChildExists && leftFromNew) {
-                    // LEFT exists → show RIGHT too
+                // Step 2: Process RIGHT child
+                // ONLY show RIGHT when LEFT is filled (exists in either NEW or OLD contract)
+                if (leftChildExists && leftChildAddress !== zero) {
+                    // LEFT exists and is filled → show RIGHT
                     if (rightAddress !== zero) {
                         // RIGHT exists in NEW contract
                         console.log(`✅ RIGHT child exists in NEW contract: ${rightAddress}`);
@@ -3703,20 +3698,23 @@
                                     console.log(`✅ Found RIGHT child in OLD contract: ${rightChildFromOld.address} (index in OLD: ${rightChildOldIndex})`);
                                     children.push(createChildNode(rightChildOldIndex, rightChildFromOld.address, 'right', 'migration'));
                                 } else {
-                                    // No RIGHT child in OLD → Left-first policy: DO NOT create empty RIGHT
-                                    console.log(`📝 RIGHT child not found in OLD contract, skipping RIGHT (left-first policy)`);
+                                    // No RIGHT child in OLD → create empty RIGHT slot (for registration)
+                                    console.log(`📝 RIGHT child not found in OLD contract, creating empty RIGHT slot`);
+                                    children.push(createChildNode(rightIndexNum, zero, 'right', 'empty'));
                                 }
                             } else {
-                                // Not found in OLD → Left-first policy: DO NOT create empty RIGHT
-                                console.log(`📝 No RIGHT child in OLD contract, skipping RIGHT (left-first policy)`);
+                                // Not found in OLD → create empty RIGHT slot (for registration)
+                                console.log(`📝 No RIGHT child in OLD contract, creating empty RIGHT slot`);
+                                children.push(createChildNode(rightIndexNum, zero, 'right', 'empty'));
                             }
                         } else {
-                            // No parent address → Left-first policy: DO NOT create empty RIGHT
-                            console.log(`📝 No parent address, skipping RIGHT (left-first policy)`);
+                            // No parent address → create empty RIGHT slot (for registration)
+                            console.log(`📝 No parent address, creating empty RIGHT slot`);
+                            children.push(createChildNode(rightIndexNum, zero, 'right', 'empty'));
                         }
                     }
                 }
-                // If LEFT doesn't exist, don't show RIGHT (priority: LEFT first)
+                // If LEFT doesn't exist or is empty, don't show RIGHT (priority: LEFT first)
                 
                 // Update node with children
                 node.children = children;
