@@ -696,62 +696,81 @@ function startBinaryClaimCountdown(lastClaimTime) {
 window.startBinaryClaimCountdown = startBinaryClaimCountdown;
 
 // تابع محاسبه تعداد ولت‌های سمت راست و چپ
-// Function to calculate left and right wallet counts using fastest binary tree traversal
-async function calculateWalletCounts(userIndex, contract) {
+// Function to calculate left and right wallet counts using address-based DFS traversal (NEW CONTRACT)
+async function calculateWalletCounts(userAddress, contract) {
     try {
-        console.log(`🚀 Starting ultra-fast wallet count calculation for index ${userIndex}...`);
+        console.log(`🚀 Starting wallet count calculation for address ${userAddress}...`);
         
-        // Get direct children indices
-        const leftChildIndex = BigInt(userIndex) * 2n;
-        const rightChildIndex = BigInt(userIndex) * 2n + 1n;
+        // Get user data to access leftChild and rightChild directly
+        const user = await contract.users(userAddress);
+        if (!user || !user.num || BigInt(user.num) === 0n) {
+            console.log('❌ User not registered');
+            return { leftCount: 0, rightCount: 0 };
+        }
         
-        // Use Promise.all for parallel execution with optimized counting
+        const leftChildAddress = user.leftChild;
+        const rightChildAddress = user.rightChild;
+        
+        // Use Promise.all for parallel execution
         const [leftResult, rightResult] = await Promise.all([
-            countSubtreeUltraFast(leftChildIndex, contract),
-            countSubtreeUltraFast(rightChildIndex, contract)
+            countSubtreeByAddress(leftChildAddress, contract),
+            countSubtreeByAddress(rightChildAddress, contract)
         ]);
         
-        console.log(`✅ Ultra-fast wallet counts: Left=${leftResult}, Right=${rightResult}`);
+        console.log(`✅ Wallet counts: Left=${leftResult}, Right=${rightResult}`);
         return { leftCount: leftResult, rightCount: rightResult };
         
     } catch (error) {
-        console.error(`Error in ultra-fast wallet count calculation:`, error);
+        console.error(`Error in wallet count calculation:`, error);
         return { leftCount: 0, rightCount: 0 };
     }
 }
 
-// Ultra-fast subtree counting using optimized depth-first traversal with early termination
-async function countSubtreeUltraFast(startIndex, contract) {
+// Count subtree using address-based DFS (NEW CONTRACT - uses leftChild/rightChild directly)
+async function countSubtreeByAddress(rootAddress, contract) {
+    const zero = '0x0000000000000000000000000000000000000000';
+    
+    if (!rootAddress || rootAddress === zero) {
+        return 0;
+    }
+    
     let count = 0;
-    const stack = [startIndex];
-    const maxDepth = 20; // Prevent infinite loops
-    const processedIndices = new Set();
+    const stack = [{ address: rootAddress, depth: 1 }];
+    const processed = new Set();
+    const maxDepth = 100; // Prevent infinite loops
     
     while (stack.length > 0) {
-        const currentIndex = stack.pop();
-        const indexStr = currentIndex.toString();
+        const { address: currentAddress, depth } = stack.pop();
         
         // Skip if already processed or too deep
-        if (processedIndices.has(indexStr) || stack.length > maxDepth) continue;
-        processedIndices.add(indexStr);
+        if (processed.has(currentAddress.toLowerCase()) || depth > maxDepth) {
+            continue;
+        }
+        
+        processed.add(currentAddress.toLowerCase());
         
         try {
-            // Direct index to address check - fastest method
-            const address = await contract.indexToAddress(currentIndex);
+            // Get user data for current address
+            const user = await contract.users(currentAddress);
             
-            // Quick validation - if address exists and is not zero, count it
-            if (address && address !== '0x0000000000000000000000000000000000000000') {
+            // Check if user is registered (has num > 0)
+            if (user && user.num && BigInt(user.num) > 0n) {
                 count++;
                 
-                // Add children to stack for depth-first traversal (faster for binary trees)
-                const leftChild = BigInt(currentIndex) * 2n;
-                const rightChild = BigInt(currentIndex) * 2n + 1n;
+                // Get children addresses directly from User struct
+                const leftChild = user.leftChild;
+                const rightChild = user.rightChild;
                 
-                stack.push(rightChild); // Push right first (LIFO - left will be processed first)
-                stack.push(leftChild);
+                // Add children to stack for DFS traversal
+                if (rightChild && rightChild !== zero) {
+                    stack.push({ address: rightChild, depth: depth + 1 });
+                }
+                if (leftChild && leftChild !== zero) {
+                    stack.push({ address: leftChild, depth: depth + 1 });
+                }
             }
         } catch (e) {
-            // Skip errors and continue - don't log to avoid spam
+            // Skip errors and continue
             continue;
         }
     }
@@ -767,11 +786,8 @@ async function updateWalletCountsDisplay() {
         const { contract, address } = await window.connectWallet();
         if (!contract || !address) return;
         
-        const user = await contract.users(address);
-        if (!user || !(user.index && BigInt(user.index) > 0n)) return;
-        
-        const userIndex = parseInt(user.index);
-        const counts = await calculateWalletCounts(userIndex, contract);
+        // Use address directly (NEW CONTRACT uses address-based traversal)
+        const counts = await calculateWalletCounts(address, contract);
         
         // Update display in profile
         const leftCountEl = document.getElementById('profile-left-wallets');
@@ -791,6 +807,11 @@ async function updateWalletCountsDisplay() {
         
     } catch (error) {
         console.error(`Error updating wallet counts display:`, error);
+        // Show error in UI
+        const leftCountEl = document.getElementById('profile-left-wallets');
+        const rightCountEl = document.getElementById('profile-right-wallets');
+        if (leftCountEl) leftCountEl.textContent = 'Error';
+        if (rightCountEl) rightCountEl.textContent = 'Error';
     }
 }
 
@@ -811,7 +832,7 @@ async function purchaseEBAConfig(amount) {
         
         // Ensure user is registered
         const user = await contract.users(address);
-        if (!user || !user.index || BigInt(user.index) === 0n) {
+        if (!user || !user.num || BigInt(user.num) === 0n) {
             throw new Error('You must register first');
         }
         
@@ -888,7 +909,6 @@ function setupUpgradeCapButton(user, contract, address) {
     const amountUsdEl = document.getElementById('upgrade-cap-amount-usd');
     const balanceEl = document.getElementById('upgrade-cap-balance');
     const currentCapEl = document.getElementById('upgrade-cap-current');
-    const confirmBtn = document.getElementById('upgrade-cap-confirm');
     const cancelBtn = document.getElementById('upgrade-cap-cancel');
     const statusEl = document.getElementById('upgrade-cap-status');
     
@@ -896,7 +916,6 @@ function setupUpgradeCapButton(user, contract, address) {
         upgradeBtn: !!upgradeBtn,
         modal: !!modal,
         amountInput: !!amountInput,
-        confirmBtn: !!confirmBtn,
         cancelBtn: !!cancelBtn
     });
     
@@ -920,10 +939,12 @@ function setupUpgradeCapButton(user, contract, address) {
     });
     
     // بستن مودال
-    cancelBtn.addEventListener('click', () => {
-        modal.style.display = 'none';
-        statusEl.textContent = '';
-    });
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+            if (statusEl) statusEl.textContent = '';
+        });
+    }
     
     // بستن مودال با کلیک خارج از آن
     modal.onclick = (e) => {
@@ -954,32 +975,57 @@ function setupUpgradeCapButton(user, contract, address) {
         }
     }
     
-    // محاسبه اطلاعات ارتقاع طبق قرارداد
+    // محاسبه اطلاعات ارتقاء طبق منطق قرارداد جدید
     async function calculateUpgradeInfo() {
         try {
-            // دریافت قیمت ثبت‌نام
-            const regPrice = await contract.getRegPrice();
-            const regPriceNum = Number(ethers.formatUnits(regPrice, 18));
-            
-            // محاسبه قیمت هر پوینت (یک سوم قیمت ثبت‌نام)
-            const pointPrice = regPriceNum / 3;
-            
-            // محاسبه تعداد پوینت‌های قابل خرید
-            const totalPurchased = Number(user.totalPurchasedKind || 0) / 1e18;
-            const uptopoint = regPriceNum / 3; // حداقل مقدار برای یک پوینت
-            const availablePoints = Math.floor(totalPurchased / uptopoint);
-            
-            // حداکثر 2 پوینت در ماه
-            const maxPointsThisMonth = Math.min(2, availablePoints);
-            
+            // قیمت توکن (برای تبدیل DAI→IAM)
+            let tokenPriceNum = 0;
+            if (typeof contract.getTokenPrice === 'function') {
+                const priceWei = await contract.getTokenPrice();
+                tokenPriceNum = Number(ethers.formatUnits(priceWei, 18));
+            }
+
+            // مقادیر کاربر
+            const cap = Number(user.binaryPointCap || 0);
+            const effectiveCap = cap === 0 ? 1 : cap; // مطابق قرارداد
+            const totalPurchased = Number(ethers.formatUnits((user.totalPurchasedKind || 0).toString(), 18));
+
+            // مقدار موردنیاز برای یک پوینت: _daiToTokens(cap*3) = (cap*3)*1e18 / price
+            const requiredDai = effectiveCap * 3; // عدد بر حسب DAI
+            const requiredIAM = tokenPriceNum > 0 ? (requiredDai / tokenPriceNum) : 0; // بر حسب IAM
+            const remainingIAM = requiredIAM > totalPurchased ? (requiredIAM - totalPurchased) : 0;
+
+            // cooldown ارتقاء: 15 روز
+            const now = Math.floor(Date.now() / 1000);
+            const upgradeTime = user.upgradeTime ? Number(user.upgradeTime) : 0;
+            const fifteenDays = 15 * 24 * 3600;
+            const timeSinceUpgrade = now - upgradeTime;
+            const canUpgrade = (upgradeTime === 0) || (timeSinceUpgrade >= fifteenDays);
+
+            // هزینه نمایشی از قرارداد (اختیاری)
+            let upgradeCost = null;
+            if (typeof contract.getPointUpgradeCost === 'function') {
+                try {
+                    const costWei = await contract.getPointUpgradeCost(address);
+                    upgradeCost = Number(ethers.formatUnits(costWei, 18));
+                } catch (e) {
+                    console.log('getPointUpgradeCost not available or failed:', e);
+                }
+            }
+
             // به‌روزرسانی UI
             updateUpgradeUI({
-                pointPrice,
-                maxPointsThisMonth,
+                tokenPriceNum,
                 totalPurchased,
-                uptopoint
+                requiredIAM,
+                remainingIAM,
+                canUpgrade,
+                timeSinceUpgrade,
+                cooldownSec: fifteenDays,
+                cap: effectiveCap,
+                upgradeCost
             });
-            
+
         } catch (error) {
             console.error('Error calculating upgrade info:', error);
         }
@@ -1002,22 +1048,35 @@ function setupUpgradeCapButton(user, contract, address) {
     }
     if (amountInput && amountUsdEl) { amountInput.addEventListener('input', updateAmountUsdPreview); }
     
-    // به‌روزرسانی UI ارتقاع
+    // به‌روزرسانی UI ارتقاء
     function updateUpgradeUI(info) {
         // به‌روزرسانی محتوای مودال
         const modalContent = document.querySelector('#upgrade-cap-modal > div > div');
         if (modalContent) {
+            // محاسبه باقی‌مانده زمان cooldown
+            let cooldownText = '';
+            if (info.canUpgrade) {
+                cooldownText = '<div style="color:#00ff88;font-weight:bold;">✅ Ready to upgrade!</div>';
+            } else {
+                const remaining = info.cooldownSec - info.timeSinceUpgrade;
+                const daysRemaining = Math.floor(remaining / (24 * 3600));
+                const hoursRemaining = Math.floor((remaining % (24 * 3600)) / 3600);
+                cooldownText = `<div style="color:#ff4444;font-weight:bold;">⏰ Cooldown: ${daysRemaining}d ${hoursRemaining}h remaining</div>`;
+            }
+            
             // به‌روزرسانی متن‌های مودال
             const infoDiv = document.createElement('div');
             infoDiv.innerHTML = `
                 <div style="margin-bottom:1rem;padding:1rem;background:rgba(255,107,51,0.1);border-radius:8px;border:1px solid #ff6b3333;">
                     <div style="color:#ff6b35;font-weight:bold;margin-bottom:0.5rem;">📊 Upgrade Info:</div>
                     <div style="color:#ccc;font-size:0.9em;line-height:1.4;">
-                        <div>💰 Price per point: ${info.pointPrice.toFixed(6)} IAM</div>
-                        <div>📈 Your total purchases: ${info.totalPurchased.toFixed(6)} IAM</div>
-                        <div>🎯 Min for one point: ${info.uptopoint.toFixed(6)} IAM</div>
-                        <div>⭐ Points available: ${info.maxPointsThisMonth}</div>
-                        <div style="margin-top:0.5rem;color:#00ff88;font-weight:bold;">✅ Contract will automatically determine upgrade eligibility</div>
+                        <div>🏷️ Current cap: ${info.cap}</div>
+                        ${info.upgradeCost !== null && info.upgradeCost !== undefined ? `<div>💵 Contract upgrade cost (display): ${info.upgradeCost.toFixed(6)} IAM</div>` : ''}
+                        <div>📈 Accumulated towards upgrade: ${info.totalPurchased.toFixed(6)} IAM</div>
+                        <div>🎯 Required for 1 point: ${info.requiredIAM ? info.requiredIAM.toFixed(6) : '—'} IAM</div>
+                        <div>➕ Remaining needed: ${info.remainingIAM ? info.remainingIAM.toFixed(6) : '0.000000'} IAM</div>
+                        ${cooldownText}
+                        <div style="margin-top:0.5rem;color:#a786ff;font-weight:bold;">ℹ️ Contract adds at most 1 point every 15 days when required IAM is accumulated. Extra amount remains as credit.</div>
                     </div>
                 </div>
             `;
@@ -1032,45 +1091,9 @@ function setupUpgradeCapButton(user, contract, address) {
         }
     }
     
-    // Confirm upgrade (force payout=100 and seller=contract)
-    confirmBtn.addEventListener('click', async () => {
-        console.log('🖱️ Confirm upgrade button clicked!');
-        const amount = parseFloat(amountInput.value);
-        
-        if (!amount || amount <= 0) {
-            statusEl.textContent = '❌ Please enter a valid amount';
-            statusEl.style.color = '#ff4444';
-            return;
-        }
-        
-        try {
-            confirmBtn.disabled = true;
-            statusEl.textContent = '⏳ Upgrading cap...';
-            statusEl.style.color = '#a786ff';
-            
-            // Call purchaseEBAConfig with amount only
-            const result = await purchaseEBAConfig(amount);
-            
-            statusEl.textContent = '✅ Upgrade completed successfully!';
-            statusEl.style.color = '#00ff88';
-            
-            // Close modal after 2 seconds
-            setTimeout(() => {
-                modal.style.display = 'none';
-                statusEl.textContent = '';
-                // Reload profile
-                if (typeof loadProfile === 'function') {
-                    loadProfile();
-                }
-            }, 2000);
-            
-        } catch (error) {
-            statusEl.textContent = '❌ Error: ' + error.message;
-            statusEl.style.color = '#ff4444';
-        } finally {
-            confirmBtn.disabled = false;
-        }
-    });
+    // Note: Purchase buttons (purchase-point-btn, purchase-2-points-btn) are handled 
+    // separately in profile.html via setupPurchasePointButton and setupPurchase2PointsButton
+    // They use purchaseEBAConfig function which calls contract.purchase with payout=100
 }
 
 // اضافه کردن توابع به window برای دسترسی جهانی

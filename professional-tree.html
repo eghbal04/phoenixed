@@ -1740,11 +1740,11 @@
                 
                 // If address not known yet (e.g., non-migration node), resolve by index
                 if (!userAddress) {
-                    try {
-                        userAddress = await window.getAddressByIndex(contract, nodeIndex);
-                    } catch (error) {
-                        console.log(`⚠️ Could not get address for index ${nodeIndex}:`, error);
-                        return;
+                try {
+                    userAddress = await window.getAddressByIndex(contract, nodeIndex);
+                } catch (error) {
+                    console.log(`⚠️ Could not get address for index ${nodeIndex}:`, error);
+                    return;
                     }
                 }
 
@@ -1752,7 +1752,7 @@
                     // For migration-only nodes, the address may not exist in NEW contract; skip quietly
                     const maybeNode = (() => { try { return findNodeByIndex(fileManagerData.treeData, String(nodeIndex)); } catch(_) { return null; } })();
                     if (!(maybeNode && maybeNode.type === 'migration')) {
-                        console.log(`⚠️ No valid address for index ${nodeIndex}`);
+                    console.log(`⚠️ No valid address for index ${nodeIndex}`);
                     }
                     return;
                 }
@@ -3899,11 +3899,11 @@
                 // ONLY show RIGHT when LEFT is filled (exists in either NEW or OLD contract)
                 if (leftChildExists && leftChildAddress !== zero) {
                     // LEFT exists and is filled → show RIGHT
-                    if (rightAddress !== zero) {
+                if (rightAddress !== zero) {
                         // RIGHT exists in NEW contract
                         console.log(`✅ RIGHT child exists in NEW contract: ${rightAddress}`);
                         children.push(createChildNode(rightIndexNum, rightAddress, 'right', 'node'));
-                    } else {
+                } else {
                         // RIGHT empty in NEW → check OLD contract
                         console.log(`🔄 RIGHT child empty in NEW contract, checking OLD contract...`);
                         
