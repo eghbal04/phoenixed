@@ -323,13 +323,14 @@
         /* Distinct level-based color system for tree nodes */
         .flat-tree-node {
             transition: all 0.3s ease;
-            border-radius: 8px;
-            margin-bottom: 0.4rem;
+            border-radius: 6px;
+            margin-bottom: 0.25rem;
             position: relative;
             overflow: hidden;
             width: fit-content;
             min-width: fit-content;
             max-width: none;
+            border-width: 1px !important;
         }
         
         /* Level 0 - Root (Bright Cyan) */
@@ -502,15 +503,15 @@
         
         /* Hover effects for all levels */
         .flat-tree-node:hover {
-            transform: translateX(3px) scale(1.02);
-            box-shadow: 0 6px 16px rgba(0, 255, 136, 0.3);
+            transform: translateX(2px) scale(1.01);
+            box-shadow: 0 4px 10px rgba(0, 255, 136, 0.2);
             z-index: 10;
         }
         
         /* Active/expanded state */
         .flat-tree-node.expanded {
-            border-left: 6px solid currentColor;
-            transform: translateX(2px);
+            border-left: 3px solid currentColor;
+            transform: translateX(1px);
         }
         
         /* Level separator lines */
@@ -621,21 +622,39 @@
 
         /* Tree nodes visual refresh without changing structure */
         .tree-node.flat-tree-node {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.06);
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
             backdrop-filter: blur(6px);
         }
         .tree-node-content {
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 8px 10px;
-            border-radius: 8px;
+            gap: 6px;
+            padding: 4px 6px;
+            border-radius: 6px;
             transition: background-color 0.2s ease, transform 0.2s ease;
+            font-size: 12px;
+        }
+
+        /* Star rating visuals */
+        .star-rating {
+            display: inline-flex;
+            align-items: center;
+            gap: 2px;
+            line-height: 1;
+        }
+        .star-rating .star {
+            font-size: 12px;
+            color: #ffd700;
+        }
+        .star-rating .star.empty {
+            color: #ffd700;
+            opacity: 0.25;
+            filter: grayscale(60%);
         }
         .tree-node-content:hover {
-            background: rgba(0,255,136,0.06);
-            transform: translateX(2px);
+            background: rgba(0,255,136,0.05);
+            transform: translateX(1px);
         }
         
         /* Empty node styles */
@@ -1689,16 +1708,14 @@
         function createStarDisplay(starRating) {
             const starContainer = document.createElement('span');
             starContainer.className = 'star-rating';
-            starContainer.style.color = '#ffd700';
-            
-            if (starRating > 0) {
-                const stars = '★'.repeat(starRating);
-                starContainer.textContent = stars;
-                starContainer.title = `${starRating} star${starRating > 1 ? 's' : ''} (${starRating === 1 ? '1+' : starRating === 2 ? '10+' : starRating === 3 ? '100+' : starRating === 4 ? '1000+' : '10000+'} points)`;
-            } else {
-                starContainer.textContent = '';
+            const filled = Math.max(0, Math.min(5, Number(starRating)||0));
+            for (let i = 0; i < 5; i++) {
+                const s = document.createElement('span');
+                s.className = 'star' + (i < filled ? '' : ' empty');
+                s.textContent = '★';
+                starContainer.appendChild(s);
             }
-            
+            starContainer.title = `${filled}/5 stars`;
             return starContainer;
         }
 
@@ -1708,11 +1725,11 @@
                 const starElements = document.querySelectorAll('.star-rating');
                 console.log(`🔄 Updating star ratings for ${starElements.length} nodes`);
                 
-                for (const starElement of starElements) {
+            for (const starElement of starElements) {
                     const nodeId = starElement.id.replace('star-', '');
                     const node = findNode(pyramidData.root, parseInt(nodeId));
                     if (node) {
-                        await updateNodeStarRating(nodeId, node.index);
+                    await updateNodeStarRating(nodeId, node.address || node.index);
                     }
                 }
             } catch (error) {
@@ -1721,7 +1738,7 @@
         }
 
         // Update star rating for a specific node
-        async function updateNodeStarRating(nodeId, nodeIndex) {
+        async function updateNodeStarRating(nodeId, nodeAddressOrIndex) {
             try {
                 if (!window.contractConfig || !window.contractConfig.contract) {
                     console.log('⚠️ Contract not available for star rating');
@@ -1729,30 +1746,19 @@
                 }
 
                 const contract = window.contractConfig.contract;
-                let userAddress = null;
-                // Prefer the node's known address (especially for migration nodes)
-                try {
-                    const nodeObj = findNodeByIndex(fileManagerData.treeData, String(nodeIndex));
-                    if (nodeObj && nodeObj.address) {
-                        userAddress = nodeObj.address;
-                    }
-                } catch (_) {}
-                
-                // If address not known yet (e.g., non-migration node), resolve by index
+                let userAddress = (typeof nodeAddressOrIndex === 'string' && nodeAddressOrIndex.startsWith('0x')) ? nodeAddressOrIndex : null;
                 if (!userAddress) {
-                try {
-                    userAddress = await window.getAddressByIndex(contract, nodeIndex);
-                } catch (error) {
-                    console.log(`⚠️ Could not get address for index ${nodeIndex}:`, error);
-                    return;
-                    }
+                    try {
+                        const nodeObj = findNodeByIndex(fileManagerData.treeData, String(nodeAddressOrIndex));
+                        if (nodeObj && nodeObj.address) userAddress = nodeObj.address;
+                    } catch (_) {}
                 }
 
                 if (!userAddress || userAddress === '0x0000000000000000000000000000000000000000') {
                     // For migration-only nodes, the address may not exist in NEW contract; skip quietly
-                    const maybeNode = (() => { try { return findNodeByIndex(fileManagerData.treeData, String(nodeIndex)); } catch(_) { return null; } })();
+                    const maybeNode = (() => { try { return findNodeByIndex(fileManagerData.treeData, String(nodeAddressOrIndex)); } catch(_) { return null; } })();
                     if (!(maybeNode && maybeNode.type === 'migration')) {
-                    console.log(`⚠️ No valid address for index ${nodeIndex}`);
+                    console.log(`⚠️ No valid address for node ${nodeAddressOrIndex}`);
                     }
                     return;
                 }
@@ -1787,6 +1793,14 @@
             }
         }
 
+        const DESKTOP_MAX_TREE_DEPTH = 4; // desktop limit
+        function getMaxDepth(){
+            try {
+                const isMobile = window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+                return isMobile ? Infinity : DESKTOP_MAX_TREE_DEPTH;
+            } catch(_) { return DESKTOP_MAX_TREE_DEPTH; }
+        }
+
         // Create pyramid node - Only render direct children (lazy loading)
         function createPyramidNode(node, level = 0) {
             const nodeDiv = document.createElement('div');
@@ -1814,17 +1828,12 @@
             expandBtn.setAttribute('data-loading', 'false');
             expandBtn.textContent = node.expanded ? '▼' : '▶';
             
-            expandBtn.onclick = () => toggleNode(node.id);
-            
-            // Index display
-            const indexDisplay = document.createElement('span');
-            indexDisplay.className = 'index-display';
-            indexDisplay.textContent = 'IAM ' + node.index;
-            indexDisplay.style.cursor = 'pointer';
-            indexDisplay.onclick = (e) => {
-                e.stopPropagation();
-                showUserPopup(node);
-            };
+            if (level >= getMaxDepth()) {
+                expandBtn.style.visibility = 'hidden';
+                expandBtn.disabled = true;
+            } else {
+                expandBtn.onclick = () => toggleNode(node.id);
+            }
             
             // Create star rating display (initially empty, will be updated when user data is loaded)
             const starDisplay = createStarDisplay(0);
@@ -1837,7 +1846,6 @@
             indexContainer.style.alignItems = 'center';
             indexContainer.style.gap = '4px';
             
-            indexContainer.appendChild(indexDisplay);
             indexContainer.appendChild(starDisplay);
             
             buttonContainer.appendChild(expandBtn);
@@ -1845,10 +1853,10 @@
             nodeDiv.appendChild(buttonContainer);
             
             // Update star rating asynchronously
-            updateNodeStarRating(node.id, node.index);
+            updateNodeStarRating(node.id, node.address || node.index);
             
             // Children container - Only render direct children (lazy loading)
-            if (node.children && node.children.length > 0 && node.expanded) {
+            if (level < getMaxDepth() && node.children && node.children.length > 0 && node.expanded) {
                 const childrenContainer = document.createElement('div');
                 childrenContainer.className = 'children-container';
                 childrenContainer.style.display = 'block';
@@ -1869,6 +1877,8 @@
         async function toggleNode(nodeId) {
             const node = findNode(pyramidData.root, nodeId);
             if (node) {
+                // No depth limit
+                
                 // Find the expand button for this node
                 const expandBtn = document.querySelector(`[onclick="toggleNode(${nodeId})"]`);
                 
@@ -1904,8 +1914,14 @@
         }
 
         // Load children for a specific node - Only direct children (lazy loading)
-        async function loadNodeChildren(node) {
+        async function loadNodeChildren(node, currentDepth = 0) {
             try {
+                // Enforce depth limit
+                const nodeDepth = node.depth !== undefined ? node.depth : currentDepth;
+                if (nodeDepth >= getMaxDepth()) {
+                    return;
+                }
+                
                 if (!window.contractConfig || !window.contractConfig.contract) {
                     console.log('❌ Contract not available for loading children');
                     // Reset loading state on error
@@ -1942,25 +1958,22 @@
                     const rightChild = userData.rightChild;
                     
                     // IMPORTANT: In new contract, leftChild and rightChild are ADDRESSES, not indices!
-                    // We need to get indices for these addresses to display them correctly
+                    // Build children from struct using addresses directly (no index lookups)
                     if (leftChild && leftChild !== '0x0000000000000000000000000000000000000000') {
-                        const leftIndex = await window.getIndexByAddress(contract, leftChild);
-                        if (leftIndex && leftIndex > 0n) {
-                            children.push({
-                                index: leftIndex.toString(),
-                                address: leftChild
-                            });
-                        }
+                        let leftNum = null; try { const c = await contract.users(leftChild); leftNum = c?.num ? c.num.toString() : null; } catch(_) {}
+                        children.push({
+                            index: leftNum || leftChild.toLowerCase(),
+                            address: leftChild,
+                            depth: nodeDepth + 1
+                        });
                     }
-                    
                     if (rightChild && rightChild !== '0x0000000000000000000000000000000000000000') {
-                        const rightIndex = await window.getIndexByAddress(contract, rightChild);
-                        if (rightIndex && rightIndex > 0n) {
-                            children.push({
-                                index: rightIndex.toString(),
-                                address: rightChild
-                            });
-                        }
+                        let rightNum = null; try { const c = await contract.users(rightChild); rightNum = c?.num ? c.num.toString() : null; } catch(_) {}
+                        children.push({
+                            index: rightNum || rightChild.toLowerCase(),
+                            address: rightChild,
+                            depth: nodeDepth + 1
+                        });
                     }
                 } catch (error) {
                     console.log(`⚠️ Direct user data access failed for ${iamId}, trying getUserTree...`);
@@ -2991,31 +3004,29 @@
             const isExpanded = fileManagerData.expandedNodes.has(node.id);
             const hasChildren = node.hasChildren || (node.children && node.children.length > 0);
             
-            // Check if this is an empty node or migration node
+            // Check if this is an empty node (migration disabled)
             const isEmptyNode = node.type === 'empty';
-            const isMigrationNode = node.type === 'migration';
+            const isMigrationNode = false;
             
             // Apply migration node styling if needed
-            if (isMigrationNode) {
-                nodeElement.classList.add('migration-node');
-            }
+            // Migration styling disabled
             
             // Always render empty nodes - they are needed for registration slots
             // The filtering happens in renderFlatTree based on parent's children state
             
             // Create migration indicator text
-            const migrationText = isMigrationNode ? '<span style="font-size: 0.7em; color: #969696;">(Migration)</span>' : '';
+            const migrationText = '';
             
             nodeElement.innerHTML = `
                 <div class="tree-node-content ${isExpanded ? 'expanded' : ''}" data-node-id="${node.id}">
-                    ${hasChildren && !isMigrationNode ? `
+                    ${(!isEmptyNode) ? `
                         <button class="tree-expand-btn ${isExpanded ? 'expanded' : ''}" data-node-id="${node.id}">
                             ${isExpanded ? '−' : '+'}
                         </button>
                     ` : '<div style="width: 14px;"></div>'}
                     
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 1px;">
-                        ${(!isMigrationNode && !isEmptyNode) ? `<span class="node-badge" id="badge-${node.id}">…</span>` : (isEmptyNode ? '<span style="font-size: 11px; color: #ffc107;">Empty</span>' : `<span class="tree-node-label" onclick="copyToClipboard('${node.address}')" title="Click to copy full address">Migration</span>`)}
+                        ${(!isEmptyNode) ? `<span class="node-badge" id="badge-${node.id}">…</span>` : '<span style="font-size: 11px; color: #ffc107;">Empty</span>'}
                         <span class="star-rating" id="star-${node.id}" style="font-size: 12px; color: #ffd700; text-align: center;"></span>
                         ${migrationText ? `<span style="font-size: 10px; color: #969696;">${migrationText}</span>` : ''}
                     </div>
@@ -3026,7 +3037,7 @@
             
             // Update star rating for this node
             setTimeout(() => {
-                updateNodeStarRating(node.id, node.index);
+                updateNodeStarRating(node.id, node.address || node.index);
             }, 100);
 
             // Update compact badge (oldIndex • num • last4) for NEW nodes
@@ -3041,16 +3052,14 @@
             if (expandBtn) {
                 expandBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-                    // Disable expansion for migration nodes (slots should not expand)
-                    if (isMigrationNode) return;
                     toggleNodeExpansion(node.id);
                 });
             }
             
             const nodeContent = nodeElement.querySelector('.tree-node-content');
             nodeContent.addEventListener('click', () => {
-                if (isEmptyNode || isMigrationNode) {
-                    // For empty nodes or migration nodes, open registration form
+                if (isEmptyNode) {
+                    // For empty nodes, open registration form
                     openRegistrationForm(node);
                 } else {
                     // On click, show typewriter modal with full user details
@@ -3065,8 +3074,8 @@
         function openRegistrationForm(emptyNode) {
             console.log('📝 Opening registration modal for node:', emptyNode);
             
-            // Check if this is a migration node (has address but not registered in new contract)
-            const isMigrationNode = emptyNode.type === 'migration';
+            // Migration disabled
+            const isMigrationNode = false;
             
             let upperAddress = null;
             let registrationType = 'new';
@@ -3134,11 +3143,7 @@
             
             // Show migration info if needed
             const migrationInfo = document.getElementById('reg-migration-info');
-            if (isMigrationNode) {
-                migrationInfo.style.display = 'block';
-            } else {
-                migrationInfo.style.display = 'none';
-            }
+            if (migrationInfo) migrationInfo.style.display = 'none';
             
             // Set default values based on type
             if (isMigrationNode && emptyNode.address) {
@@ -3190,6 +3195,12 @@
         async function toggleNodeExpansion(nodeId) {
             const node = findNodeInTree(fileManagerData.treeData, nodeId);
             if (!node) return;
+            
+            // Enforce depth limit for flat structure
+            const nodeDepth = node.depth || 0;
+            if (nodeDepth >= getMaxDepth() && !fileManagerData.expandedNodes.has(nodeId)) {
+                return;
+            }
             
             if (fileManagerData.expandedNodes.has(nodeId)) {
                 // Collapsing - remove from expanded set
@@ -3276,7 +3287,7 @@
                 if (typeof contract.getTokenPrice !== 'function') return [];
                 const price = await contract.getTokenPrice(); // wei per token
                 const usdLines = [];
-                const tokenKeys = ['totalPurchasedKind','depositedAmount','totalMonthlyRewarded','refclimed'];
+                const tokenKeys = ['totalPurchasedKind','refclimed']; // Removed: depositedAmount, totalMonthlyRewarded
                 for (const key of tokenKeys) {
                     if (!details[key]) continue;
                     const raw = String(details[key]).replace(/[^0-9]/g, '') || '0';
@@ -3302,8 +3313,6 @@
             const d = {};
             d['IAM Index'] = iamIndex?.toString?.() || String(iamIndex ?? '');
             d['Address'] = shortenAddress(address || '');
-            // Support both 'index' (old) and 'num' (new contract) field names
-            d['index/num'] = userData?.num !== undefined ? toText(userData.num) : toText(userData?.index);
             d['parent'] = userData?.parent ? shortenAddress(userData.parent) : '-';
             d['leftChild'] = userData?.leftChild ? shortenAddress(userData.leftChild) : '-';
             d['rightChild'] = userData?.rightChild ? shortenAddress(userData.rightChild) : '-';
@@ -3315,17 +3324,14 @@
             d['lastClaimTime'] = toText(userData?.lastClaimTime);
             d['leftPoints'] = toText(userData?.leftPoints);
             d['rightPoints'] = toText(userData?.rightPoints);
-            d['lastMonthlyClaim'] = toText(userData?.lastMonthlyClaim);
-            d['totalMonthlyRewarded'] = toText(userData?.totalMonthlyRewarded);
+            // Removed: lastMonthlyClaim, totalMonthlyRewarded, depositedAmount
             d['refclimed'] = toText(userData?.refclimed);
-            d['depositedAmount'] = toText(userData?.depositedAmount);
             d['registrationDate'] = toText(userData?.registrationDate);
 
             // Fields that represent token amounts: format to scientific
             const scientificKeys = new Set([
                 'totalPurchasedKind',
-                'depositedAmount',
-                'totalMonthlyRewarded',
+                // Removed: depositedAmount, totalMonthlyRewarded
                 'refclimed'
             ]);
             for (const key of Object.keys(d)) {
@@ -3336,7 +3342,7 @@
             }
 
             // Human-readable dates for timestamp fields
-            const dateKeys = ['upgradeTime', 'lastClaimTime', 'lastMonthlyClaim', 'registrationDate'];
+            const dateKeys = ['upgradeTime', 'lastClaimTime', 'registrationDate']; // Removed: lastMonthlyClaim
             for (const k of dateKeys) {
                 d[k] = formatDateTimeFromSeconds(d[k]);
             }
@@ -4362,17 +4368,12 @@
             const expandBtn = document.createElement('button');
             expandBtn.className = 'expand-btn';
             expandBtn.textContent = '▶';
-            expandBtn.onclick = () => expandNodeManually(node, networkNumber);
-            
-            // Create index display
-            const indexDisplay = document.createElement('span');
-            indexDisplay.className = 'index-display';
-            indexDisplay.textContent = 'IAM ' + node.index;
-            indexDisplay.style.cursor = 'pointer';
-            indexDisplay.onclick = (e) => {
-                e.stopPropagation();
-                showUserPopup(node);
-            };
+            if ((node.depth || 0) >= getMaxDepth()) {
+                expandBtn.style.visibility = 'hidden';
+                expandBtn.disabled = true;
+            } else {
+                expandBtn.onclick = () => expandNodeManually(node, networkNumber);
+            }
             
             // Create depth indicator
             const depthIndicator = document.createElement('span');
@@ -4390,7 +4391,6 @@
             const buttonContainer = document.createElement('div');
             buttonContainer.className = 'pyramid-button';
             buttonContainer.appendChild(expandBtn);
-            buttonContainer.appendChild(indexDisplay);
             buttonContainer.appendChild(depthIndicator);
             
             networkItem.appendChild(buttonContainer);
@@ -4403,6 +4403,7 @@
             console.log(`🔄 Manual expansion for node ${node.index} in Network ${networkNumber}`);
             
             try {
+                // No depth limit
                 if (!window.contractConfig || !window.contractConfig.contract) {
                     throw new Error('Contract not available');
                 }
@@ -4442,7 +4443,7 @@
             }
         }
 
-        // Update badge under node label with: oldIndex • newNum • last4(address)
+        // Update badge under node label with: newNum • last4(address)  (old contract index removed)
         async function updateNodeBadge(nodeId, nodeIndex, nodeAddress) {
             try {
                 const badge = document.getElementById(`badge-${nodeId}`);
@@ -4457,15 +4458,6 @@
 
                 const last4 = (address && typeof address === 'string' && address.length >= 4) ? address.slice(-4) : '----';
 
-                // Get old index (index from OLD contract) by address
-                let oldIdxStr = '-';
-                try {
-                    if (address) {
-                        const oldIdx = await window.getOldIndexByAddress(address);
-                        if (oldIdx && oldIdx > 0n) oldIdxStr = oldIdx.toString();
-                    }
-                } catch (_) {}
-
                 // Get newNum (num from NEW contract) from user data
                 let newNumStr = String(nodeIndex);
                 try {
@@ -4477,7 +4469,7 @@
                     }
                 } catch (_) {}
 
-                badge.textContent = `${oldIdxStr} • ${newNumStr} • ${last4}`;
+                badge.textContent = `${newNumStr} • ${last4}`;
             } catch (_) {}
         }
 
