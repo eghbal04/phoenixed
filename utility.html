@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8">
@@ -235,20 +235,20 @@
     <!-- Back Button -->
     <a href="index.html" class="back-btn">← Back</a>
 
-    <div class="utility-grid">      <!-- Address and Index Conversion -->
+    <div class="utility-grid">      <!-- Address and Number Conversion -->
        <div class="utility-card">
-         <h3><span class="icon">🔄</span>Address and Index Conversion</h3>
+         <h3><span class="icon">🔄</span>Address and Number Conversion</h3>
          <div class="calculator-section">
            <div style="margin-bottom: 1rem;">
-             <h5 style="color: #a786ff; margin-bottom: 0.5rem;">📊 Index to Address</h5>
-             <input type="number" class="calculator-input" id="index-input" placeholder="User index number" min="0">
-             <button class="utility-btn" onclick="convertIndexToAddress()" style="width: 100%;">Convert</button>
+             <h5 style="color: #a786ff; margin-bottom: 0.5rem;">📊 Number to Address</h5>
+             <input type="number" class="calculator-input" id="index-input" placeholder="User number (num)" min="1">
+             <button class="utility-btn" onclick="convertNumberToAddress()" style="width: 100%;">Convert</button>
              <div class="calculator-result" id="index-result" style="display: none;"></div>
            </div>
            <div>
-             <h5 style="color: #a786ff; margin-bottom: 0.5rem;">👤 Address to Index</h5>
+             <h5 style="color: #a786ff; margin-bottom: 0.5rem;">👤 Address to Number</h5>
              <input type="text" class="calculator-input" id="address-input" placeholder="Wallet address (0x...)" style="direction: ltr;">
-             <button class="utility-btn" onclick="convertAddressToIndex()" style="width: 100%;">Convert</button>
+             <button class="utility-btn" onclick="convertAddressToNumber()" style="width: 100%;">Convert</button>
              <div class="calculator-result" id="address-result" style="display: none;"></div>
            </div>
          </div>
@@ -259,8 +259,8 @@
          <h3><span class="icon">👤</span>Single User Lookup</h3>
          <div class="calculator-section">
            <div style="margin-bottom: 1rem;">
-             <h5 style="color: #a786ff; margin-bottom: 0.5rem;">📊 Enter User Index</h5>
-             <input type="number" class="calculator-input" id="user-index-input" placeholder="Enter user index number" min="1">
+             <h5 style="color: #a786ff; margin-bottom: 0.5rem;">📊 Enter User Number</h5>
+             <input type="number" class="calculator-input" id="user-index-input" placeholder="Enter user number (num)" min="1">
              <button class="utility-btn" onclick="showSingleUser()" style="width: 100%;">Show User Info</button>
              <div class="calculator-result" id="user-result" style="display: none;"></div>
            </div>
@@ -294,13 +294,13 @@
         </div>
       </div>
 
-      <!-- Voting System for Indexes -->
+      <!-- Voting System for Numbers -->
       <div class="utility-card" dir="ltr">
-        <h3><span class="icon">🗳️</span>Vote by Index</h3>
+        <h3><span class="icon">🗳️</span>Vote by Number</h3>
         <div class="calculator-section">
           <div style="display:flex; flex-direction:column; gap:.75rem; align-items:stretch;">
             <div style="flex:1; min-width:220px;">
-              <label for="vote-index-input" style="color:#a0aec0; font-size:.9rem;">User Index</label>
+              <label for="vote-index-input" style="color:#a0aec0; font-size:.9rem;">User Number (num)</label>
               <input id="vote-index-input" type="number" inputmode="numeric" class="calculator-input" placeholder="e.g. 123" min="1" step="1" style="direction:ltr; text-align:left;">
             </div>
             <div style="display:flex; flex-direction:column; gap:.5rem; width:100%;">
@@ -338,7 +338,7 @@
         <div class="calculator-section">
           <div style="display:flex; flex-direction:column; gap:.75rem; align-items:stretch;">
             <div style="flex:1; min-width:260px;">
-              <label for="vote-status-input" style="color:#a0aec0; font-size:.9rem;">Index or Address</label>
+              <label for="vote-status-input" style="color:#a0aec0; font-size:.9rem;">Number (num) or Address</label>
               <input id="vote-status-input" type="text" class="calculator-input" placeholder="e.g. 123 or 0x..." style="direction:ltr; text-align:left;">
             </div>
             <div style="width:100%;">
@@ -398,12 +398,12 @@
         }, 3000);
     }
 
-    // Convert index to address
-    window.convertIndexToAddress = async function() {
-       const index = parseInt(document.getElementById('index-input').value);
+    // Convert number to address (using getAddressByNumber)
+    window.convertNumberToAddress = async function() {
+       const num = parseInt(document.getElementById('index-input').value);
        
-       if (!index || index < 1) {
-         showStatus('Please enter a valid index (minimum 1)', 'error');
+       if (!num || num < 1) {
+         showStatus('Please enter a valid number (minimum 1)', 'error');
          return;
        }
        
@@ -423,69 +423,58 @@
          }
          
          const { contract } = connection;
-         console.log(`🔄 Converting index ${index} to address...`);
+         console.log(`🔄 Converting number ${num} to address...`);
          
-         // Try the indexToAddress function
+         // Use getAddressByNumber from new contract
          let address;
          try {
-           address = await contract.indexToAddress(index);
-           console.log(`✅ Got address from indexToAddress: ${address}`);
-         } catch (indexError) {
-           console.log(`❌ indexToAddress failed: ${indexError.message}`);
-           // Fallback: try to find address by checking if the index exists in the system
-           console.log(`🔄 Trying fallback method...`);
+           address = await contract.getAddressByNumber(num);
+           console.log(`✅ Got address from getAddressByNumber: ${address}`);
+         } catch (error) {
+           console.log(`❌ getAddressByNumber failed: ${error.message}`);
            
-           // Check if the index is within reasonable bounds first
+           // Check if the number is within reasonable bounds
            try {
              const totalUsers = await contract.wallets();
              console.log(`📊 Total users in system: ${totalUsers}`);
              
-             if (index > Number(totalUsers)) {
-               throw new Error(`Index ${index} is greater than total users (${totalUsers})`);
+             if (num > Number(totalUsers)) {
+               throw new Error(`Number ${num} is greater than total users (${totalUsers})`);
              }
              
-             // Try to get the address using a different approach
-             // Some contracts might have the address stored differently
-             try {
-               // Try calling indexToAddress with BigInt
-               address = await contract.indexToAddress(BigInt(index));
-               console.log(`✅ Got address using BigInt: ${address}`);
-             } catch (bigIntError) {
-               console.log(`❌ BigInt approach also failed: ${bigIntError.message}`);
-               throw new Error(`Cannot convert index ${index} to address. The index might not exist or the function is not available.`);
-             }
+             throw new Error(`Cannot convert number ${num} to address. The number might not exist.`);
            } catch (fallbackError) {
-             console.log(`❌ Fallback method failed: ${fallbackError.message}`);
-             throw new Error(`Index to address conversion failed: ${fallbackError.message}`);
+             console.log(`❌ Conversion failed: ${fallbackError.message}`);
+             throw new Error(`Number to address conversion failed: ${fallbackError.message}`);
            }
          }
          
          if (!address || address === '0x0000000000000000000000000000000000000000') {
            resultDiv.innerHTML = `
              <strong>Result:</strong><br>
-             Index: ${index}<br>
-             <span style="color: #ffa502;">No user found at this index</span>
+             Number: ${num}<br>
+             <span style="color: #ffa502;">No user found at this number</span>
            `;
          } else {
            resultDiv.innerHTML = `
              <strong>Result:</strong><br>
-             Index: ${index}<br>
+             Number: ${num}<br>
              Address: ${address}<br>
              <button onclick="copyToClipboard('${address}')" style="background: #00ff88; color: #1a202c; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; margin-top: 0.5rem;">Copy Address</button>
            `;
          }
        } catch (error) {
-         console.error('❌ Index to address conversion error:', error);
+         console.error('❌ Number to address conversion error:', error);
          resultDiv.innerHTML = `
            <strong>Error:</strong><br>
            ${error.message}<br>
-           <small style="color: #a0aec0;">Please check if the index exists and try again</small>
+           <small style="color: #a0aec0;">Please check if the number exists and try again</small>
          `;
        }
      }
 
-    // Convert address to index
-    window.convertAddressToIndex = async function() {
+    // Convert address to number (using getUserNumber)
+    window.convertAddressToNumber = async function() {
        const address = document.getElementById('address-input').value.trim();
        
        if (!address || !address.startsWith('0x')) {
@@ -509,15 +498,16 @@
          }
          
          const { contract } = connection;
-         const userData = await contract.users(address);
-         const index = userData.index;
          
-         if (index && index > 0) {
+         // Use getUserNumber from new contract
+         const num = await contract.getUserNumber(address);
+         
+         if (num && num > 0) {
            resultDiv.innerHTML = `
              <strong>Result:</strong><br>
              Address: ${address}<br>
-             Index: ${index.toString()}<br>
-             <button onclick="copyToClipboard('${index.toString()}')" style="background: #00ff88; color: #1a202c; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; margin-top: 0.5rem;">Copy Index</button>
+             Number: ${num.toString()}<br>
+             <button onclick="copyToClipboard('${num.toString()}')" style="background: #00ff88; color: #1a202c; border: none; padding: 0.5rem 1rem; border-radius: 5px; cursor: pointer; margin-top: 0.5rem;">Copy Number</button>
            `;
          } else {
            resultDiv.innerHTML = `
@@ -535,12 +525,12 @@
        }
      }
 
-    // Show single user by index
+    // Show single user by number
     window.showSingleUser = async function() {
-       const userIndex = parseInt(document.getElementById('user-index-input').value);
+       const userNum = parseInt(document.getElementById('user-index-input').value);
        
-       if (!userIndex || userIndex < 1) {
-         showStatus('Please enter a valid index (minimum 1)', 'error');
+       if (!userNum || userNum < 1) {
+         showStatus('Please enter a valid number (minimum 1)', 'error');
          return;
        }
        
@@ -559,29 +549,28 @@
            throw new Error('Contract connection failed');
          }
          
-         const { contract } = connection;
+         const { contract, address: currentAddress } = connection;
          
-         console.log(`🔄 Fetching user at index ${userIndex}...`);
+         console.log(`🔄 Fetching user at number ${userNum}...`);
          
-         // Get user address by index
-         const address = await contract.indexToAddress(userIndex);
+         // Get user address by number
+         const address = await contract.getAddressByNumber(userNum);
          
          if (!address || address === '0x0000000000000000000000000000000000000000') {
            resultDiv.innerHTML = `
              <strong>User Not Found:</strong><br>
-             No user found at index ${userIndex}<br>
-             <small style="color: #a0aec0;">This index may not exist yet</small>
+             <small style="color: #a0aec0;">No user found at this number (may not exist yet)</small>
            `;
            return;
          }
          
-         console.log(`✅ User found at index ${userIndex}: ${address}`);
+         console.log(`✅ User found at number ${userNum}: ${address}`);
          
-         // Check if current user is in the downline of the target user
+         // Check if current user is in the downline of the target user using contract's isInDownline
          console.log('🔄 Checking if current user is in downline...');
-         const isInDownline = await checkIfInDownline(contract, address);
+         const isInDownline = await contract.isInDownline(currentAddress, address);
          
-         if (!isInDownline) {
+         if (!isInDownline && currentAddress.toLowerCase() !== address.toLowerCase()) {
            resultDiv.innerHTML = `
              <div style="color: #ff6b6b; text-align: center; padding: 1rem;">
                ❌ Access Denied<br>
@@ -594,7 +583,7 @@
          
          console.log('✅ User is in downline, proceeding to show complete user data...');
          
-         // Get complete user data from contract
+        // Get complete user data from contract
          const userData = await contract.users(address);
          const balance = await contract.balanceOf(address);
          const voteStatus = await contract.getVoteStatus(address);
@@ -622,79 +611,342 @@
            return value || '0';
          };
          
-         // Display complete user information
+         const formatAddress = (addr) => {
+           if (!addr || addr === '0x0000000000000000000000000000000000000000') {
+             return { short: 'None', full: 'None', hasValue: false };
+           }
+           return {
+             short: addr.substring(0, 6) + '...' + addr.substring(38),
+             full: addr,
+             hasValue: true
+           };
+         };
+         
+         const parentAddr = formatAddress(userData.parent);
+         const leftChildAddr = formatAddress(userData.leftChild);
+         const rightChildAddr = formatAddress(userData.rightChild);
+         const userAddr = formatAddress(address);
+         
+         // Calculate unclaimed points
+         const unclaimedPoints = userData.binaryPoints > userData.binaryPointsClaimed 
+           ? (userData.binaryPoints - userData.binaryPointsClaimed) 
+           : 0n;
+         
+         // Format referral claimed in IAM
+        const referralClaimedIAM = formatEther(userData.refclimed || 0n);
+        const totalPurchasedIAM = formatEther(userData.totalPurchasedKind || 0n);
+
+        // Count subtree wallets (address-based DFS)
+        async function countSubtreeByAddress(rootAddress) {
+          try {
+            if (!rootAddress || rootAddress === '0x0000000000000000000000000000000000000000') return 0;
+            const visited = new Set();
+            const stack = [rootAddress];
+            let count = 0;
+            while (stack.length > 0) {
+              const current = stack.pop();
+              const key = current.toLowerCase();
+              if (visited.has(key)) continue;
+              visited.add(key);
+              count += 1;
+              try {
+                const u = await contract.users(current);
+                if (u && u.leftChild && u.leftChild !== '0x0000000000000000000000000000000000000000') {
+                  stack.push(u.leftChild);
+                }
+                if (u && u.rightChild && u.rightChild !== '0x0000000000000000000000000000000000000000') {
+                  stack.push(u.rightChild);
+                }
+              } catch (_) {}
+            }
+            return count;
+          } catch (_) { return 0; }
+        }
+
+        const leftWalletsCount = leftChildAddr.hasValue ? await countSubtreeByAddress(userData.leftChild) : 0;
+        const rightWalletsCount = rightChildAddr.hasValue ? await countSubtreeByAddress(userData.rightChild) : 0;
+         
+         // Display complete user information with mobile responsive design
          resultDiv.innerHTML = `
-           <div style="color: #00ff88; text-align: center; padding: 1rem; margin-bottom: 1rem;">
-             ✅ User Information for Index ${userIndex}
+           <style>
+             .user-info-container {
+               display: grid;
+               gap: 1rem;
+               max-height: 600px;
+               overflow-y: auto;
+               padding: 0.5rem;
+             }
+             .user-info-card {
+               background: rgba(0, 255, 136, 0.1);
+               border: 1px solid rgba(0, 255, 136, 0.2);
+               border-radius: 12px;
+               padding: 1rem;
+               word-wrap: break-word;
+             }
+             .user-info-card.binary {
+               background: rgba(167, 134, 255, 0.1);
+               border-color: rgba(167, 134, 255, 0.2);
+             }
+             .user-info-card.referral {
+               background: rgba(255, 193, 7, 0.1);
+               border-color: rgba(255, 193, 7, 0.2);
+             }
+             .user-info-card.voting {
+               background: rgba(0, 123, 255, 0.1);
+               border-color: rgba(0, 123, 255, 0.2);
+             }
+             .user-info-card h4 {
+               margin: 0 0 0.75rem 0;
+               font-size: 1rem;
+               font-weight: 600;
+               display: flex;
+               align-items: center;
+               gap: 0.5rem;
+             }
+             .info-grid {
+               display: grid;
+               grid-template-columns: 1fr 1fr;
+               gap: 0.75rem;
+             }
+             .info-item {
+               font-size: 0.875rem;
+               line-height: 1.5;
+               word-break: break-word;
+             }
+             .info-item.full-width {
+               grid-column: 1 / -1;
+             }
+             .info-label {
+               color: #a0aec0;
+               font-weight: 500;
+               margin-bottom: 0.25rem;
+               display: block;
+               font-size: 0.8rem;
+             }
+             .info-value {
+               color: #e2e8f0;
+               font-weight: 600;
+               word-break: break-all;
+             }
+             .address-copy-btn {
+               background: rgba(167, 134, 255, 0.2);
+               border: 1px solid rgba(167, 134, 255, 0.3);
+               color: #a786ff;
+               padding: 0.25rem 0.5rem;
+               border-radius: 4px;
+               cursor: pointer;
+               font-size: 0.75rem;
+               margin-left: 0.5rem;
+               transition: all 0.2s;
+             }
+             .address-copy-btn:hover {
+               background: rgba(167, 134, 255, 0.3);
+               transform: scale(1.05);
+             }
+             .action-buttons {
+               display: grid;
+               grid-template-columns: 1fr 1fr;
+               gap: 0.75rem;
+               margin-top: 1rem;
+             }
+             .action-btn {
+               padding: 0.75rem 1rem;
+               border: none;
+               border-radius: 8px;
+               cursor: pointer;
+               font-size: 0.875rem;
+               font-weight: 600;
+               transition: all 0.2s;
+               white-space: nowrap;
+             }
+             .action-btn:hover {
+               transform: translateY(-2px);
+               box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+             }
+             .action-btn.copy-address {
+               background: #a786ff;
+               color: white;
+             }
+             .action-btn.copy-number {
+               background: #00ff88;
+               color: #1a202c;
+             }
+             @media (max-width: 768px) {
+               .info-grid {
+                 grid-template-columns: 1fr;
+                 gap: 0.5rem;
+               }
+               .info-item {
+                 font-size: 0.8rem;
+               }
+               .user-info-card {
+                 padding: 0.75rem;
+                 border-radius: 8px;
+               }
+               .user-info-card h4 {
+                 font-size: 0.9rem;
+                 margin-bottom: 0.5rem;
+               }
+               .action-buttons {
+                 grid-template-columns: 1fr;
+               }
+               .action-btn {
+                 padding: 0.875rem 1rem;
+                 font-size: 0.9rem;
+               }
+               .user-info-container {
+                 max-height: none;
+                 padding: 0.25rem;
+               }
+             }
+           </style>
+           
+           <div style="color: #00ff88; text-align: center; padding: 1rem; margin-bottom: 1rem; font-size: 1.1rem; font-weight: 600;">
+             ✅ User Information for Number ${userNum}
            </div>
            
-           <div style="display: grid; gap: 1rem; max-height: 500px; overflow-y: auto;">
+           <div class="user-info-container">
              
-             <!-- Basic Info -->
-             <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 10px; padding: 1rem;">
-               <h4 style="color: #00ff88; margin: 0 0 0.5rem 0; font-size: 1.1rem;">📊 Basic Information</h4>
-               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
-                 <div><strong>Index:</strong> ${formatBigInt(userData.index)}</div>
-                 <div><strong>Address:</strong> ${address.substring(0, 6)}...${address.substring(38)}</div>
-                 <div><strong>IAM Balance:</strong> ${parseFloat(formatEther(balance)).toFixed(6)} IAM</div>
-                 <div><strong>Registration Time:</strong> ${formatTimestamp(userData.upgradeTime)}</div>
+             <!-- Basic Information -->
+             <div class="user-info-card">
+               <h4 style="color: #00ff88;">📊 Basic Information</h4>
+               <div class="info-grid">
+                 <div class="info-item">
+                   <span class="info-label">Number (num)</span>
+                   <span class="info-value">${formatBigInt(userData.num)}</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">IAM Balance</span>
+                   <span class="info-value">${parseFloat(formatEther(balance)).toFixed(6)} IAM</span>
+                 </div>
+                 <div class="info-item full-width">
+                   <span class="info-label">User Address</span>
+                   <span class="info-value">
+                     ${userAddr.short}
+                     <button class="address-copy-btn" onclick="copyToClipboard('${userAddr.full}')" title="Copy full address">📋</button>
+                   </span>
+                 </div>
+                 <div class="info-item full-width">
+                   <span class="info-label">Registration Date</span>
+                   <span class="info-value">${formatTimestamp(userData.registrationDate)}</span>
+                 </div>
+                 <div class="info-item full-width">
+                   <span class="info-label">Parent Address</span>
+                   <span class="info-value">
+                     ${parentAddr.short}
+                     ${parentAddr.hasValue ? `<button class="address-copy-btn" onclick="copyToClipboard('${parentAddr.full}')" title="Copy full address">📋</button>` : ''}
+                   </span>
+                 </div>
+                 <div class="info-item full-width">
+                   <span class="info-label">Left Child Address</span>
+                   <span class="info-value">
+                     ${leftChildAddr.short}
+                     ${leftChildAddr.hasValue ? `<button class="address-copy-btn" onclick="copyToClipboard('${leftChildAddr.full}')" title="Copy full address">📋</button>` : ''}
+                   </span>
+                 </div>
+                 <div class="info-item full-width">
+                   <span class="info-label">Right Child Address</span>
+                   <span class="info-value">
+                     ${rightChildAddr.short}
+                     ${rightChildAddr.hasValue ? `<button class="address-copy-btn" onclick="copyToClipboard('${rightChildAddr.full}')" title="Copy full address">📋</button>` : ''}
+                   </span>
+                 </div>
                </div>
              </div>
              
              <!-- Binary Points -->
-             <div style="background: rgba(167, 134, 255, 0.1); border: 1px solid rgba(167, 134, 255, 0.2); border-radius: 10px; padding: 1rem;">
-               <h4 style="color: #a786ff; margin: 0 0 0.5rem 0; font-size: 1.1rem;">⭐ Binary Points</h4>
-               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
-                 <div><strong>Total Points:</strong> ${formatBigInt(userData.binaryPoints)}</div>
-                 <div><strong>Point Cap:</strong> ${formatBigInt(userData.binaryPointCap)}</div>
-                 <div><strong>Points Claimed:</strong> ${formatBigInt(userData.binaryPointsClaimed)}</div>
-                 <div><strong>Unclaimed Points:</strong> ${formatBigInt(userData.binaryPoints - userData.binaryPointsClaimed)}</div>
+             <div class="user-info-card binary">
+               <h4 style="color: #a786ff;">⭐ Binary Points</h4>
+               <div class="info-grid">
+                 <div class="info-item">
+                   <span class="info-label">Total Points</span>
+                   <span class="info-value">${formatBigInt(userData.binaryPoints)}</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">Point Cap</span>
+                   <span class="info-value">${formatBigInt(userData.binaryPointCap)}</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">Points Claimed</span>
+                   <span class="info-value">${formatBigInt(userData.binaryPointsClaimed)}</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">Unclaimed Points</span>
+                   <span class="info-value">${formatBigInt(unclaimedPoints)}</span>
+                 </div>
                </div>
              </div>
              
              <!-- Referral System -->
-             <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2); border-radius: 10px; padding: 1rem;">
-               <h4 style="color: #ffc107; margin: 0 0 0.5rem 0; font-size: 1.1rem;">🌳 Referral System</h4>
-               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
-                 <div><strong>Left Points:</strong> ${formatBigInt(userData.leftPoints)}</div>
-                 <div><strong>Right Points:</strong> ${formatBigInt(userData.rightPoints)}</div>
-                 <div><strong>Total Purchased:</strong> ${formatBigInt(userData.totalPurchasedKind)}</div>
-                 <div><strong>Referral Claimed:</strong> ${formatBigInt(userData.refclimed)}</div>
-               </div>
-             </div>
-             
-             <!-- Monthly Rewards -->
-             <div style="background: rgba(255, 71, 87, 0.1); border: 1px solid rgba(255, 71, 87, 0.2); border-radius: 10px; padding: 1rem;">
-               <h4 style="color: #ff4757; margin: 0 0 0.5rem 0; font-size: 1.1rem;">💰 Monthly Rewards</h4>
-               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
-                 <div><strong>Total Monthly Rewarded:</strong> ${formatBigInt(userData.totalMonthlyRewarded)}</div>
-                 <div><strong>Last Monthly Claim:</strong> ${formatTimestamp(userData.lastMonthlyClaim)}</div>
-                 <div><strong>Deposited Amount:</strong> ${parseFloat(formatEther(userData.depositedAmount)).toFixed(6)} IAM</div>
-                 <div><strong>Last Claim Time:</strong> ${formatTimestamp(userData.lastClaimTime)}</div>
+             <div class="user-info-card referral">
+               <h4 style="color: #ffc107;">🌳 Referral System</h4>
+               <div class="info-grid">
+                 <div class="info-item">
+                   <span class="info-label">Left Points</span>
+                   <span class="info-value">${formatBigInt(userData.leftPoints)}</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">Right Points</span>
+                   <span class="info-value">${formatBigInt(userData.rightPoints)}</span>
+                 </div>
+                <div class="info-item">
+                  <span class="info-label">Left Wallets Count</span>
+                  <span class="info-value">${leftWalletsCount}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Right Wallets Count</span>
+                  <span class="info-value">${rightWalletsCount}</span>
+                </div>
+                 <div class="info-item full-width">
+                   <span class="info-label">Total Purchased (IAM)</span>
+                   <span class="info-value">${parseFloat(totalPurchasedIAM).toFixed(6)} IAM</span>
+                 </div>
+                 <div class="info-item full-width">
+                   <span class="info-label">Referral Claimed (IAM)</span>
+                   <span class="info-value">${parseFloat(referralClaimedIAM).toFixed(6)} IAM</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">Upgrade Time</span>
+                   <span class="info-value" style="font-size: 0.75rem;">${formatTimestamp(userData.upgradeTime)}</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">Last Claim Time</span>
+                   <span class="info-value" style="font-size: 0.75rem;">${formatTimestamp(userData.lastClaimTime)}</span>
+                 </div>
                </div>
              </div>
              
              <!-- Voting Status -->
-             <div style="background: rgba(0, 123, 255, 0.1); border: 1px solid rgba(0, 123, 255, 0.2); border-radius: 10px; padding: 1rem;">
-               <h4 style="color: #007bff; margin: 0 0 0.5rem 0; font-size: 1.1rem;">🗳️ Voting Status</h4>
-               <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.9rem;">
-                 <div><strong>Total Likes:</strong> ${formatBigInt(voteStatus[0] || 0)}</div>
-                 <div><strong>Total Dislikes:</strong> ${formatBigInt(voteStatus[1] || 0)}</div>
-                 <div><strong>Net Score:</strong> ${Number(voteStatus[0] || 0) - Number(voteStatus[1] || 0)}</div>
-                 <div><strong>Your Vote:</strong> ${voteStatus[2] === 1 ? '👍 Liked' : voteStatus[2] === 2 ? '👎 Disliked' : '❌ No Vote'}</div>
+             <div class="user-info-card voting">
+               <h4 style="color: #007bff;">🗳️ Voting Status</h4>
+               <div class="info-grid">
+                 <div class="info-item">
+                   <span class="info-label">Total Likes</span>
+                   <span class="info-value">${formatBigInt(voteStatus[0] || 0)}</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">Total Dislikes</span>
+                   <span class="info-value">${formatBigInt(voteStatus[1] || 0)}</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">Net Score</span>
+                   <span class="info-value">${Number(voteStatus[0] || 0) - Number(voteStatus[1] || 0)}</span>
+                 </div>
+                 <div class="info-item">
+                   <span class="info-label">Your Vote</span>
+                   <span class="info-value">${voteStatus[2] === 1 ? '👍 Liked' : voteStatus[2] === 2 ? '👎 Disliked' : '❌ No Vote'}</span>
+                 </div>
                </div>
              </div>
              
              <!-- Action Buttons -->
-             <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-               <button onclick="copyToClipboard('${address}')" style="
-                 background: #a786ff; color: white; border: none; padding: 0.5rem 1rem; 
-                 border-radius: 5px; cursor: pointer; font-size: 0.8rem; flex: 1;
-               ">Copy Address</button>
-               <button onclick="copyToClipboard('${userIndex}')" style="
-                 background: #00ff88; color: #1a202c; border: none; padding: 0.5rem 1rem; 
-                 border-radius: 5px; cursor: pointer; font-size: 0.8rem; flex: 1;
-               ">Copy Index</button>
+             <div class="action-buttons">
+               <button class="action-btn copy-address" onclick="copyToClipboard('${address}')">
+                 📋 Copy Address
+               </button>
+               <button class="action-btn copy-number" onclick="copyToClipboard('${userNum}')">
+                 🔢 Copy Number
+               </button>
              </div>
              
            </div>
@@ -707,174 +959,6 @@
            <small style="color: #a0aec0;">To use this feature, please connect your wallet</small>
          `;
        }
-     }
-
-    // Show mobile user popup using existing system
-    window.showMobileUserPopup = async function(address, index) {
-       console.log('🔄 showMobileUserPopup called with:', { address, index });
-       
-       try {
-         if (window.connectWallet && typeof window.connectWallet === 'function') {
-           console.log('🔄 Connecting wallet...');
-           await window.connectWallet();
-           
-           if (window.contractConfig && window.contractConfig.contract) {
-             console.log('🔄 Getting contract...');
-             const contract = new ethers.Contract(window.IAM_ADDRESS, window.IAM_ABI, window.contractConfig.signer);
-             
-             console.log('🔄 Fetching user data...');
-             // Get user data
-             const userData = await contract.users(address);
-             const balance = await contract.balanceOf(address);
-             const voteStatus = await contract.getVoteStatus(address);
-             
-             console.log('📊 User data:', userData);
-             
-             // Check if mobile user popup is available
-             if (window.mobileUserPopup && typeof window.mobileUserPopup.show === 'function') {
-               console.log('🔄 Using mobile user popup...');
-               
-               // Prepare user object for mobile popup
-               const user = {
-                 index: index,
-                 binaryPoints: userData.binaryPoints || 0,
-                 binaryPointCap: userData.binaryPointCap || 0,
-                 totalMonthlyRewarded: userData.totalMonthlyRewarded || 0,
-                 binaryPointsClaimed: userData.binaryPointsClaimed || 0,
-                 refclimed: userData.refclimed || '0',
-                 depositedAmount: userData.depositedAmount || '0',
-                 leftPoints: userData.leftPoints || 0,
-                 rightPoints: userData.rightPoints || 0
-               };
-               
-               console.log('👤 Prepared user object:', user);
-               await window.mobileUserPopup.show(address, user);
-               console.log('✅ Mobile user popup should be visible now');
-               
-             } else {
-               console.log('⚠️ Mobile user popup not available, using fallback popup...');
-               showFallbackPopup(address, index, userData, balance, voteStatus);
-             }
-             
-           } else {
-             throw new Error('Contract not available');
-           }
-         } else {
-           throw new Error('Wallet not connected');
-         }
-       } catch (error) {
-         console.error('❌ Error in showMobileUserPopup:', error);
-         alert('Error loading user data: ' + error.message);
-       }
-     }
-
-    // Fallback popup function
-    function showFallbackPopup(address, index, userData, balance, voteStatus) {
-       console.log('🔄 Creating fallback popup...');
-       
-       const balanceFormatted = parseFloat(ethers.formatUnits(balance, 18)).toFixed(6);
-       
-       // Create popup modal
-       const popup = document.createElement('div');
-       popup.style.cssText = `
-         position: fixed;
-         top: 0;
-         left: 0;
-         width: 100%;
-         height: 100%;
-         background: rgba(0, 0, 0, 0.8);
-         display: flex;
-         justify-content: center;
-         align-items: center;
-         z-index: 10000;
-         backdrop-filter: blur(5px);
-       `;
-       
-       popup.innerHTML = `
-         <div style="
-           background: linear-gradient(135deg, rgba(35,41,70,0.95), rgba(24,28,42,0.95));
-           border: 1px solid rgba(167, 134, 255, 0.3);
-           border-radius: 20px;
-           padding: 2rem;
-           max-width: 500px;
-           width: 90%;
-           max-height: 80vh;
-           overflow-y: auto;
-           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-           position: relative;
-         ">
-           <button onclick="this.closest('.popup').remove()" style="
-             position: absolute;
-             top: 1rem;
-             right: 1rem;
-             background: rgba(255, 71, 87, 0.2);
-             border: 1px solid rgba(255, 71, 87, 0.3);
-             color: #ff4757;
-             border-radius: 50%;
-             width: 30px;
-             height: 30px;
-             cursor: pointer;
-             font-size: 1.2rem;
-             display: flex;
-             align-items: center;
-             justify-content: center;
-           ">×</button>
-           
-           <div style="text-align: center; margin-bottom: 2rem;">
-             <div style="font-size: 3rem; margin-bottom: 1rem;">👤</div>
-             <h3 style="color: #00ff88; margin: 0; font-size: 1.5rem;">User Information</h3>
-           </div>
-           
-           <div style="space-y: 1rem;">
-             <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
-               <div style="color: #00ff88; font-weight: bold; margin-bottom: 0.5rem;">Index</div>
-               <div style="color: #e2e8f0; font-family: monospace; font-size: 1.2rem;">${index}</div>
-             </div>
-             
-             <div style="background: rgba(167, 134, 255, 0.1); border: 1px solid rgba(167, 134, 255, 0.2); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
-               <div style="color: #a786ff; font-weight: bold; margin-bottom: 0.5rem;">Wallet Address</div>
-               <div style="color: #e2e8f0; font-family: monospace; font-size: 0.9rem; word-break: break-all;">${address}</div>
-               <button onclick="copyToClipboard('${address}')" style="
-                 background: #a786ff;
-                 color: white;
-                 border: none;
-                 padding: 0.5rem 1rem;
-                 border-radius: 5px;
-                 cursor: pointer;
-                 margin-top: 0.5rem;
-                 font-size: 0.8rem;
-               ">Copy Address</button>
-             </div>
-             
-             <div style="background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
-               <div style="color: #00ff88; font-weight: bold; margin-bottom: 0.5rem;">IAM Balance</div>
-               <div style="color: #e2e8f0; font-family: monospace; font-size: 1.2rem;">${balanceFormatted} IAM</div>
-             </div>
-             
-             <div style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.2); border-radius: 10px; padding: 1rem; margin-bottom: 1rem;">
-               <div style="color: #ffc107; font-weight: bold; margin-bottom: 0.5rem;">Referrer</div>
-               <div style="color: #e2e8f0; font-family: monospace; font-size: 0.9rem; word-break: break-all;">${userData.referrer || 'No referrer'}</div>
-             </div>
-             
-             <div style="background: ${voteStatus ? 'rgba(0, 255, 136, 0.1)' : 'rgba(255, 71, 87, 0.1)'}; border: 1px solid ${voteStatus ? 'rgba(0, 255, 136, 0.2)' : 'rgba(255, 71, 87, 0.2)'}; border-radius: 10px; padding: 1rem;">
-               <div style="color: ${voteStatus ? '#00ff88' : '#ff4757'}; font-weight: bold; margin-bottom: 0.5rem;">Vote Status</div>
-               <div style="color: #e2e8f0; font-size: 1.1rem;">${voteStatus ? '✅ Yes' : '❌ No'}</div>
-             </div>
-           </div>
-         </div>
-       `;
-       
-       popup.className = 'popup';
-       document.body.appendChild(popup);
-       
-       // Close popup when clicking outside
-       popup.addEventListener('click', function(e) {
-         if (e.target === popup) {
-           popup.remove();
-         }
-       });
-       
-       console.log('✅ Fallback popup created and should be visible now');
      }
 
     // Copy to clipboard
@@ -904,18 +988,18 @@
      }
 
 
-    // Vote for user by index
+    // Vote for user by number
     window.voteForIndex = async function(isLike) {
        const input = document.getElementById('vote-index-input');
        const res = document.getElementById('vote-result');
        if (!input || !res) return;
        
-       const index = parseInt(input.value);
-       if (!index || index < 1) {
+       const num = parseInt(input.value);
+       if (!num || num < 1) {
          res.style.display = 'block';
          res.style.background = 'rgba(255,68,68,0.1)';
          res.style.borderColor = 'rgba(255,68,68,0.2)';
-         res.textContent = '⚠️ Please enter a valid index';
+         res.textContent = '⚠️ Please enter a valid number';
          return;
        }
        
@@ -931,10 +1015,11 @@
          }
          
          const { contract, address: currentAddress } = connection;
-         const address = await contract.indexToAddress(index);
+         // Use getAddressByNumber instead of indexToAddress
+         const address = await contract.getAddressByNumber(num);
          
          if (!address || address === '0x0000000000000000000000000000000000000000') {
-           throw new Error('No user found at this index');
+           throw new Error('No user found at this number');
          }
          
          // Check if user is trying to vote for themselves
@@ -980,7 +1065,6 @@
        
        // Auto-connect wallet on page load (silent)
        try {
-         console.log('🔄 Auto-connecting wallet...');
          if (window.connectWallet) {
            const connection = await window.connectWallet();
            if (connection && connection.address) {
@@ -995,432 +1079,19 @@
          console.log('⚠️ Auto-connect failed:', error.message);
        }
      
-     // Test mobile user popup availability
-     setTimeout(() => {
-       console.log('🔍 Testing mobile user popup availability...');
-       console.log('window.mobileUserPopup:', !!window.mobileUserPopup);
-       if (window.mobileUserPopup) {
-         console.log('✅ Mobile user popup is available');
-         // Hide popup initially
-         hidePopupInitially();
-       } else {
-         console.log('❌ Mobile user popup is not available');
-       }
-     }, 2000);
-  
-      // Initialize IAM ↔ DAI converter
-      try {
-        setupIamDaiConverter();
-        console.log('✅ IAM ↔ DAI converter initialized');
-      } catch (e) {
-        console.warn('⚠️ Failed to initialize IAM ↔ DAI converter:', e);
-      }
-  });
-   
-   // Test function for mobile user popup
-   window.testMobilePopup = function() {
-     console.log('🧪 Testing mobile user popup...');
-     
-     if (!window.mobileUserPopup) {
-       console.log('❌ Mobile user popup not available');
-       alert('Mobile user popup not loaded');
-       return;
-     }
-     
-     // Test with sample data
-     const testAddress = '0x1234567890123456789012345678901234567890';
-     const testUser = {
-       index: 1,
-       binaryPoints: 1000000,
-       binaryPointCap: 2000000,
-       totalMonthlyRewarded: 500000,
-       binaryPointsClaimed: 750000,
-       refclimed: '1000000000000000000000',
-       depositedAmount: '5000000000000000000000',
-       leftPoints: 800000,
-       rightPoints: 700000
-     };
-     
-     console.log('🔄 Showing test popup...');
-     window.mobileUserPopup.show(testAddress, testUser);
-     
-     // Fix popup positioning after showing
-     setTimeout(() => {
-       fixPopupPositioning();
-     }, 1000);
-     
-     console.log('✅ Test popup should be visible now');
-   };
-   
-   // Function to fix popup positioning
-   window.fixPopupPositioning = function() {
-     console.log('🔧 Fixing popup positioning...');
-     
-     const popup = document.getElementById('user-popup');
-     if (popup) {
-       popup.style.maxHeight = '90vh';
-       popup.style.overflowY = 'auto';
-       popup.style.position = 'fixed';
-       popup.style.bottom = '0';
-       popup.style.left = '0';
-       popup.style.right = '0';
-       popup.style.top = '10vh';
-       popup.style.transform = 'translateY(0)';
-       popup.style.zIndex = '10000';
-       popup.style.borderRadius = '20px 20px 0 0';
-       
-       // Make sure content is scrollable
-       const terminalOutput = popup.querySelector('.terminal-output');
-       if (terminalOutput) {
-         terminalOutput.style.maxHeight = 'calc(90vh - 150px)';
-         terminalOutput.style.overflowY = 'auto';
-       }
-       
-       console.log('✅ Popup positioning fixed');
-     } else {
-       console.log('❌ Popup not found');
-     }
-   };
-   
-   // Test popup directly
-   window.testPopupDirectly = function() {
-     console.log('🧪 Testing popup directly...');
-     
-     // Create a simple test popup
-     const popup = document.createElement('div');
-     popup.id = 'test-popup';
-     popup.style.cssText = `
-       position: fixed;
-       top: 0;
-       left: 0;
-       width: 100%;
-       height: 100%;
-       background: rgba(0, 0, 0, 0.8);
-       display: flex;
-       justify-content: center;
-       align-items: center;
-       z-index: 10000;
-       backdrop-filter: blur(5px);
-     `;
-     
-     popup.innerHTML = `
-       <div style="
-         background: linear-gradient(135deg, rgba(35,41,70,0.95), rgba(24,28,42,0.95));
-         border: 1px solid rgba(167, 134, 255, 0.3);
-         border-radius: 20px;
-         padding: 2rem;
-         max-width: 500px;
-         width: 90%;
-         max-height: 80vh;
-         overflow-y: auto;
-         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-         position: relative;
-       ">
-         <button onclick="this.closest('#test-popup').remove()" style="
-           position: absolute;
-           top: 1rem;
-           right: 1rem;
-           background: rgba(255, 71, 87, 0.2);
-           border: 1px solid rgba(255, 71, 87, 0.3);
-           color: #ff4757;
-           border-radius: 50%;
-           width: 30px;
-           height: 30px;
-           cursor: pointer;
-           font-size: 1.2rem;
-           display: flex;
-           align-items: center;
-           justify-content: center;
-         ">×</button>
-         
-         <div style="text-align: center; margin-bottom: 2rem;">
-           <div style="font-size: 3rem; margin-bottom: 1rem;">🧪</div>
-           <h3 style="color: #00ff88; margin: 0; font-size: 1.5rem;">Test Popup</h3>
-         </div>
-         
-         <div style="color: #e2e8f0; text-align: center;">
-           <p>This is a test popup to verify that popups work on this page.</p>
-           <p style="color: #a786ff; margin-top: 1rem;">If you can see this, the popup system is working!</p>
-         </div>
-       </div>
-     `;
-     
-     document.body.appendChild(popup);
-     
-     // Close popup when clicking outside
-     popup.addEventListener('click', function(e) {
-       if (e.target === popup) {
-         popup.remove();
+       // Initialize IAM ↔ DAI converter
+       try {
+         setupIamDaiConverter();
+         console.log('✅ IAM ↔ DAI converter initialized');
+       } catch (e) {
+         console.warn('⚠️ Failed to initialize IAM ↔ DAI converter:', e);
        }
      });
-     
-     console.log('✅ Test popup created');
-   };
    
-   // Hide popup initially
-   window.hidePopupInitially = function() {
-     console.log('🔧 Hiding popup initially...');
-     
-     const popup = document.getElementById('user-popup');
-     if (popup) {
-       popup.style.display = 'none';
-       popup.style.visibility = 'hidden';
-       popup.style.opacity = '0';
-       popup.style.transform = 'translateY(100%)';
-       popup.classList.remove('active');
-       console.log('✅ Popup hidden initially');
-     }
-     
-     const backdrop = document.querySelector('.popup-backdrop');
-     if (backdrop) {
-       backdrop.style.display = 'none';
-       backdrop.style.opacity = '0';
-     }
-   };
-   
-   // Show popup properly
-   window.showPopupProperly = function() {
-     console.log('🔧 Showing popup properly...');
-     
-     const popup = document.getElementById('user-popup');
-     if (popup) {
-       popup.style.display = 'block';
-       popup.style.visibility = 'visible';
-       popup.style.opacity = '1';
-       popup.style.transform = 'translateY(0)';
-       popup.classList.add('active');
-       console.log('✅ Popup shown properly');
-     }
-     
-     const backdrop = document.querySelector('.popup-backdrop');
-     if (backdrop) {
-       backdrop.style.display = 'block';
-       backdrop.style.opacity = '0.5';
-     }
-   };
-   
-   // Manual function to check and fix popup visibility
-   window.checkPopupVisibility = function() {
-     console.log('🔍 Checking popup visibility...');
-     
-     const popup = document.getElementById('user-popup');
-     if (popup) {
-       const rect = popup.getBoundingClientRect();
-       console.log('📍 Popup position:', rect);
-       console.log('📍 Popup styles:', {
-         display: popup.style.display,
-         visibility: popup.style.visibility,
-         opacity: popup.style.opacity,
-         transform: popup.style.transform,
-         zIndex: popup.style.zIndex,
-         position: popup.style.position
-       });
-       
-       // Force visibility
-       popup.style.display = 'block';
-       popup.style.visibility = 'visible';
-       popup.style.opacity = '1';
-       popup.style.transform = 'translateY(0)';
-       popup.style.zIndex = '99999';
-       popup.style.position = 'fixed';
-       popup.style.bottom = '0';
-       popup.style.left = '0';
-       popup.style.right = '0';
-       popup.style.top = '20vh';
-       popup.style.height = '80vh';
-       popup.style.maxHeight = '80vh';
-       popup.style.overflowY = 'auto';
-       popup.style.background = 'linear-gradient(135deg, #232946 0%, #181c2a 100%)';
-       popup.style.borderRadius = '20px 20px 0 0';
-       popup.style.boxShadow = '0 -8px 32px rgba(0, 0, 0, 0.3)';
-       popup.classList.add('active');
-       
-       console.log('✅ Popup visibility forced');
-       
-       // Scroll to popup
-       popup.scrollIntoView({ behavior: 'smooth', block: 'end' });
-       
-     } else {
-       console.log('❌ No popup found');
-     }
-   };
   </script>
   
   
-  <!-- Fix mobile popup positioning -->
-  <style>
-    #user-popup {
-      height: 80vh !important;
-      max-height: 80vh !important;
-      overflow-y: auto !important;
-      position: fixed !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      top: 20vh !important;
-      transform: translateY(100%) !important;
-      z-index: 99999 !important;
-      display: none !important;
-      visibility: hidden !important;
-      opacity: 0 !important;
-      background: linear-gradient(135deg, #232946 0%, #181c2a 100%) !important;
-      border-radius: 20px 20px 0 0 !important;
-      box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3) !important;
-      transition: all 0.3s ease !important;
-    }
-    
-    #user-popup.active {
-      transform: translateY(0) !important;
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-    
-    .popup-content {
-      max-height: calc(90vh - 80px) !important;
-      overflow-y: auto !important;
-    }
-    
-    .terminal-container {
-      height: 100% !important;
-      max-height: 100% !important;
-      overflow-y: auto !important;
-      display: flex !important;
-      flex-direction: column !important;
-    }
-    
-    .terminal-body {
-      height: calc(100% - 60px) !important;
-      max-height: calc(100% - 60px) !important;
-      overflow-y: auto !important;
-      flex: 1 !important;
-    }
-    
-    .terminal-output {
-      height: calc(100% - 40px) !important;
-      max-height: calc(100% - 40px) !important;
-      overflow-y: auto !important;
-    }
-    
-    /* Ensure popup is always visible */
-    @media (max-width: 768px) {
-      #user-popup {
-        max-height: 95vh !important;
-        top: 5vh !important;
-        bottom: 0 !important;
-        transform: translateY(0) !important;
-        z-index: 99999 !important;
-      }
-    }
-    
-    /* Force popup visibility */
-    #user-popup.active {
-      transform: translateY(0) !important;
-      opacity: 1 !important;
-      visibility: visible !important;
-      display: block !important;
-    }
-  </style>
-  
-  
   <script>
-
-    // Helper function to check if a user is in downline using binary tree traversal
-    window.isUserInDownline = async function(contract, targetIndex, currentIndex) {
-      if (targetIndex <= currentIndex) {
-        return false;
-      }
-      
-      let checkIndex = targetIndex;
-      const maxDepth = 100;
-      let depth = 0;
-      
-      while (checkIndex > currentIndex && depth < maxDepth) {
-        checkIndex = checkIndex / 2n;
-        depth++;
-        
-        if (checkIndex === currentIndex) {
-          return true;
-        }
-      }
-      
-      return false;
-    };
-
-    // Function to check if current user is in the downline of target user
-    window.checkIfInDownline = async function(contract, targetAddress) {
-      try {
-        // Get current user's address from connection
-        const connection = await window.connectWallet();
-        const currentAddress = connection.address;
-        console.log('🔍 Current user address:', currentAddress);
-        console.log('🔍 Target user address:', targetAddress);
-        
-        // If same address, allow access
-        if (currentAddress.toLowerCase() === targetAddress.toLowerCase()) {
-          console.log('✅ Same user, allowing access');
-          return true;
-        }
-        
-        // Get current user's data
-        const currentUserData = await contract.users(currentAddress);
-        const currentUserIndex = currentUserData.index;
-        
-        if (!currentUserIndex || currentUserIndex === 0n) {
-          console.log('❌ Current user not registered');
-          return false;
-        }
-        
-        // Get target user's data
-        const targetUserData = await contract.users(targetAddress);
-        const targetUserIndex = targetUserData.index;
-        
-        if (!targetUserIndex || targetUserIndex === 0n) {
-          console.log('❌ Target user not registered');
-          return false;
-        }
-        
-        console.log('🔍 Current user index:', currentUserIndex.toString());
-        console.log('🔍 Target user index:', targetUserIndex.toString());
-        
-        // Check if current user is in the downline of target user using binary tree traversal
-        // The target index must be greater than current user index
-        if (targetUserIndex <= currentUserIndex) {
-          console.log('❌ Target index must be greater than current user index');
-          return false;
-        }
-        
-        console.log('🔍 Using binary tree traversal to check downline...');
-        console.log('🔍 Current user index:', currentUserIndex.toString());
-        console.log('🔍 Target user index:', targetUserIndex.toString());
-        
-        // Binary tree traversal: divide target index by 2 until we reach current user index
-        let checkIndex = targetUserIndex;
-        const maxDepth = 100; // Prevent infinite loops
-        let depth = 0;
-        
-        while (checkIndex > currentUserIndex && depth < maxDepth) {
-          // Divide by 2 (integer division)
-          checkIndex = checkIndex / 2n;
-          depth++;
-          
-          console.log(`🔍 Level ${depth}: checking index ${checkIndex.toString()}`);
-          
-          // If we found current user index in the path, user is in downline
-          if (checkIndex === currentUserIndex) {
-            console.log('✅ Current user is in downline of target user');
-            return true;
-          }
-        }
-        
-        console.log('❌ Current user is not in downline of target user');
-        return false;
-        
-      } catch (error) {
-        console.error('❌ Error checking downline:', error);
-        return false;
-      }
-    };
 
     // ===== IAM ↔ DAI Converter (on-chain) =====
     function debounce(fn, ms){ let t; return function(){ clearTimeout(t); const a=arguments; t=setTimeout(()=>fn.apply(this,a), ms); } }
@@ -1654,12 +1325,13 @@
           throw new Error('Contract connection failed');
         }
         const contract = connection.contract;
-        // Determine if raw is index or address
+        // Determine if raw is number or address
         let address = raw;
         if (!raw.startsWith('0x')){
-          const idx = parseInt(raw, 10);
-          if (!idx || idx <= 0) throw new Error('Invalid index');
-          address = await contract.indexToAddress(idx);
+          const num = parseInt(raw, 10);
+          if (!num || num <= 0) throw new Error('Invalid number');
+          // Use getAddressByNumber instead of indexToAddress
+          address = await contract.getAddressByNumber(num);
         }
         if (!address || address === '0x0000000000000000000000000000000000000000'){
           throw new Error('No user found for this input');
@@ -1684,4 +1356,4 @@
   </script>
   
 </body>
-</html> 
+</html>
