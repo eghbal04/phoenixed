@@ -368,9 +368,9 @@
       <div class="utility-card" dir="ltr">
         <h3><span class="icon">💰</span>Pending Claims Manager</h3>
         <div class="calculator-section">
-          <button class="utility-btn" style="width:100%;" onclick="window.loadPendingClaims()">🔍 Load Downline with Unclaimed Points</button>
-          <div class="calculator-result" id="pending-claims-result" style="display:none; max-height: 500px; overflow-y: auto;"></div>
-          <small style="color:#a0aec0; display:block; margin-top:.5rem;">Shows downline users with unclaimed points. Claim button available if 18+ hours since last claim.</small>
+          <button class="utility-btn" style="width:100%;" onclick="window.loadPendingClaims()">🔍 Load ALL Users with Unclaimed Points</button>
+          <div class="calculator-result" id="pending-claims-result" style="display:none; overflow-y: auto;"></div>
+          <small style="color:#a0aec0; display:block; margin-top:.5rem;">Shows ALL users from #1 to last with unclaimed points. Claim is only possible for your downline if contract permits.</small>
         </div>
       </div>
 
@@ -1378,12 +1378,12 @@
       }
     }
 
-    // Load pending claims (users with unclaimed points in downline)
+    // Load pending claims (scan ALL users from #1 to total)
     window.loadPendingClaims = async function() {
       const resultDiv = document.getElementById('pending-claims-result');
       if (!resultDiv) return;
       
-      resultDiv.innerHTML = '⏳ Loading downline users...';
+      resultDiv.innerHTML = '⏳ Loading all users...';
       resultDiv.style.display = 'block';
       resultDiv.style.background = 'rgba(167,134,255,0.1)';
       resultDiv.style.borderColor = 'rgba(167,134,255,0.2)';
@@ -1394,89 +1394,69 @@
           throw new Error('Contract connection failed');
         }
         
-        const { contract, address: currentAddress } = connection;
-        const currentUser = await contract.users(currentAddress);
+        const { contract } = connection;
         
-        if (!currentUser || !currentUser.num || currentUser.num === 0n) {
-          throw new Error('You are not registered');
+        // Determine total users count
+        let totalUsers = 0n;
+        try {
+          if (typeof contract.wallets === 'function') {
+            totalUsers = await contract.wallets();
+          } else if (typeof contract.totalUsers === 'function') {
+            totalUsers = await contract.totalUsers();
+          } else if (typeof contract.usersCount === 'function') {
+            totalUsers = await contract.usersCount();
+          }
+        } catch (_) {}
+        if (!totalUsers || totalUsers === 0n) {
+          throw new Error('Total users not available');
         }
         
-        // DFS to traverse only downline (subtree) of connected account
-        async function getAllDownlineUsers(rootAddress) {
+        async function getAllUsersWithUnclaimed() {
           const users = [];
-          const visited = new Set();
-          
-          // Start with children of root, not root itself
-          const rootUser = await contract.users(rootAddress);
-          const stack = [];
-          
-          if (rootUser.leftChild && rootUser.leftChild !== '0x0000000000000000000000000000000000000000') {
-            stack.push(rootUser.leftChild);
-          }
-          if (rootUser.rightChild && rootUser.rightChild !== '0x0000000000000000000000000000000000000000') {
-            stack.push(rootUser.rightChild);
-          }
-          
           let processedCount = 0;
-          
-          while (stack.length > 0) {
-            const addr = stack.pop();
-            const key = addr.toLowerCase();
-            
-            if (visited.has(key)) continue;
-            visited.add(key);
-            processedCount++;
-            
+          const now = Math.floor(Date.now() / 1000);
+          const eighteenHours = 18 * 3600;
+          const total = Number(totalUsers);
+          for (let i = 1; i <= total; i++) {
             try {
+              const addr = await contract.getAddressByNumber(i);
+              if (!addr || addr === '0x0000000000000000000000000000000000000000') {
+                processedCount++;
+                if (processedCount % 50 === 0) resultDiv.innerHTML = `⏳ Scanning all users... ${processedCount}/${total} checked`;
+                continue;
+              }
               const user = await contract.users(addr);
-              
-              // Check if user has unclaimed points
               const binaryPoints = BigInt(user.binaryPoints || 0);
               const binaryPointsClaimed = BigInt(user.binaryPointsClaimed || 0);
               const unclaimedPoints = binaryPoints > binaryPointsClaimed ? (binaryPoints - binaryPointsClaimed) : 0n;
-              
               if (unclaimedPoints > 0n) {
                 const lastClaimTime = Number(user.lastClaimTime || 0);
-                const currentTime = Math.floor(Date.now() / 1000);
-                const eighteenHours = 18 * 3600; // 18 hours in seconds
-                const timeSinceLastClaim = currentTime - lastClaimTime;
+                const timeSinceLastClaim = now - lastClaimTime;
                 const canClaim = timeSinceLastClaim >= eighteenHours;
-                
                 users.push({
                   address: addr,
                   num: user.num,
                   unclaimedPoints: unclaimedPoints.toString(),
-                  lastClaimTime: lastClaimTime,
-                  timeSinceLastClaim: timeSinceLastClaim,
-                  canClaim: canClaim,
+                  lastClaimTime,
+                  timeSinceLastClaim,
+                  canClaim,
                   binaryPoints: binaryPoints.toString(),
                   binaryPointsClaimed: binaryPointsClaimed.toString()
                 });
               }
-              
-              // Add children to stack for DFS traversal
-              if (user.leftChild && user.leftChild !== '0x0000000000000000000000000000000000000000') {
-                stack.push(user.leftChild);
-              }
-              if (user.rightChild && user.rightChild !== '0x0000000000000000000000000000000000000000') {
-                stack.push(user.rightChild);
-              }
-              
-              // Update progress every 10 nodes
-              if (processedCount % 10 === 0) {
-                resultDiv.innerHTML = `⏳ Scanning downline... ${processedCount} users checked`;
-              }
+              processedCount++;
+              if (processedCount % 50 === 0) resultDiv.innerHTML = `⏳ Scanning all users... ${processedCount}/${total} checked`;
             } catch (e) {
-              console.warn('Error fetching user at', addr, e);
+              processedCount++;
+              if (processedCount % 50 === 0) resultDiv.innerHTML = `⏳ Scanning all users... ${processedCount}/${total} checked`;
             }
           }
-          
           return users;
         }
         
-        resultDiv.innerHTML = '⏳ Scanning downline... This may take a moment...';
+        resultDiv.innerHTML = '⏳ Scanning all users... This may take a while depending on total users...';
         
-        const pendingUsers = await getAllDownlineUsers(currentAddress);
+        const pendingUsers = await getAllUsersWithUnclaimed();
         
         if (pendingUsers.length === 0) {
           resultDiv.innerHTML = `
