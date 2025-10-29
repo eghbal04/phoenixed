@@ -1907,7 +1907,7 @@
         try {
           if (typeof contract.totalSupply === 'function') {
             totalSupplyWei = await contract.totalSupply();
-            supplyEl.textContent = format0(toNumberFromUnits(totalSupplyWei, 18));
+            supplyEl.textContent = format2Decimals(toNumberFromUnits(totalSupplyWei, 18));
           }
         } catch {}
         
@@ -1930,7 +1930,7 @@
         try {
           if (typeof contract.balanceOf === 'function') {
             iamBalanceSelf = await contract.balanceOf(contract.target);
-            if (iamInEl) iamInEl.textContent = format0(toNumberFromUnits(iamBalanceSelf, 18));
+            if (iamInEl) iamInEl.textContent = format2Decimals(toNumberFromUnits(iamBalanceSelf, 18));
           }
         } catch {}
 
@@ -2046,7 +2046,7 @@
             const minimalDaiAbi = [{"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}];
             const Dai = new ethers.Contract(daiAddr, minimalDaiAbi, provider);
             const d = await Dai.balanceOf(contract.target);
-            if (daiInEl) daiInEl.textContent = format0(toNumberFromUnits(d, 18));
+            if (daiInEl) daiInEl.textContent = format2Decimals(toNumberFromUnits(d, 18));
           }
         } catch {}
 
@@ -2056,7 +2056,7 @@
           if (typeof contract.getRegPrice === 'function') {
             const r = await contract.getRegPrice();
             regPriceWei = (typeof r === 'bigint') ? r : BigInt(r);
-            if (regPriceEl) regPriceEl.textContent = format0(toNumberFromUnits(regPriceWei, 18));
+            if (regPriceEl) regPriceEl.textContent = format2Decimals(toNumberFromUnits(regPriceWei, 18));
           }
         } catch {}
 
@@ -2100,7 +2100,7 @@
           if (pointPriceEl && iamBalanceSelf !== null && totalUnclaimedPoints !== null && totalUnclaimedPoints > 0n) {
             const ONE = 1000000000000000000n; // 1e18
             const priceWeiPerPoint = iamBalanceSelf / totalUnclaimedPoints;
-            pointPriceEl.textContent = format0(toNumberFromUnits(priceWeiPerPoint, 18));
+            pointPriceEl.textContent = format2Decimals(toNumberFromUnits(priceWeiPerPoint, 18));
             if (tokenPriceWei) {
               const usdPerPointWei = (priceWeiPerPoint * tokenPriceWei) / ONE;
               const usdEl = ensureUsdInline(pointPriceEl);
