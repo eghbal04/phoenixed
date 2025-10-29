@@ -86,6 +86,28 @@
       display: none;
     }
     
+    /* About IAM Collapsible Styles */
+    #about-iam-content {
+      max-height: 5000px;
+      opacity: 1;
+    }
+    
+    #about-iam-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+    }
+    
+    #about-iam-header.collapsed .toggle-icon {
+      transform: rotate(-90deg);
+    }
+    
+    #about-iam-header:hover {
+      color: #c4f7d6 !important;
+    }
+    
     #contract-card .row { 
       padding: 10px 0;
       border-bottom: 1px dashed rgba(0,255,136,0.2);
@@ -1286,7 +1308,7 @@
 
 
     <!-- About IAM PHOENIX Section -->
-    <div class="additional-content" style="
+    <div class="additional-content" id="about-iam-section" style="
       margin: 20px 0;
       padding: 24px;
       background: linear-gradient(135deg, #1a1f2e 0%, #232946 100%);
@@ -1296,9 +1318,12 @@
       line-height: 1.7;
       box-shadow: 0 8px 32px rgba(0, 255, 136, 0.1);
     ">
-      <h2 style="margin: 0 0 20px; color: #00ff88; font-size: 24px; font-weight: 700; text-align: center;">
+      <h2 id="about-iam-header" style="margin: 0 0 20px; color: #00ff88; font-size: 24px; font-weight: 700; text-align: center; cursor: pointer; user-select: none; display: flex; align-items: center; justify-content: center; gap: 10px; transition: all 0.3s ease;" onclick="toggleAboutIAM()">
         🚀 About IAM PHOENIX
+        <span class="toggle-icon" id="about-iam-toggle" style="font-size: 16px; transition: transform 0.3s ease;">▼</span>
       </h2>
+      
+      <div id="about-iam-content" style="overflow: hidden; transition: max-height 0.3s ease, opacity 0.3s ease;">
       
       <div style="margin-bottom: 20px;">
         <h3 style="color: #aef3c6; font-size: 18px; margin: 0 0 12px;">🌟 Revolutionary Network Marketing Platform</h3>
@@ -1377,8 +1402,9 @@
         <p style="margin: 8px 0 0; color: #9aa8c1; font-size: 14px;">
           A decentralized network that will soon be recognized internationally
         </p>
-            </div>
-                </div>
+      </div>
+      </div> <!-- Close about-iam-content -->
+    </div> <!-- Close about-iam-section -->
 
     <section class="card" id="contract-card" style="text-align:left; direction:ltr;">
       <h2 id="contract-header">Contract Info <span class="toggle-icon">▼</span></h2>
@@ -3165,6 +3191,30 @@
         // Start collapsed by default
         contractContent.classList.add('collapsed');
         contractHeader.classList.add('collapsed');
+      }
+    });
+  </script>
+  
+  <!-- Collapsible About IAM -->
+  <script>
+    function toggleAboutIAM() {
+      const content = document.getElementById('about-iam-content');
+      const header = document.getElementById('about-iam-header');
+      
+      if (content && header) {
+        content.classList.toggle('collapsed');
+        header.classList.toggle('collapsed');
+      }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const aboutHeader = document.getElementById('about-iam-header');
+      const aboutContent = document.getElementById('about-iam-content');
+      
+      if (aboutHeader && aboutContent) {
+        // Start collapsed by default
+        aboutContent.classList.add('collapsed');
+        aboutHeader.classList.add('collapsed');
       }
     });
   </script>
