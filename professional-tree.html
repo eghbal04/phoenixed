@@ -133,6 +133,23 @@
                 padding: 8px 16px;
                 font-size: 12px;
             }
+            
+            /* Mobile responsive tree node */
+            .flat-tree-node {
+                padding: 8px 12px !important;
+                font-size: 12px !important;
+                margin-bottom: 0.3rem !important;
+            }
+            
+            .tree-node-label {
+                font-size: 11px !important;
+            }
+            
+            .tree-expand-btn {
+                width: 18px !important;
+                height: 18px !important;
+                font-size: 12px !important;
+            }
         }
         
         @media (max-width: 480px) {
@@ -148,6 +165,48 @@
                 right: 5px;
                 padding: 6px 12px;
                 font-size: 11px;
+            }
+            
+            /* Small mobile tree node */
+            .flat-tree-node {
+                padding: 6px 10px !important;
+                font-size: 10px !important;
+                margin-bottom: 0.25rem !important;
+            }
+            
+            .tree-node-label {
+                font-size: 10px !important;
+            }
+            
+            .tree-expand-btn {
+                width: 16px !important;
+                height: 16px !important;
+                font-size: 10px !important;
+            }
+            
+            /* Registration modal mobile */
+            #registration-modal > div {
+                width: 95% !important;
+                padding: 20px !important;
+                margin: 10px !important;
+            }
+            
+            #user-typewriter-modal > div {
+                width: 95% !important;
+                padding: 12px !important;
+            }
+            
+            /* File manager mobile */
+            .file-manager-title {
+                font-size: 1.2rem !important;
+            }
+            
+            .file-manager-header {
+                padding: 0.5rem !important;
+            }
+            
+            h2 {
+                font-size: 16px !important;
             }
         }
         
@@ -196,6 +255,40 @@
                 max-width: 90vw;
                 word-wrap: break-word;
                 overflow-wrap: break-word;
+            }
+            
+            /* Page section mobile */
+            .page-section {
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0.5rem 0 !important;
+            }
+            
+            .expandable-container {
+                width: 100% !important;
+            }
+            
+            .network-container {
+                padding: 0.5rem !important;
+            }
+            
+            .file-manager-container {
+                margin-top: 1rem !important;
+                padding: 0.5rem !important;
+            }
+            
+            .file-manager-header {
+                padding: 0.5rem !important;
+                flex-direction: column !important;
+                gap: 0.5rem !important;
+            }
+            
+            .file-manager-content {
+                padding: 0.5rem !important;
+            }
+            
+            .file-manager-tree-view {
+                padding: 0.3rem !important;
             }
         }
         
@@ -665,6 +758,104 @@
         }
         #user-typewriter-title { letter-spacing: 0.3px; }
         #user-typewriter-content { color: #cfeee2; }
+        
+        /* Responsive modal styles */
+        @media (max-width: 768px) {
+            #registration-modal > div {
+                width: 95% !important;
+                padding: 24px !important;
+                max-height: 90vh !important;
+                overflow-y: auto !important;
+            }
+            /* Stack action buttons and make them full width on mobile */
+            #registration-form > div[style*="display:flex"] {
+                flex-direction: column !important;
+            }
+            #registration-form #reg-submit-btn,
+            #registration-form #reg-cancel-btn {
+                width: 100% !important;
+            }
+            /* Make the helper button full width */
+            #registration-form #reg-use-current-btn {
+                width: 100% !important;
+            }
+            
+            #registration-modal h2 {
+                font-size: 18px !important;
+            }
+            
+            #registration-modal input {
+                padding: 10px !important;
+                font-size: 13px !important;
+            }
+            
+            #registration-modal button {
+                padding: 12px !important;
+                font-size: 14px !important;
+            }
+            
+            #user-typewriter-modal > div {
+                width: 95% !important;
+                padding: 14px !important;
+            }
+            
+            #user-typewriter-content {
+                font-size: 11px !important;
+                line-height: 1.4 !important;
+            }
+            
+            #user-typewriter-title {
+                font-size: 14px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #registration-modal > div {
+                width: 98% !important;
+                padding: 16px !important;
+                max-height: 85vh !important;
+            }
+            /* Tighten gaps */
+            #registration-form > div { margin-bottom: 12px !important; }
+            /* Ensure stacked buttons remain full width */
+            #registration-form > div[style*="display:flex"] { gap: 8px !important; }
+            #registration-form #reg-submit-btn,
+            #registration-form #reg-cancel-btn,
+            #registration-form #reg-use-current-btn {
+                width: 100% !important;
+            }
+            
+            #registration-modal h2 {
+                font-size: 16px !important;
+            }
+            
+            #registration-modal label {
+                font-size: 12px !important;
+            }
+            
+            #registration-modal input {
+                padding: 8px !important;
+                font-size: 12px !important;
+            }
+            
+            #registration-modal button {
+                padding: 10px !important;
+                font-size: 13px !important;
+            }
+            
+            #user-typewriter-modal > div {
+                width: 98% !important;
+                padding: 12px !important;
+            }
+            
+            #user-typewriter-content {
+                font-size: 10px !important;
+            }
+            
+            #user-typewriter-title {
+                font-size: 13px !important;
+            }
+        }
         
     </style>
     
