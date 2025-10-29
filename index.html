@@ -2069,7 +2069,7 @@
             tokenPriceWei = (typeof p === 'bigint') ? p : BigInt(p);
             if (tokenPriceEl) {
               const priceNum = Number(ethers.formatUnits(tokenPriceWei, 18));
-              tokenPriceEl.textContent = format0(priceNum);
+              tokenPriceEl.textContent = priceNum.toFixed(5);
             }
           }
         } catch {}
