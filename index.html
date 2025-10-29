@@ -68,6 +68,23 @@
     .card h2:hover { color: #c4f7d6; }
     .card h2 .toggle-icon { transition: transform 0.3s ease; font-size: 16px; }
     .card h2.collapsed .toggle-icon { transform: rotate(-90deg); }
+    /* Ho'oponopono banner */
+    .hoopono-banner {
+      background: transparent;
+      border: 1px solid rgba(0,255,136,0.12);
+      border-radius: 10px;
+      padding: 6px 10px;
+      margin: 6px 0 10px 0;
+      text-align: center;
+      color: #94a3b8;
+      opacity: .28;
+      user-select: none;
+      pointer-events: none;
+      box-shadow: none;
+      font-size: 12px;
+      letter-spacing: .2px;
+    }
+    .hoopono-banner .line { display: inline-block; font-weight: 500; }
     /* Contract Info – Simple Layout */
     #contract-card { 
       background: linear-gradient(135deg, #1a1f2e 0%, #232946 100%);
@@ -1239,6 +1256,9 @@
     
 
   <div class="container">
+    <div class="hoopono-banner" dir="ltr" aria-hidden="true">
+      <span class="line">I’m sorry. Please forgive me. Thank you. I love you.</span>
+    </div>
     <h1>IAMPHOENIX Dashboard</h1>
 
     <div class="statusbar top" id="status-bar-top">

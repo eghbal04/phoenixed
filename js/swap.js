@@ -1,14 +1,21 @@
 // swap.js - Professional and principled for DAI ↔ IAM swap
 
 // Contract addresses
-const IAM_ADDRESS_OLD = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D'; // Old contract
-const IAM_ADDRESS_NEW = '0x8dc37ecF3198ce5062776b6A020B61146B5d2548'; // New contract
-const IAM_ADDRESS_LATEST = '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf'; // Latest contract
+const IAM_ADDRESS_ONE = '0x2DdDD3Bfc8B591296695fFA1EF74F7114140cC26'; // Contract one
+const IAM_ADDRESS_TWO = '0xF473F20017f7aC6c2d636e2D3e8b5fE0E8142658'; // Contract two
+const IAM_ADDRESS_THREE = '0x8dc37ecF3198ce5062776b6A020B61146B5d2548'; // Contract three
+const IAM_ADDRESS_FOUR = '0x2D3923A5ba62B2bec13b9181B1E9AE0ea2C8118D'; // Contract four
+const IAM_ADDRESS_FIVE = '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf'; // Contract five
+
+// Legacy aliases for backward compatibility
+const IAM_ADDRESS_OLD = IAM_ADDRESS_FOUR;
+const IAM_ADDRESS_NEW = IAM_ADDRESS_THREE;
+const IAM_ADDRESS_LATEST = IAM_ADDRESS_FIVE;
 // Use global DAI address from config to avoid redeclaration conflicts
 const SWAP_DAI_ADDRESS = (typeof window !== 'undefined' && window.DAI_ADDRESS) ? window.DAI_ADDRESS : '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
 
-// Use latest contract as default
-let SWAP_IAM_ADDRESS = IAM_ADDRESS_LATEST;
+// Use contract five as default
+let SWAP_IAM_ADDRESS = IAM_ADDRESS_FIVE;
 
 // DAI ABI (minimal for swap functionality)
 const DAI_ABI = [
@@ -1472,22 +1479,43 @@ class SwapManager {
         this.signer = null;
         this.contract = null;
         this.daiContract = null;
-        this.selectedContract = 'new'; // 'new' or 'old'
+        this.selectedContract = 'contract5'; // 'contract1', 'contract2', 'contract3', 'contract4', 'contract5'
         
         console.log('✅ SwapManager created');
     }
 
-    // Switch between old, new, and latest contracts
+    // Switch between contracts
     async switchContract(contractType) {
         console.log('🔄 Switching contract to:', contractType);
         
-        if (contractType === 'old') {
-            SWAP_IAM_ADDRESS = IAM_ADDRESS_OLD;
-            this.selectedContract = 'old';
+        if (contractType === 'contract1') {
+            SWAP_IAM_ADDRESS = IAM_ADDRESS_ONE;
+            this.selectedContract = 'contract1';
+        } else if (contractType === 'contract2') {
+            SWAP_IAM_ADDRESS = IAM_ADDRESS_TWO;
+            this.selectedContract = 'contract2';
+        } else if (contractType === 'contract3') {
+            SWAP_IAM_ADDRESS = IAM_ADDRESS_THREE;
+            this.selectedContract = 'contract3';
+        } else if (contractType === 'contract4') {
+            SWAP_IAM_ADDRESS = IAM_ADDRESS_FOUR;
+            this.selectedContract = 'contract4';
+        } else if (contractType === 'contract5') {
+            SWAP_IAM_ADDRESS = IAM_ADDRESS_FIVE;
+            this.selectedContract = 'contract5';
         } else {
-            // Default to latest contract
-            SWAP_IAM_ADDRESS = IAM_ADDRESS_LATEST;
-            this.selectedContract = 'latest';
+            // Legacy support
+            if (contractType === 'old') {
+                SWAP_IAM_ADDRESS = IAM_ADDRESS_OLD;
+                this.selectedContract = 'old';
+            } else if (contractType === 'new') {
+                SWAP_IAM_ADDRESS = IAM_ADDRESS_NEW;
+                this.selectedContract = 'new';
+            } else {
+                // Default to contract five
+                SWAP_IAM_ADDRESS = IAM_ADDRESS_FIVE;
+                this.selectedContract = 'contract5';
+            }
         }
         
         // Recreate contract instance if wallet is connected
@@ -1739,18 +1767,26 @@ class SwapManager {
         const contractSelector = document.getElementById('contractSelector');
         if (contractSelector) {
             // Update the option text with correct addresses
-            const newOption = contractSelector.querySelector('option[value="new"]');
-            const oldOption = contractSelector.querySelector('option[value="old"]');
-            const latestOption = contractSelector.querySelector('option[value="latest"]');
+            const option1 = contractSelector.querySelector('option[value="contract1"]');
+            const option2 = contractSelector.querySelector('option[value="contract2"]');
+            const option3 = contractSelector.querySelector('option[value="contract3"]');
+            const option4 = contractSelector.querySelector('option[value="contract4"]');
+            const option5 = contractSelector.querySelector('option[value="contract5"]');
             
-            if (newOption) {
-                newOption.textContent = `New Contract — ${IAM_ADDRESS_NEW.substring(0, 6)}...${IAM_ADDRESS_NEW.substring(38)}`;
+            if (option1) {
+                option1.textContent = `Contract One — ${IAM_ADDRESS_ONE.substring(0, 6)}...${IAM_ADDRESS_ONE.substring(38)}`;
             }
-            if (oldOption) {
-                oldOption.textContent = `Old Contract — ${IAM_ADDRESS_OLD.substring(0, 6)}...${IAM_ADDRESS_OLD.substring(38)}`;
+            if (option2) {
+                option2.textContent = `Contract Two — ${IAM_ADDRESS_TWO.substring(0, 6)}...${IAM_ADDRESS_TWO.substring(38)}`;
             }
-            if (latestOption) {
-                latestOption.textContent = `Latest Contract — ${IAM_ADDRESS_LATEST.substring(0, 6)}...${IAM_ADDRESS_LATEST.substring(38)}`;
+            if (option3) {
+                option3.textContent = `Contract Three — ${IAM_ADDRESS_THREE.substring(0, 6)}...${IAM_ADDRESS_THREE.substring(38)}`;
+            }
+            if (option4) {
+                option4.textContent = `Contract Four — ${IAM_ADDRESS_FOUR.substring(0, 6)}...${IAM_ADDRESS_FOUR.substring(38)}`;
+            }
+            if (option5) {
+                option5.textContent = `Contract Five — ${IAM_ADDRESS_FIVE.substring(0, 6)}...${IAM_ADDRESS_FIVE.substring(38)}`;
             }
             
             contractSelector.value = this.selectedContract;
@@ -1760,19 +1796,35 @@ class SwapManager {
         if (contractInfo) {
             let nameLabel;
             let addressLabel;
-            let nameColor;
-            if (this.selectedContract === 'old') {
-                nameLabel = 'Old Contract';
-                addressLabel = IAM_ADDRESS_OLD;
-                nameColor = '#ff8c00'; // Orange for old contract
-            } else if (this.selectedContract === 'latest') {
-                nameLabel = 'Latest Contract';
-                addressLabel = IAM_ADDRESS_LATEST;
-                nameColor = '#00ff88'; // Green for latest contract
+            let nameColor = '#00ff88'; // Default green
+            if (this.selectedContract === 'contract1') {
+                nameLabel = 'Contract One';
+                addressLabel = IAM_ADDRESS_ONE;
+            } else if (this.selectedContract === 'contract2') {
+                nameLabel = 'Contract Two';
+                addressLabel = IAM_ADDRESS_TWO;
+            } else if (this.selectedContract === 'contract3') {
+                nameLabel = 'Contract Three';
+                addressLabel = IAM_ADDRESS_THREE;
+            } else if (this.selectedContract === 'contract4') {
+                nameLabel = 'Contract Four';
+                addressLabel = IAM_ADDRESS_FOUR;
+            } else if (this.selectedContract === 'contract5') {
+                nameLabel = 'Contract Five';
+                addressLabel = IAM_ADDRESS_FIVE;
             } else {
-                nameLabel = 'New Contract';
-                addressLabel = IAM_ADDRESS_NEW;
-                nameColor = '#00ff88'; // Green for new contract
+                // Legacy support
+                if (this.selectedContract === 'old') {
+                    nameLabel = 'Old Contract';
+                    addressLabel = IAM_ADDRESS_OLD;
+                    nameColor = '#ff8c00';
+                } else if (this.selectedContract === 'latest') {
+                    nameLabel = 'Latest Contract';
+                    addressLabel = IAM_ADDRESS_LATEST;
+                } else {
+                    nameLabel = 'New Contract';
+                    addressLabel = IAM_ADDRESS_NEW;
+                }
             }
             
             contractInfo.innerHTML = `
@@ -1783,6 +1835,29 @@ class SwapManager {
                     </div>
                 </div>
             `;
+        }
+        
+        // Enable/disable DAI → IAM option based on contract
+        const swapDirection = document.getElementById('swapDirection');
+        if (swapDirection) {
+            const daiToIamOption = swapDirection.querySelector('option[value="dai-to-IAM"]');
+            const iamToDaiOption = swapDirection.querySelector('option[value="IAM-to-dai"]');
+            
+            // Only contract 5 can buy (DAI → IAM), others can only sell (IAM → DAI)
+            const canBuy = this.selectedContract === 'contract5';
+            
+            if (daiToIamOption) {
+                daiToIamOption.disabled = !canBuy;
+                if (!canBuy && swapDirection.value === 'dai-to-IAM') {
+                    // If buying is disabled and currently selected, switch to selling
+                    swapDirection.value = 'IAM-to-dai';
+                    this.updateMaxAmount();
+                }
+            }
+            
+            if (iamToDaiOption) {
+                iamToDaiOption.disabled = false; // Always enabled
+            }
         }
     }
 
@@ -1862,7 +1937,15 @@ class SwapManager {
                 try {
                     await this.switchContract(e.target.value);
                     this.updateContractSelectionUI();
-                    this.showStatus(`✅ Using Old contract (only option available)`, 'success');
+                    const contractNames = {
+                        'contract1': 'Contract One',
+                        'contract2': 'Contract Two',
+                        'contract3': 'Contract Three',
+                        'contract4': 'Contract Four',
+                        'contract5': 'Contract Five'
+                    };
+                    const contractName = contractNames[e.target.value] || e.target.value;
+                    this.showStatus(`✅ Switched to ${contractName}`, 'success');
                 } catch (error) {
                     console.error('❌ Error switching contract:', error);
                     this.showStatus('Error switching contract: ' + error.message, 'error');
@@ -2415,12 +2498,18 @@ class SwapManager {
                 throw new Error('Invalid amount - please enter a positive value');
             }
             
+            // Check if buying is allowed (only contract 5)
+            if (direction.value === 'dai-to-IAM' && this.selectedContract !== 'contract5') {
+                throw new Error('Buying (DAI → IAM) is only available with Contract Five. Please switch to Contract Five or select IAM → DAI to sell.');
+            }
+            
             // Allow decimal amounts (no integer-only restriction)
             
             console.log('📊 Swap information:', {
                 direction: direction.value,
                 amount: value,
-                userBalances: this.userBalances
+                userBalances: this.userBalances,
+                selectedContract: this.selectedContract
             });
             
             // Check balance
