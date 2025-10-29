@@ -498,22 +498,22 @@
         </div>
       </div>
       
-      <!-- Referrer Index -->
+      <!-- Referrer Address (Number or Address) -->
       <div class="form-group">
-        <label for="referrer-index">Referrer Index</label>
+        <label for="referrer-index">Referrer (Number or Address)</label>
         <div class="input-with-button">
-          <input type="text" id="referrer-index" class="register-form-input" placeholder="e.g. 123 or IAM123" autocomplete="off">
+          <input type="text" id="referrer-index" class="register-form-input" placeholder="Enter number (e.g. 123) or address (0x...)" autocomplete="off">
           <button type="button" id="apply-referrer-index-btn" class="paste-btn-inside">Apply</button>
         </div>
         <input type="text" id="referrer-address-display" class="register-form-input address-field" placeholder="0x..." autocomplete="off" readonly>
         <div id="referrer-validation-status" class="register-form-status" style="display:none; margin-top: 4px; font-size: 0.7rem;"></div>
       </div>
 
-      <!-- Upper Address with Index -->
+      <!-- Upper Address (Number or Address) -->
       <div class="form-group">
-        <label for="upper-index" id="upper-label">Upper Index</label>
+        <label for="upper-index" id="upper-label">Upper (Number or Address)</label>
         <div class="input-with-button">
-          <input type="text" id="upper-index" class="register-form-input" placeholder="e.g. 123" autocomplete="off">
+          <input type="text" id="upper-index" class="register-form-input" placeholder="Enter number (e.g. 123) or address (0x...)" autocomplete="off">
           <button type="button" id="apply-upper-index-btn" class="paste-btn-inside">Apply</button>
         </div>
         <input type="text" id="upper-address" class="register-form-input address-field" placeholder="0x..." autocomplete="off" value="root" readonly>
@@ -719,40 +719,77 @@
          let newUserInput, referrerDisplay, referrerIndexInput, upperInput, upperIndexInput, refInput, indexInput;
          
           // Function to handle referral parameters from URL
-          function handleReferralParameters() {
+          async function handleReferralParameters() {
             const urlParams = new URLSearchParams(window.location.search);
+            const refParam = urlParams.get('ref') || urlParams.get('referrer');
             const upperIndex = urlParams.get('upper');
             const upperAddress = urlParams.get('upperAddr');
             const emptyIndex = urlParams.get('emptyIndex');
             const position = urlParams.get('position');
             
-            console.log('🔗 Referral parameters:', { upperIndex, upperAddress, emptyIndex, position });
+            console.log('🔗 Referral parameters:', { ref: refParam, upperIndex, upperAddress, emptyIndex, position });
+            
+            // Handle referrer from URL (?ref=address or ?ref=number)
+            if (refParam) {
+              // Check if it's an address
+              if (/^0x[a-fA-F0-9]{40}$/.test(refParam)) {
+                // It's an address - fill directly
+                if (referrerDisplay) {
+                  referrerDisplay.value = refParam;
+                  referrerDisplay.setAttribute('data-full-address', refParam);
+                  updateAddressDisplay(referrerDisplay);
+                  await checkAddressValidity(referrerDisplay, 'referrer');
+                }
+              } else if (/^\d+$/.test(refParam)) {
+                // It's a number - convert to address
+                if (referrerIndexInput) {
+                  referrerIndexInput.value = refParam;
+                  await applyIndexToAddress(referrerIndexInput, referrerDisplay, 'referrer');
+                }
+              }
+            }
             
             // Auto-fill upper information if provided
             if (upperIndex) {
-              if (upperIndexInput) upperIndexInput.value = upperIndex;
-              // Trigger validation and address lookup
-              setTimeout(async () => {
-                await checkAddressValidity(upperIndexInput, 'upper');
-              }, 700);
+              if (upperIndexInput) {
+                upperIndexInput.value = upperIndex;
+                // Trigger conversion and validation
+                setTimeout(async () => {
+                  await applyIndexToAddress(upperIndexInput, upperInput, 'upper');
+                }, 700);
+              }
             }
             
             if (upperAddress) {
-              if (upperInput) upperInput.value = upperAddress;
-              // Trigger validation
-              setTimeout(async () => {
-                await checkAddressValidity(upperInput, 'upper');
-              }, 700);
+              if (upperInput) {
+                upperInput.value = upperAddress;
+                upperInput.setAttribute('data-full-address', upperAddress);
+                updateAddressDisplay(upperInput);
+                // Trigger validation
+                setTimeout(async () => {
+                  await checkAddressValidity(upperInput, 'upper');
+                }, 700);
+              }
             }
             
-            // Show success message if upper parameters were processed
-            if (upperIndex || upperAddress) {
+            // Show success message if parameters were processed
+            if (refParam || upperIndex || upperAddress) {
               setTimeout(() => {
-                const statusDiv = document.getElementById('upper-validation-status');
-                if (statusDiv) {
-                  statusDiv.style.display = 'block';
-                  statusDiv.className = 'register-form-status success';
-                  statusDiv.textContent = `✅ Upper information loaded from link successfully! (Slot: ${emptyIndex || 'N/A'}, Position: ${position || 'N/A'})`;
+                if (refParam) {
+                  const refStatusDiv = document.getElementById('referrer-validation-status');
+                  if (refStatusDiv) {
+                    refStatusDiv.style.display = 'block';
+                    refStatusDiv.className = 'register-form-status success';
+                    refStatusDiv.textContent = '✅ Referrer loaded from referral link';
+                  }
+                }
+                if (upperIndex || upperAddress) {
+                  const statusDiv = document.getElementById('upper-validation-status');
+                  if (statusDiv) {
+                    statusDiv.style.display = 'block';
+                    statusDiv.className = 'register-form-status success';
+                    statusDiv.textContent = `✅ Upper information loaded from link successfully! (Slot: ${emptyIndex || 'N/A'}, Position: ${position || 'N/A'})`;
+                  }
                 }
               }, 1000);
             }
@@ -768,7 +805,7 @@
            indexInput = referrerIndexInput; // Use referrer index as the main index input
            
            // Handle URL parameters for referral links
-           handleReferralParameters();
+           handleReferralParameters().catch(err => console.error('Error handling referral parameters:', err));
            
            // Initialize global variables
            window.upperIndexInput = upperIndexInput;
@@ -870,10 +907,18 @@
              }
              
              referrerIndexInput.addEventListener('change', async function() {
-               // Only validate if it's a valid index format
+               // Validate if it's a valid number format or address
                const value = this.value.trim();
-               if (value && (value.match(/^\d+$/) || value.match(/^IAM\d+$/))) {
-                 await checkAddressValidity(referrerIndexInput, 'referrer');
+               if (value && (value.match(/^\d+$/) || value.match(/^IAM\d+$/) || /^0x[a-fA-F0-9]{40}$/.test(value))) {
+                 // If it's an address, check validity directly; if number, apply conversion first
+                 if (/^0x[a-fA-F0-9]{40}$/.test(value)) {
+                   referrerDisplay.value = value;
+                   referrerDisplay.setAttribute('data-full-address', value);
+                   updateAddressDisplay(referrerDisplay);
+                   await checkAddressValidity(referrerDisplay, 'referrer');
+                 } else {
+                   await applyIndexToAddress(referrerIndexInput, referrerDisplay, 'referrer');
+                 }
                  await validateUpperAgainstReferrer();
                  await calculatePlacementForNewUser();
                }
@@ -1165,9 +1210,11 @@
                   let userIndex = null;
                   try {
                     const u = await conn.contract.users(conn.address);
-                    userActive = !!(u && u.index && BigInt(u.index) > 0n);
+                    // Support both 'index' (old) and 'num' (new contract) field names
+                    const userNum = u && (u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined));
+                    userActive = !!(userNum && BigInt(userNum) > 0n);
                     if (userActive) {
-                      userIndex = Number(u.index);
+                      userIndex = Number(userNum);
                     }
                   } catch(_) {}
                   
@@ -1316,7 +1363,12 @@
                   }
                   let userActive = false;
                   if (contract) {
-                    try { const u = await contract.users(addr); userActive = !!(u && u.index && BigInt(u.index) > 0n); } catch(_) {}
+                    try {
+                      const u = await contract.users(addr);
+                      // Support both 'index' (old) and 'num' (new contract) field names
+                      const userNum = u && (u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined));
+                      userActive = !!(userNum && BigInt(userNum) > 0n);
+                    } catch(_) {}
                   }
                   if (!userActive) {
                     nu.value = addr;
@@ -1327,7 +1379,9 @@
                       const contract = (window.contractConfig && window.contractConfig.contract) || null;
                       if (contract) {
                         const u = await contract.users(addr);
-                        const userIndex = u && u.index ? Number(u.index) : null;
+                        // Support both 'index' (old) and 'num' (new contract) field names
+                        const userNum = u && (u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined));
+                        const userIndex = userNum ? Number(userNum) : null;
                         if (userIndex) {
                           await autoFillReferrerFields(addr, userIndex);
                           console.log('🔗 Referrer updated to new wallet address:', addr);
@@ -1727,10 +1781,10 @@
     // Function to apply index to address field
     async function applyIndexToAddress(indexInput, addressInput, type) {
       const value = indexInput.value.trim();
-      console.log(`🔍 Applying ${type} index: ${value}`);
+      console.log(`🔍 Applying ${type} number/address: ${value}`);
       
       if (!value) {
-        showTempMessage(`Please enter a valid ${type} index`, 'error');
+        showTempMessage(`Please enter a valid ${type} number or address`, 'error');
         return;
       }
       
@@ -1750,7 +1804,20 @@
           return;
         }
         
-        // Extract numeric index
+        // Check if input is already an address
+        if (/^0x[a-fA-F0-9]{40}$/.test(value)) {
+          // Input is already an address, use it directly
+          addressInput.value = value;
+          addressInput.setAttribute('data-full-address', value);
+          updateAddressDisplay(addressInput);
+          showTempMessage(`${type} address set successfully`, 'success');
+          if (type === 'upper') {
+            await validateUpperAgainstReferrer();
+          }
+          return;
+        }
+        
+        // Extract numeric number
         let index = value;
         if (value.startsWith('IAM')) {
           index = value.substring(3);
@@ -1758,15 +1825,26 @@
         index = index.replace(/[^0-9]/g, '');
         
         if (!index || index.length > 8) {
-          showTempMessage(`Invalid ${type} index format`, 'error');
+          showTempMessage(`Invalid ${type} number format`, 'error');
           return;
         }
         
-        // Get address from index
-        const address = await contract.indexToAddress(index);
+        // Get address from number (use getAddressByNumber for new contract, fallback to indexToAddress for old)
+        let address = null;
+        try {
+          if (typeof contract.getAddressByNumber === 'function') {
+            address = await contract.getAddressByNumber(parseInt(index));
+          } else if (typeof contract.indexToAddress === 'function') {
+            address = await contract.indexToAddress(BigInt(index));
+          }
+        } catch (e) {
+          console.error(`Error getting address for ${type}:`, e);
+          showTempMessage(`Error: ${type} number does not exist or contract error`, 'error');
+          return;
+        }
         
         if (!address || address === '0x0000000000000000000000000000000000000000') {
-          showTempMessage(`${type} index does not exist`, 'error');
+          showTempMessage(`${type} number does not exist`, 'error');
           return;
         }
         
@@ -1850,7 +1928,9 @@
         
         // Check if address is active (for referrer/upper validation)
         const user = await contract.users(address);
-        if (!user || !(user.index && BigInt(user.index) > 0n)) {
+        // Support both 'index' (old) and 'num' (new contract) field names
+        const userNum = user && (user.num !== undefined ? user.num : (user.index !== undefined ? user.index : undefined));
+        if (!user || !(userNum && BigInt(userNum) > 0n)) {
           showTempMessage(`${type} address is not active`, 'error');
           return;
         }
@@ -1966,7 +2046,9 @@
           
                      // بررسی اینکه آیا این آدرس قبلاً ثبت‌نام شده است
            const user = await contract.users(address);
-           if (user && (user.index && BigInt(user.index) > 0n)) {
+           // Support both 'index' (old) and 'num' (new contract) field names
+           const userNum = user && (user.num !== undefined ? user.num : (user.index !== undefined ? user.index : undefined));
+           if (userNum && BigInt(userNum) > 0n) {
              status.style.color = '#d32f2f';
              status.textContent = 'This address is already registered.';
              return;
@@ -2142,7 +2224,9 @@
           
                      console.log(`🔍 Checking user in reserve registration:`, user);
                    // Check if user is registering for themselves or others
-          if (user && (user.index && BigInt(user.index) > 0n)) {
+          // Support both 'index' (old) and 'num' (new contract) field names
+          const userNum = user && (user.num !== undefined ? user.num : (user.index !== undefined ? user.index : undefined));
+          if (userNum && BigInt(userNum) > 0n) {
              // User is active, can register others
              console.log(`✅ User is active, can register others`);
            } else {

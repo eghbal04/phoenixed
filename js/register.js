@@ -74,8 +74,9 @@ async function loadRegisterData(contract, address, tokenPriceUSDFormatted) {
         const IAMBalanceUSD = (parseFloat(usdcBalanceFormatted) * parseFloat(tokenPriceUSDFormatted)).toFixed(2);
         // Update balance display
         await window.displayUserBalances();
-        // Check registration status
-        if (userData && userData.index && BigInt(userData.index) > 0n) {
+        // Check registration status - Support both 'index' (old) and 'num' (new contract) field names
+        const userNum = userData && (userData.num !== undefined ? userData.num : (userData.index !== undefined ? userData.index : undefined));
+        if (userNum && BigInt(userNum) > 0n) {
             // Only show upgrade form
             const profileContainer = document.querySelector('#main-register .profile-container');
             if (profileContainer) profileContainer.style.display = 'none';
@@ -136,7 +137,9 @@ async function updateUpgradeCalculations() {
         const { contract, address } = window.contractConfig;
         const userData = await contract.users(address);
         
-        if (userData && userData.index && BigInt(userData.index) > 0n) {
+        // Support both 'index' (old) and 'num' (new contract) field names
+        const userNum = userData && (userData.num !== undefined ? userData.num : (userData.index !== undefined ? userData.index : undefined));
+        if (userNum && BigInt(userNum) > 0n) {
             const currentLevel = parseInt(userData.level);
             const nextLevel = currentLevel + 1;
             
@@ -1121,14 +1124,20 @@ document.addEventListener('DOMContentLoaded', function() {
             fillRefAndUpper(ref);
             return;
         }
-        // If numeric, resolve to address
+        // If numeric, resolve to address (use getAddressByNumber for new contract, fallback to indexToAddress)
         if (/^\d+$/.test(ref)) {
             (async function(){
                 try {
                     if (!window.connectWallet) return;
                     const { contract } = await window.connectWallet();
-                    if (!contract || typeof contract.indexToAddress !== 'function') return;
-                    const addr = await contract.indexToAddress(ref);
+                    if (!contract) return;
+                    let addr = null;
+                    // Try new contract method first
+                    if (typeof contract.getAddressByNumber === 'function') {
+                        addr = await contract.getAddressByNumber(parseInt(ref));
+                    } else if (typeof contract.indexToAddress === 'function') {
+                        addr = await contract.indexToAddress(BigInt(ref));
+                    }
                     if (addr && addr !== '0x0000000000000000000000000000000000000000') {
                         // Update URL silently
                         var url = window.location.origin + window.location.pathname + '?ref=' + addr;

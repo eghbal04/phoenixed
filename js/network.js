@@ -1623,7 +1623,9 @@ async function getFinalReferrer(contract) {
   if (urlReferrer) {
     try {
       const user = await contract.users(urlReferrer);
-      if (user && user.index && BigInt(user.index) > 0n) {
+      // Support both 'index' (old) and 'num' (new contract) field names
+      const userNum = user && (user.num !== undefined ? user.num : (user.index !== undefined ? user.index : undefined));
+      if (userNum && BigInt(userNum) > 0n) {
         return urlReferrer;
       }
     } catch (e) {
@@ -1636,7 +1638,9 @@ async function getFinalReferrer(contract) {
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     const currentAddress = accounts[0];
     const user = await contract.users(currentAddress);
-    if (user && user.index && BigInt(user.index) > 0n) {
+    // Support both 'index' (old) and 'num' (new contract) field names
+    const userNum = user && (user.num !== undefined ? user.num : (user.index !== undefined ? user.index : undefined));
+    if (userNum && BigInt(userNum) > 0n) {
       return currentAddress;
     }
   } catch (e) {

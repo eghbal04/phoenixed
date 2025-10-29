@@ -119,7 +119,9 @@ function updateProfileUI(profile) {
 
     const linkEl = document.getElementById('profile-referral-link');
     if (linkEl) {
-        const isActive = !!(profile.userStruct && profile.userStruct.index && BigInt(profile.userStruct.index) > 0n);
+        // Support both 'index' (old) and 'num' (new contract) field names
+        const userNum = profile.userStruct && (profile.userStruct.num !== undefined ? profile.userStruct.num : (profile.userStruct.index !== undefined ? profile.userStruct.index : undefined));
+        const isActive = !!(userNum && BigInt(userNum) > 0n);
         if (profile.address && isActive) {
             const fullLink = window.location.origin + '/register.html?ref=' + profile.address;
             linkEl.href = fullLink;
@@ -396,9 +398,11 @@ function setupReferralCopy() {
                     throw new Error('آدرس کیف پول در دسترس نیست');
                 }
                 
-                // Get user profile to get index
+                // Get user profile to check if active
                 const profile = await loadUserProfileOnce();
-                const isActive = !!(profile && profile.userStruct && profile.userStruct.index && BigInt(profile.userStruct.index) > 0n);
+                // Support both 'index' (old) and 'num' (new contract) field names
+                const userNum = profile && profile.userStruct && (profile.userStruct.num !== undefined ? profile.userStruct.num : (profile.userStruct.index !== undefined ? profile.userStruct.index : undefined));
+                const isActive = !!(userNum && BigInt(userNum) > 0n);
                 if (!isActive) { throw new Error('اکانت شما هنوز فعال نشده است'); }
                 const referralLink = `${window.location.origin}/register.html?ref=${address}`;
                 

@@ -2571,35 +2571,27 @@
           if (!addr && window.contractConfig && window.contractConfig.address) addr = window.contractConfig.address;
           if (!addr) return;
 
-          // Resolve user's index from status pill or contract if possible
-          let idx = document.getElementById('status-index')?.textContent?.replace('⭐', '').trim();
-          if (!idx || idx === '-' || idx === '# -') {
-            try {
-              if (window.contractConfig && window.contractConfig.contract) {
-                const c = window.contractConfig.contract;
-                if (typeof c.users === 'function') {
-                  const u = await c.users(addr);
-                  // Support both 'index' (old) and 'num' (new contract) field names
-                  const userIndex = u && (u.index !== undefined ? u.index : (u.num !== undefined ? u.num : undefined));
-                  if (userIndex !== undefined) idx = (typeof userIndex === 'bigint') ? userIndex.toString() : String(userIndex);
-                }
-                // Support both getUserNumber (new) and addressToIndex (old)
-                if ((!idx || idx === '-' || idx === '0')) {
-                  if (typeof c.getUserNumber === 'function') {
-                    const vi = await c.getUserNumber(addr);
-                    idx = (typeof vi === 'bigint') ? vi.toString() : String(vi);
-                  } else if (typeof c.addressToIndex === 'function') {
-                    const vi = await c.addressToIndex(addr);
-                    idx = (typeof vi === 'bigint') ? vi.toString() : String(vi);
-                  }
+          // Use address directly for referral link (new contract uses address-based system)
+          // Check if user is registered before showing link
+          let isRegistered = false;
+          try {
+            if (window.contractConfig && window.contractConfig.contract) {
+              const c = window.contractConfig.contract;
+              if (typeof c.users === 'function') {
+                const u = await c.users(addr);
+                // Support both 'index' (old) and 'num' (new contract) field names
+                const userNum = u && (u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined));
+                if (userNum && userNum > 0n) {
+                  isRegistered = true;
                 }
               }
-            } catch {}
-          }
-          if (!idx || idx === '-' || idx === '0') return;
+            }
+          } catch {}
+          
+          if (!isRegistered) return;
 
           const baseUrl = window.location.origin + '/register.html';
-          const referralUrl = `${baseUrl}?ref=${encodeURIComponent(idx)}`;
+          const referralUrl = `${baseUrl}?ref=${encodeURIComponent(addr)}`;
           referralLinkInput.value = referralUrl;
           // Removed open button per request
           linkContainer.style.display = 'block';
