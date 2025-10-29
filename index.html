@@ -63,93 +63,176 @@
     .card h2:hover { color: #c4f7d6; }
     .card h2 .toggle-icon { transition: transform 0.3s ease; font-size: 16px; }
     .card h2.collapsed .toggle-icon { transform: rotate(-90deg); }
-    /* Contract Info – enhanced theming */
+    /* Contract Info – Simple Layout */
     #contract-card { 
       background: linear-gradient(135deg, #1a1f2e 0%, #232946 100%);
       border: 1px solid #00ff88;
-      border-radius: 10px;
+      border-radius: 12px;
       box-shadow: 0 4px 15px rgba(0, 255, 136, 0.2);
-      overflow: visible;
-      width: 100%;
-      max-width: 100%;
-      min-width: 0;
-      padding: 12px 16px;
+      padding: 16px;
       margin: 10px 0;
-    }
-    #contract-card .row { 
-      padding: 4px 0; 
-      border-bottom: 1px dashed rgba(0,255,136,0.18);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: nowrap;
-      min-width: 0;
       width: 100%;
-    }
-    #contract-card .row:last-child { border-bottom: 0; }
-    #contract-card .label {
-      font-weight: 600;
-      color: #aef3c6;
-      min-width: 90px;
-      max-width: 90px;
-      font-size: 10px;
-      flex-shrink: 0;
-    }
-    #contract-card .value {
-      flex: 1;
-      font-family: monospace;
-      font-size: 11px;
-      color: #e6eaf0;
-      word-break: break-all;
-      background: rgba(0, 255, 136, 0.05);
-      padding: 3px 6px;
-      border-radius: 4px;
-      border: 1px solid rgba(0, 255, 136, 0.1);
-      min-width: 0;
-      overflow-wrap: break-word;
-      white-space: nowrap;
-      display: flex;
-      align-items: center;
-      flex-wrap: nowrap;
-    }
-    #contract-card .value a {
-      color: #60a5fa;
-      text-decoration: none;
-      font-weight: 600;
-      font-family: monospace;
-      font-size: 11px;
-    }
-    #contract-card .value a:hover {
-      color: #93c5fd;
-      text-decoration: underline;
     }
     
-    /* Contract Info scroll and overflow handling */
     #contract-content {
-      overflow: visible;
       width: 100%;
-      max-width: 100%;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      align-items: start;
     }
     
     #contract-content.collapsed {
       display: none;
     }
     
-    /* Ensure all contract data is visible */
-    #contract-card {
-      overflow: visible;
+    #contract-card .row { 
+      padding: 10px 0;
+      border-bottom: 1px dashed rgba(0,255,136,0.2);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      flex-wrap: nowrap;
+      width: 100%;
+      min-width: 0;
+      box-sizing: border-box;
     }
     
-    #contract-card a.value { 
-      color: #9ecbff; 
-      text-decoration: none; 
-      background: rgba(59,130,246,0.08);
-      border: 1px solid rgba(59,130,246,0.25);
+    #contract-card .row:last-child {
+      border-bottom: 0;
     }
-    #contract-card a.value:hover { 
-      color: #00ff88; 
-      border-color: rgba(0,255,136,0.55);
-      box-shadow: 0 0 0 3px rgba(0,255,136,0.12) inset;
+    
+    #contract-card .label {
+      font-weight: 600;
+      color: #aef3c6;
+      font-size: 14px;
+      min-width: 0;
+      max-width: 45%;
+      flex: 0 0 45%;
+      flex-shrink: 1;
+      word-break: break-word;
+    }
+    
+    #contract-card .value {
+      font-family: 'Courier New', monospace;
+      font-size: 15px;
+      font-weight: 600;
+      color: #e6eaf0;
+      word-break: break-all;
+      background: rgba(0, 255, 136, 0.08);
+      padding: 6px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(0, 255, 136, 0.2);
+      flex: 1 1 55%;
+      min-width: 0;
+      max-width: 55%;
+      overflow-wrap: break-word;
+      box-sizing: border-box;
+    }
+    
+    #contract-card .value a {
+      color: #60a5fa;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    
+    #contract-card .value a:hover {
+      color: #00ff88;
+      text-decoration: underline;
+    }
+    
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      #contract-content {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 8px !important;
+      }
+      
+      #contract-card {
+        padding: 12px !important;
+      }
+      
+      #contract-card .row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+        padding: 8px 0 !important;
+        width: 100% !important;
+      }
+      
+      #contract-card .label {
+        font-size: 12px !important;
+        min-width: auto !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        flex: none !important;
+      }
+      
+      #contract-card .value {
+        font-size: 13px !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 6px 8px !important;
+        flex: none !important;
+      }
+      
+      #contract-card .value a {
+        font-size: 13px !important;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      #contract-content {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 6px !important;
+      }
+      
+      #contract-card {
+        padding: 10px !important;
+        border-radius: 10px !important;
+      }
+      
+      #contract-card .row {
+        padding: 6px 0 !important;
+        gap: 5px !important;
+      }
+      
+      #contract-card .label {
+        font-size: 11px !important;
+      }
+      
+      #contract-card .value {
+        font-size: 12px !important;
+        padding: 5px 6px !important;
+      }
+      
+      #contract-card .value a {
+        font-size: 12px !important;
+      }
+    }
+    
+    @media (max-width: 360px) {
+      #contract-content {
+        grid-template-columns: 1fr !important;
+        gap: 6px !important;
+      }
+      
+      #contract-card {
+        padding: 8px !important;
+      }
+      
+      #contract-card .label {
+        font-size: 10px !important;
+      }
+      
+      #contract-card .value {
+        font-size: 11px !important;
+        padding: 5px !important;
+      }
+      
+      #contract-card .value a {
+        font-size: 11px !important;
+      }
     }
     /* Inline USD badges next to values */
     [data-role="usd-inline"] { 
@@ -642,32 +725,7 @@
       .statusbar { gap: 8px; padding: 10px 12px; }
       .pill { font-size: 12px; padding: 8px 10px; }
       
-      /* Contract Info tablet improvements */
-      #contract-card {
-        padding: 12px;
-        overflow: visible;
-      }
-      #contract-card .row {
-        margin-bottom: 6px;
-        padding-bottom: 6px;
-        border-bottom: 1px solid rgba(0, 255, 136, 0.15);
-        min-width: max-content;
-      }
-      #contract-card .row:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
-      }
-      #contract-card h2 {
-        font-size: 16px;
-        margin-bottom: 12px;
-        padding-bottom: 8px;
-        border-bottom: 1px solid rgba(0, 255, 136, 0.2);
-      }
-      #contract-content {
-        overflow: visible;
-        width: 100%;
-      }
+      /* Contract Info responsive styles now handled in main CSS */
       
       /* Navigation menu mobile styles */
       .nav-grid {
@@ -794,50 +852,7 @@
       }
       .pill { font-size: 11px; padding: 6px 8px; }
       
-      /* Contract Info mobile improvements */
-      #contract-card {
-        padding: 8px;
-        overflow: visible;
-      }
-      #contract-card .row {
-        margin-bottom: 4px;
-        padding-bottom: 4px;
-        border-bottom: 1px solid rgba(0, 255, 136, 0.1);
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
-      }
-      #contract-card .row:last-child {
-        border-bottom: none;
-        margin-bottom: 0;
-        padding-bottom: 0;
-      }
-      #contract-card h2 {
-        font-size: 14px;
-        margin-bottom: 8px;
-        padding-bottom: 6px;
-        border-bottom: 1px solid rgba(0, 255, 136, 0.2);
-      }
-      #contract-card .label {
-        font-size: 10px;
-        min-width: auto;
-        max-width: 100%;
-        width: 100%;
-        text-align: right;
-      }
-      #contract-card .value {
-        font-size: 10px;
-        padding: 3px 6px;
-        word-break: break-all;
-        white-space: normal;
-        overflow-wrap: break-word;
-        width: 100%;
-        text-align: right;
-      }
-      #contract-content {
-        overflow: visible;
-        width: 100%;
-      }
+      /* Contract Info mobile styles handled in main CSS section */
       
       /* Navigation menu small mobile styles */
       .nav-grid {
@@ -1634,9 +1649,9 @@
       try { 
         const n = Number(num);
         if (!isFinite(n)) return String(num);
-        return n.toLocaleString('en-US', { 
+        return Math.floor(n).toLocaleString('en-US', { 
           minimumFractionDigits: 0, 
-          maximumFractionDigits: 18 
+          maximumFractionDigits: 0 
         });
       } catch { return String(num); }
     }
@@ -1866,7 +1881,7 @@
         try {
           if (typeof contract.totalSupply === 'function') {
             totalSupplyWei = await contract.totalSupply();
-            supplyEl.textContent = formatMax2(toNumberFromUnits(totalSupplyWei, 18));
+            supplyEl.textContent = format0(toNumberFromUnits(totalSupplyWei, 18));
           }
         } catch {}
         
@@ -1889,7 +1904,7 @@
         try {
           if (typeof contract.balanceOf === 'function') {
             iamBalanceSelf = await contract.balanceOf(contract.target);
-            if (iamInEl) iamInEl.textContent = formatMax2(toNumberFromUnits(iamBalanceSelf, 18));
+            if (iamInEl) iamInEl.textContent = format0(toNumberFromUnits(iamBalanceSelf, 18));
           }
         } catch {}
 
@@ -2005,10 +2020,7 @@
             const minimalDaiAbi = [{"inputs":[{"name":"account","type":"address"}],"name":"balanceOf","outputs":[{"type":"uint256"}],"stateMutability":"view","type":"function"}];
             const Dai = new ethers.Contract(daiAddr, minimalDaiAbi, provider);
             const d = await Dai.balanceOf(contract.target);
-            if (daiInEl) daiInEl.textContent = toNumberFromUnits(d, 18).toLocaleString('en-US', { 
-              minimumFractionDigits: 2, 
-              maximumFractionDigits: 2 
-            });
+            if (daiInEl) daiInEl.textContent = format0(toNumberFromUnits(d, 18));
           }
         } catch {}
 
@@ -2018,7 +2030,7 @@
           if (typeof contract.getRegPrice === 'function') {
             const r = await contract.getRegPrice();
             regPriceWei = (typeof r === 'bigint') ? r : BigInt(r);
-            if (regPriceEl) regPriceEl.textContent = formatMax2(toNumberFromUnits(regPriceWei, 18));
+            if (regPriceEl) regPriceEl.textContent = format0(toNumberFromUnits(regPriceWei, 18));
           }
         } catch {}
 
@@ -2031,7 +2043,7 @@
             tokenPriceWei = (typeof p === 'bigint') ? p : BigInt(p);
             if (tokenPriceEl) {
               const priceNum = Number(ethers.formatUnits(tokenPriceWei, 18));
-              tokenPriceEl.textContent = priceNum.toFixed(5);
+              tokenPriceEl.textContent = format0(priceNum);
             }
           }
         } catch {}
@@ -2062,7 +2074,7 @@
           if (pointPriceEl && iamBalanceSelf !== null && totalUnclaimedPoints !== null && totalUnclaimedPoints > 0n) {
             const ONE = 1000000000000000000n; // 1e18
             const priceWeiPerPoint = iamBalanceSelf / totalUnclaimedPoints;
-            pointPriceEl.textContent = formatMax2(toNumberFromUnits(priceWeiPerPoint, 18));
+            pointPriceEl.textContent = format0(toNumberFromUnits(priceWeiPerPoint, 18));
             if (tokenPriceWei) {
               const usdPerPointWei = (priceWeiPerPoint * tokenPriceWei) / ONE;
               const usdEl = ensureUsdInline(pointPriceEl);

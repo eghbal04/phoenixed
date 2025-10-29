@@ -350,6 +350,16 @@
         </div>
       </div>
 
+      <!-- Pending Claims Manager -->
+      <div class="utility-card" dir="ltr">
+        <h3><span class="icon">💰</span>Pending Claims Manager</h3>
+        <div class="calculator-section">
+          <button class="utility-btn" style="width:100%;" onclick="window.loadPendingClaims()">🔍 Load Downline with Unclaimed Points</button>
+          <div class="calculator-result" id="pending-claims-result" style="display:none; max-height: 500px; overflow-y: auto;"></div>
+          <small style="color:#a0aec0; display:block; margin-top:.5rem;">Shows downline users with unclaimed points. Claim button available if 18+ hours since last claim.</small>
+        </div>
+      </div>
+
 
     </div>
 
@@ -1353,6 +1363,281 @@
         res.textContent='❌ Error: ' + (e?.message||'Status error');
       }
     }
+
+    // Load pending claims (users with unclaimed points in downline)
+    window.loadPendingClaims = async function() {
+      const resultDiv = document.getElementById('pending-claims-result');
+      if (!resultDiv) return;
+      
+      resultDiv.innerHTML = '⏳ Loading downline users...';
+      resultDiv.style.display = 'block';
+      resultDiv.style.background = 'rgba(167,134,255,0.1)';
+      resultDiv.style.borderColor = 'rgba(167,134,255,0.2)';
+      
+      try {
+        const connection = await window.connectWallet();
+        if (!connection || !connection.contract) {
+          throw new Error('Contract connection failed');
+        }
+        
+        const { contract, address: currentAddress } = connection;
+        const currentUser = await contract.users(currentAddress);
+        
+        if (!currentUser || !currentUser.num || currentUser.num === 0n) {
+          throw new Error('You are not registered');
+        }
+        
+        // DFS to find all downline users (excluding root)
+        async function getAllDownlineUsers(rootAddress) {
+          const users = [];
+          const visited = new Set();
+          
+          // Start with children of root, not root itself
+          const rootUser = await contract.users(rootAddress);
+          const stack = [];
+          
+          if (rootUser.leftChild && rootUser.leftChild !== '0x0000000000000000000000000000000000000000') {
+            stack.push(rootUser.leftChild);
+          }
+          if (rootUser.rightChild && rootUser.rightChild !== '0x0000000000000000000000000000000000000000') {
+            stack.push(rootUser.rightChild);
+          }
+          
+          while (stack.length > 0) {
+            const addr = stack.pop();
+            const key = addr.toLowerCase();
+            
+            if (visited.has(key)) continue;
+            visited.add(key);
+            
+            try {
+              const user = await contract.users(addr);
+              
+              // Check if user has unclaimed points
+              const binaryPoints = BigInt(user.binaryPoints || 0);
+              const binaryPointsClaimed = BigInt(user.binaryPointsClaimed || 0);
+              const unclaimedPoints = binaryPoints > binaryPointsClaimed ? (binaryPoints - binaryPointsClaimed) : 0n;
+              
+              if (unclaimedPoints > 0n) {
+                const lastClaimTime = Number(user.lastClaimTime || 0);
+                const currentTime = Math.floor(Date.now() / 1000);
+                const eighteenHours = 18 * 3600; // 18 hours in seconds
+                const timeSinceLastClaim = currentTime - lastClaimTime;
+                const canClaim = timeSinceLastClaim >= eighteenHours;
+                
+                users.push({
+                  address: addr,
+                  num: user.num,
+                  unclaimedPoints: unclaimedPoints.toString(),
+                  lastClaimTime: lastClaimTime,
+                  timeSinceLastClaim: timeSinceLastClaim,
+                  canClaim: canClaim,
+                  binaryPoints: binaryPoints.toString(),
+                  binaryPointsClaimed: binaryPointsClaimed.toString()
+                });
+              }
+              
+              // Add children to stack
+              if (user.leftChild && user.leftChild !== '0x0000000000000000000000000000000000000000') {
+                stack.push(user.leftChild);
+              }
+              if (user.rightChild && user.rightChild !== '0x0000000000000000000000000000000000000000') {
+                stack.push(user.rightChild);
+              }
+            } catch (e) {
+              console.warn('Error fetching user at', addr, e);
+            }
+          }
+          
+          return users;
+        }
+        
+        resultDiv.innerHTML = '⏳ Scanning downline... This may take a moment...';
+        
+        const pendingUsers = await getAllDownlineUsers(currentAddress);
+        
+        if (pendingUsers.length === 0) {
+          resultDiv.innerHTML = `
+            <div style="text-align: center; padding: 1rem; color: #a0aec0;">
+              ✅ No users with unclaimed points found in your downline
+            </div>
+          `;
+          resultDiv.style.background = 'rgba(0,255,136,0.1)';
+          resultDiv.style.borderColor = 'rgba(0,255,136,0.2)';
+          return;
+        }
+        
+        // Sort by canClaim status (claimable first) and then by unclaimed points
+        pendingUsers.sort((a, b) => {
+          if (a.canClaim !== b.canClaim) return b.canClaim ? 1 : -1;
+          return BigInt(b.unclaimedPoints) - BigInt(a.unclaimedPoints);
+        });
+        
+        const formatTime = (seconds) => {
+          const hours = Math.floor(seconds / 3600);
+          const minutes = Math.floor((seconds % 3600) / 60);
+          if (hours > 0) return `${hours}h ${minutes}m`;
+          return `${minutes}m`;
+        };
+        
+        const formatAddress = (addr) => {
+          return addr.substring(0, 6) + '...' + addr.substring(38);
+        };
+        
+        let html = `
+          <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(0,255,136,0.1); border-radius: 8px; text-align: center;">
+            <strong style="color: #00ff88;">Found ${pendingUsers.length} user(s) with unclaimed points</strong>
+          </div>
+          <div style="display: grid; gap: 0.75rem;">
+        `;
+        
+        pendingUsers.forEach((user, index) => {
+          const hoursSinceClaim = Math.floor(user.timeSinceLastClaim / 3600);
+          const timeRemaining = user.canClaim ? 0 : (18 * 3600 - user.timeSinceLastClaim);
+          
+          html += `
+            <div style="
+              background: ${user.canClaim ? 'rgba(0,255,136,0.1)' : 'rgba(255,193,7,0.1)'};
+              border: 1px solid ${user.canClaim ? 'rgba(0,255,136,0.3)' : 'rgba(255,193,7,0.3)'};
+              border-radius: 8px;
+              padding: 1rem;
+            ">
+              <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+                <div>
+                  <div style="font-weight: 600; color: ${user.canClaim ? '#00ff88' : '#ffc107'}; margin-bottom: 0.25rem;">
+                    User #${user.num} • ${formatAddress(user.address)}
+                  </div>
+                  <div style="font-size: 0.85rem; color: #a0aec0;">
+                    Unclaimed: <strong style="color: #e2e8f0;">${user.unclaimedPoints}</strong> points
+                  </div>
+                  <div style="font-size: 0.8rem; color: #a0aec0; margin-top: 0.25rem;">
+                    ${user.lastClaimTime === 0 ? 'Never claimed' : `${hoursSinceClaim} hours since last claim`}
+                  </div>
+                </div>
+                ${user.canClaim ? `
+                  <button 
+                    onclick="window.claimForUser('${user.address}')" 
+                    class="utility-btn" 
+                    style="padding: 0.5rem 1rem; font-size: 0.85rem; white-space: nowrap;"
+                    id="claim-btn-${index}"
+                  >
+                    💰 Claim
+                  </button>
+                ` : `
+                  <div style="
+                    padding: 0.5rem 1rem; 
+                    background: rgba(100,100,100,0.2); 
+                    border-radius: 8px; 
+                    font-size: 0.85rem;
+                    color: #a0aec0;
+                    text-align: center;
+                    white-space: nowrap;
+                  ">
+                    ⏳ ${formatTime(timeRemaining)} remaining
+                  </div>
+                `}
+              </div>
+            </div>
+          `;
+        });
+        
+        html += `
+          </div>
+          <style>
+            @media (max-width: 768px) {
+              #pending-claims-result > div > div > div {
+                grid-template-columns: 1fr !important;
+                gap: 0.5rem !important;
+              }
+              #pending-claims-result button {
+                width: 100% !important;
+                margin-top: 0.5rem;
+              }
+              #pending-claims-result > div > div > div > div {
+                padding: 0.75rem !important;
+              }
+            }
+          </style>
+        `;
+        resultDiv.innerHTML = html;
+        resultDiv.style.background = 'rgba(167,134,255,0.1)';
+        resultDiv.style.borderColor = 'rgba(167,134,255,0.2)';
+        
+      } catch (error) {
+        console.error('Error loading pending claims:', error);
+        resultDiv.innerHTML = `
+          <div style="color: #ff6b6b; padding: 1rem; text-align: center;">
+            ❌ Error: ${error.message}
+          </div>
+        `;
+        resultDiv.style.background = 'rgba(255,68,68,0.1)';
+        resultDiv.style.borderColor = 'rgba(255,68,68,0.2)';
+      }
+    };
+
+    // Claim points for a specific user (must be in downline)
+    window.claimForUser = async function(targetAddress) {
+      try {
+        const connection = await window.connectWallet();
+        if (!connection || !connection.contract) {
+          throw new Error('Contract connection failed');
+        }
+        
+        const { contract, address: currentAddress } = connection;
+        
+        // Verify target is in downline
+        const isInDownline = await contract.isInDownline(currentAddress, targetAddress);
+        if (!isInDownline) {
+          throw new Error('User is not in your downline');
+        }
+        
+        // Get user data to verify claim conditions
+        const user = await contract.users(targetAddress);
+        const binaryPoints = BigInt(user.binaryPoints || 0);
+        const binaryPointsClaimed = BigInt(user.binaryPointsClaimed || 0);
+        const unclaimedPoints = binaryPoints > binaryPointsClaimed ? (binaryPoints - binaryPointsClaimed) : 0n;
+        
+        if (unclaimedPoints === 0n) {
+          throw new Error('User has no unclaimed points');
+        }
+        
+        const lastClaimTime = Number(user.lastClaimTime || 0);
+        const currentTime = Math.floor(Date.now() / 1000);
+        const eighteenHours = 18 * 3600;
+        const timeSinceLastClaim = currentTime - lastClaimTime;
+        
+        if (timeSinceLastClaim < eighteenHours) {
+          const remaining = Math.ceil((eighteenHours - timeSinceLastClaim) / 3600);
+          throw new Error(`Still ${remaining} hours remaining until next claim`);
+        }
+        
+        // Check if proxyClaimForDownline exists, otherwise use regular claim
+        // Note: Regular claim() only works for the caller themselves
+        // If proxyClaimForDownline exists, use it; otherwise show a message
+        let tx;
+        if (typeof contract.proxyClaimForDownline === 'function') {
+          tx = await contract.proxyClaimForDownline(targetAddress);
+        } else {
+          // If no proxy function, user must claim themselves
+          throw new Error('Claiming for downline is not available. User must claim themselves.');
+        }
+        
+        showStatus('⏳ Transaction sent, waiting for confirmation...', 'info');
+        
+        const receipt = await tx.wait();
+        
+        showStatus(`✅ Claim successful for ${targetAddress.substring(0, 6)}...${targetAddress.substring(38)}`, 'success');
+        
+        // Refresh the list after a short delay
+        setTimeout(() => {
+          window.loadPendingClaims();
+        }, 2000);
+        
+      } catch (error) {
+        showStatus(`❌ Claim failed: ${error.message}`, 'error');
+        console.error('Error claiming for user:', error);
+      }
+    };
   </script>
   
 </body>
