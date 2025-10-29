@@ -31,9 +31,11 @@
 </head>
 <body>
     
+    <!-- Back Button (consistent with other pages) -->
+    <a href="index.html" class="back-btn">← Back</a>
+
     <!-- Header -->
     <div class="swap-header">
-        <a href="index.html" class="header-back-btn">←</a>
         <h1 class="header-title">Swap</h1>
         <div class="header-spacer"></div>
     </div>
@@ -82,6 +84,7 @@
                         <div class="token-type" id="payTokenType">ERC20</div>
                     </div>
                     <div class="token-arrow">></div>
+                    <div class="inline-balance" id="payBalance">-</div>
                 </div>
             </div>
 
@@ -107,6 +110,7 @@
                         <div class="token-type" id="getTokenType">ERC20</div>
                     </div>
                     <div class="token-arrow">></div>
+                    <div class="inline-balance" id="getBalance">-</div>
                 </div>
             </div>
 
@@ -303,24 +307,21 @@
             z-index: 100;
         }
 
-        .header-back-btn {
-            width: 36px;
-            height: 36px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        /* Back button - same style as other pages */
+        .back-btn {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            background: linear-gradient(135deg, #a786ff, #00ff88);
+            color: #0a0f1c;
             border: none;
-            background: transparent;
-            color: var(--text);
-            font-size: 1.2rem;
+            padding: 0.6rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
             cursor: pointer;
             text-decoration: none;
-            border-radius: 8px;
-            transition: background 0.2s;
-        }
-
-        .header-back-btn:hover {
-            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+            z-index: 110;
         }
 
         .header-title {
@@ -508,6 +509,19 @@
         .token-arrow {
             color: var(--text-muted);
             font-size: 1.2rem;
+        }
+
+        /* Inline balance in token rows */
+        .inline-balance {
+            margin-left: auto;
+            margin-right: 0;
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            padding: 0.2rem 0.5rem;
+            border-radius: 6px;
+            white-space: nowrap;
         }
 
         /* Swap Direction Button */

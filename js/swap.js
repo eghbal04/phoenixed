@@ -1723,6 +1723,8 @@ class SwapManager {
         
         // Also update the new UI elements
         this.updateGetAmount();
+        // Refresh inline balances to ensure correct side shows matching token
+        this.updateInlineBalances();
     }
 
     // Show/hide USD field based on swap direction
@@ -2384,6 +2386,8 @@ class SwapManager {
             this.updateStatusBar();
             // Update "You Get" amount if there's an amount entered
             this.updateGetAmount();
+            // Update inline balances beside token selectors
+            this.updateInlineBalances();
         }
     }
 
@@ -2973,6 +2977,34 @@ class SwapManager {
         }
     }
     
+
+    // Update small balances shown inside token selector rows
+    updateInlineBalances() {
+        try {
+            const payBalanceEl = document.getElementById('payBalance');
+            const getBalanceEl = document.getElementById('getBalance');
+            const directionEl = document.getElementById('swapDirection');
+            if (!payBalanceEl || !getBalanceEl || !directionEl) return;
+
+            const direction = directionEl.value;
+            const balances = { iam: this.userBalances.IAM || 0, dai: this.userBalances.dai || 0 };
+            const formatNum = (n, digits = 6) => {
+                if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+                if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+                return Number(n).toFixed(digits);
+            };
+
+            if (direction === 'dai-to-IAM') {
+                payBalanceEl.textContent = `${formatNum(balances.dai, 2)} DAI`;
+                getBalanceEl.textContent = `${formatNum(balances.iam)} IAM`;
+            } else {
+                payBalanceEl.textContent = `${formatNum(balances.iam)} IAM`;
+                getBalanceEl.textContent = `${formatNum(balances.dai, 2)} DAI`;
+            }
+        } catch (_) {
+            // Silent fail
+        }
+    }
 
 }
 
