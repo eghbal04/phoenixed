@@ -745,6 +745,16 @@
             color: #ffffff !important;
         }
 
+        /* Node compact badge (oldIndex • num • last4) */
+        .node-badge {
+            font-size: 13px;
+            font-weight: 600;
+            color: #ffffff;
+            direction: ltr;
+            letter-spacing: 0.3px;
+            text-shadow: 0 0 6px rgba(0,255,136,0.4), 0 2px 4px rgba(0,0,0,0.6);
+        }
+
 
 
         /* Scrollbar */
@@ -1145,6 +1155,24 @@
             }
             
             return null;
+        };
+
+        // Get OLD contract index by wallet address
+        window.getOldIndexByAddress = async function(address) {
+            if (!window.DEFAULT_IAM_ADDRESS || !address) return 0n;
+            try {
+                if (!window.ethereum) return 0n;
+                const provider = new ethers.BrowserProvider(window.ethereum);
+                const OLD_ABI_MIN = [
+                    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"users","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+                ];
+                const oldContract = new ethers.Contract(window.DEFAULT_IAM_ADDRESS, OLD_ABI_MIN, provider);
+                const res = await oldContract.users(address);
+                if (typeof res === 'bigint') return res;
+                try { return BigInt(res); } catch { return 0n; }
+            } catch (_) {
+                return 0n;
+            }
         };
 
         // Get address from OLD contract by index (fallback method)
@@ -2987,8 +3015,9 @@
                     ` : '<div style="width: 14px;"></div>'}
                     
                     <div style="display: flex; flex-direction: column; align-items: center; gap: 1px;">
-                        <span class="tree-node-label" onclick="copyToClipboard('${node.address}')" title="Click to copy full address">${node.address ? node.address.substring(0, 10) + '...' + node.address.substring(node.address.length - 4) : 'Empty'} ${migrationText}</span>
+                        ${(!isMigrationNode && !isEmptyNode) ? `<span class="node-badge" id="badge-${node.id}">…</span>` : (isEmptyNode ? '<span style="font-size: 11px; color: #ffc107;">Empty</span>' : `<span class="tree-node-label" onclick="copyToClipboard('${node.address}')" title="Click to copy full address">Migration</span>`)}
                         <span class="star-rating" id="star-${node.id}" style="font-size: 12px; color: #ffd700; text-align: center;"></span>
+                        ${migrationText ? `<span style="font-size: 10px; color: #969696;">${migrationText}</span>` : ''}
                     </div>
                 </div>
             `;
@@ -2999,6 +3028,13 @@
             setTimeout(() => {
                 updateNodeStarRating(node.id, node.index);
             }, 100);
+
+            // Update compact badge (oldIndex • num • last4) for NEW nodes
+            if (!isMigrationNode) {
+                setTimeout(() => {
+                    updateNodeBadge(node.id, node.index, node.address);
+                }, 0);
+            }
             
             // Add click listeners
             const expandBtn = nodeElement.querySelector('.tree-expand-btn');
@@ -4404,6 +4440,45 @@
                     } catch (error) {
                 console.error(`❌ Error expanding node ${node.index}:`, error);
             }
+        }
+
+        // Update badge under node label with: oldIndex • newNum • last4(address)
+        async function updateNodeBadge(nodeId, nodeIndex, nodeAddress) {
+            try {
+                const badge = document.getElementById(`badge-${nodeId}`);
+                if (!badge) return;
+
+                const contract = window.contractConfig?.contract;
+                // Resolve address if missing
+                let address = nodeAddress;
+                if ((!address || address === '0x0000000000000000000000000000000000000000') && contract) {
+                    try { address = await window.getAddressByIndex(contract, nodeIndex); } catch (_) {}
+                }
+
+                const last4 = (address && typeof address === 'string' && address.length >= 4) ? address.slice(-4) : '----';
+
+                // Get old index (index from OLD contract) by address
+                let oldIdxStr = '-';
+                try {
+                    if (address) {
+                        const oldIdx = await window.getOldIndexByAddress(address);
+                        if (oldIdx && oldIdx > 0n) oldIdxStr = oldIdx.toString();
+                    }
+                } catch (_) {}
+
+                // Get newNum (num from NEW contract) from user data
+                let newNumStr = String(nodeIndex);
+                try {
+                    if (contract && address) {
+                        const userData = await contract.users(address);
+                        if (userData && userData.num !== undefined && userData.num > 0n) {
+                            newNumStr = userData.num.toString();
+                        }
+                    }
+                } catch (_) {}
+
+                badge.textContent = `${oldIdxStr} • ${newNumStr} • ${last4}`;
+            } catch (_) {}
         }
 
 
