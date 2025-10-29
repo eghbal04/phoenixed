@@ -593,7 +593,7 @@
          
          console.log('✅ User is in downline, proceeding to show complete user data...');
          
-        // Get complete user data from contract
+         // Get complete user data from contract
          const userData = await contract.users(address);
          const balance = await contract.balanceOf(address);
          const voteStatus = await contract.getVoteStatus(address);
@@ -894,11 +894,11 @@
                  <div class="info-item">
                    <span class="info-label">Left Points</span>
                    <span class="info-value">${formatBigInt(userData.leftPoints)}</span>
-                 </div>
+               </div>
                  <div class="info-item">
                    <span class="info-label">Right Points</span>
                    <span class="info-value">${formatBigInt(userData.rightPoints)}</span>
-                 </div>
+             </div>
                 <div class="info-item">
                   <span class="info-label">Left Wallets Count</span>
                   <span class="info-value">${leftWalletsCount}</span>
@@ -1088,15 +1088,15 @@
        } catch (error) {
          console.log('⚠️ Auto-connect failed:', error.message);
        }
-     
-       // Initialize IAM ↔ DAI converter
-       try {
-         setupIamDaiConverter();
-         console.log('✅ IAM ↔ DAI converter initialized');
-       } catch (e) {
-         console.warn('⚠️ Failed to initialize IAM ↔ DAI converter:', e);
-       }
-     });
+  
+      // Initialize IAM ↔ DAI converter
+      try {
+        setupIamDaiConverter();
+        console.log('✅ IAM ↔ DAI converter initialized');
+      } catch (e) {
+        console.warn('⚠️ Failed to initialize IAM ↔ DAI converter:', e);
+      }
+  });
    
   </script>
   
@@ -1387,33 +1387,49 @@
           throw new Error('You are not registered');
         }
         
-        // DFS to find all downline users (excluding root)
+        // Simple sequential iteration from 1 to total wallets
         async function getAllDownlineUsers(rootAddress) {
           const users = [];
-          const visited = new Set();
           
-          // Start with children of root, not root itself
-          const rootUser = await contract.users(rootAddress);
-          const stack = [];
-          
-          if (rootUser.leftChild && rootUser.leftChild !== '0x0000000000000000000000000000000000000000') {
-            stack.push(rootUser.leftChild);
+          // Get total wallets count
+          let totalWallets = 0;
+          try {
+            if (typeof contract.wallets === 'function') {
+              totalWallets = Number(await contract.wallets());
+            } else if (typeof contract.walletz === 'function') {
+              totalWallets = Number(await contract.walletz());
+            } else if (typeof contract.totalWallets === 'function') {
+              totalWallets = Number(await contract.totalWallets());
+            }
+          } catch (e) {
+            console.warn('Could not get total wallets', e);
+            return users;
           }
-          if (rootUser.rightChild && rootUser.rightChild !== '0x0000000000000000000000000000000000000000') {
-            stack.push(rootUser.rightChild);
+          
+          if (totalWallets === 0) {
+            return users;
           }
           
-          while (stack.length > 0) {
-            const addr = stack.pop();
-            const key = addr.toLowerCase();
-            
-            if (visited.has(key)) continue;
-            visited.add(key);
-            
+          // Simple loop from 1 to totalWallets
+          for (let num = 1; num <= totalWallets; num++) {
             try {
-              const user = await contract.users(addr);
+              const addr = await contract.getAddressByNumber(num);
+              if (!addr || addr === '0x0000000000000000000000000000000000000000') {
+                continue;
+              }
               
-              // Check if user has unclaimed points
+              // Skip root user
+              if (addr.toLowerCase() === rootAddress.toLowerCase()) {
+                continue;
+              }
+              
+              // Check if in downline
+              const isInDownline = await contract.isInDownline(rootAddress, addr);
+              if (!isInDownline) {
+                continue;
+              }
+              
+              const user = await contract.users(addr);
               const binaryPoints = BigInt(user.binaryPoints || 0);
               const binaryPointsClaimed = BigInt(user.binaryPointsClaimed || 0);
               const unclaimedPoints = binaryPoints > binaryPointsClaimed ? (binaryPoints - binaryPointsClaimed) : 0n;
@@ -1421,7 +1437,7 @@
               if (unclaimedPoints > 0n) {
                 const lastClaimTime = Number(user.lastClaimTime || 0);
                 const currentTime = Math.floor(Date.now() / 1000);
-                const eighteenHours = 18 * 3600; // 18 hours in seconds
+                const eighteenHours = 18 * 3600;
                 const timeSinceLastClaim = currentTime - lastClaimTime;
                 const canClaim = timeSinceLastClaim >= eighteenHours;
                 
@@ -1436,16 +1452,13 @@
                   binaryPointsClaimed: binaryPointsClaimed.toString()
                 });
               }
-              
-              // Add children to stack
-              if (user.leftChild && user.leftChild !== '0x0000000000000000000000000000000000000000') {
-                stack.push(user.leftChild);
-              }
-              if (user.rightChild && user.rightChild !== '0x0000000000000000000000000000000000000000') {
-                stack.push(user.rightChild);
-              }
             } catch (e) {
-              console.warn('Error fetching user at', addr, e);
+              // Continue to next number
+            }
+            
+            // Update progress
+            if (num % 10 === 0) {
+              resultDiv.innerHTML = `⏳ Scanning... ${num}/${totalWallets}`;
             }
           }
           
@@ -1641,4 +1654,4 @@
   </script>
   
 </body>
-</html>
+</html> 
