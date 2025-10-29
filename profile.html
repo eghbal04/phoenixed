@@ -327,13 +327,13 @@
         }
         
         
-        // Upgrade cap timer (every 4 weeks = 28 days)
+        // Upgrade cap timer (every 15 days)
         function updateUpgradeTimer() {
             if (!upgradeTimer) return;
             
             const now = Math.floor(Date.now() / 1000);
             const lastUpgrade = user.upgradeTime ? Number(user.upgradeTime) : 0;
-            const nextUpgradeTime = lastUpgrade + (28 * 24 * 3600); // 28 days (4 weeks)
+            const nextUpgradeTime = lastUpgrade + (15 * 24 * 3600); // 15 days
             const timeLeft = nextUpgradeTime - now;
             
             const upgradeBtn = document.getElementById('upgrade-cap-btn');
@@ -549,10 +549,10 @@
                 // Show message box with token amount and USD equivalent
                 statusDiv.innerHTML = `
                     <div style="background:rgba(167,134,255,0.1);border:2px solid #a786ff;border-radius:10px;padding:1rem;margin:0.5rem 0;text-align:center;">
-                        <div style="color:#a786ff;font-weight:bold;font-size:1.1em;margin-bottom:0.5rem;">🎯🎯 Purchase 2 Points</div>
+                        <div style="color:#a786ff;font-weight:bold;font-size:1.1em;margin-bottom:0.5rem;">🎯 Contribute Toward Next Point</div>
                         <div style="color:#fff;font-size:1em;margin-bottom:0.3rem;">Token Amount: <span style="color:#ff6b35;font-weight:bold;">${finalCostIAM.toFixed(6)} IAM</span></div>
                         <div style="color:#fff;font-size:1em;">USD Equivalent: <span style="color:#a786ff;font-weight:bold;">$${usdEquivalent.toFixed(4)}</span></div>
-                        <div style="color:#ccc;font-size:0.9em;margin-top:0.5rem;">Payout: 100% to Contract</div>
+                        <div style="color:#ccc;font-size:0.9em;margin-top:0.5rem;">Payout: 100% to Contract • Max 1 point per 15 days by contract</div>
                     </div>
                 `;
                 statusDiv.style.color = '#a786ff';
@@ -581,7 +581,7 @@
                 
                 await tx.wait();
                 
-                statusDiv.innerHTML = '✅ 2 points purchased successfully!';
+                statusDiv.innerHTML = '✅ Purchase completed! The contract will add 1 point automatically when cooldown (15 days) is over and required IAM is reached.';
                 statusDiv.style.color = '#00ff88';
                 
                 // Reload profile after 2 seconds
@@ -720,7 +720,7 @@
                       <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(35,41,70,0.98);border-radius:18px;padding:2rem;max-width:600px;width:90%;border:2px solid #ff6b3533;box-shadow:0 8px 32px rgba(0,0,0,0.5);">
                           <div style="text-align:center;margin-bottom:1.5rem;">
                               <h3 style="color:#ff6b35;margin:0;font-size:1.5em;">📈 Upgrade Binary Points Cap</h3>
-                              <p style="color:#ccc;margin:0.5rem 0;font-size:0.9em;">The contract will automatically determine if you can upgrade based on your purchase amount and timing</p>
+                              <p style="color:#ccc;margin:0.5rem 0;font-size:0.9em;">Upgrade cost = (Cap × 3 DAI) worth of IAM. Contract adds max 1 point per purchase when 15-day cooldown passes and required IAM is accumulated.</p>
                           </div>
                           
                           <div style="margin-bottom:1.5rem;">
@@ -736,8 +736,8 @@
                           </div>
                           
                           <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
-                              <button id="purchase-point-btn" style="background:linear-gradient(90deg,#00ff88,#a786ff);color:#181c2a;border:none;border-radius:8px;padding:0.8rem 1.5rem;font-weight:bold;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:0.4em;"><span style='font-size:1em;'>🎯</span> Purchase 1 Point</button>
-                              <button id="purchase-2-points-btn" style="background:linear-gradient(90deg,#a786ff,#ff6b35);color:#181c2a;border:none;border-radius:8px;padding:0.8rem 1.5rem;font-weight:bold;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:0.4em;"><span style='font-size:1em;'>🎯🎯</span> Purchase 2 Points</button>
+                              <button id="purchase-point-btn" style="background:linear-gradient(90deg,#00ff88,#a786ff);color:#181c2a;border:none;border-radius:8px;padding:0.8rem 1.5rem;font-weight:bold;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:0.4em;"><span style='font-size:1em;'>🎯</span> Purchase Toward Upgrade</button>
+                              <button id="purchase-2-points-btn" style="background:linear-gradient(90deg,#a786ff,#ff6b35);color:#181c2a;border:none;border-radius:8px;padding:0.8rem 1.5rem;font-weight:bold;cursor:pointer;transition:all 0.2s;display:inline-flex;align-items:center;gap:0.4em;"><span style='font-size:1em;'>🎯</span> Purchase Toward Upgrade</button>
                               <button id="upgrade-cap-cancel" style="background:rgba(255,255,255,0.1);color:#ccc;border:1px solid #666;border-radius:8px;padding:0.8rem 1.5rem;cursor:pointer;transition:all 0.2s;">Cancel</button>
                           </div>
                           
