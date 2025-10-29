@@ -1598,7 +1598,7 @@ class SwapManager {
             console.log('🔄 Starting SwapManager initialization...');
             
             // Ensure DOM elements exist
-            const requiredElements = ['swapForm', 'swapDirection', 'swapAmount', 'maxBtn', 'swapStatus'];
+            const requiredElements = ['swapForm', 'swapDirection', 'swapAmount', 'swapStatus'];
             const missingElements = requiredElements.filter(id => !document.getElementById(id));
             
             if (missingElements.length > 0) {
@@ -1686,35 +1686,43 @@ class SwapManager {
 
     // Update dollar equivalent when token amount changes
     updateSwapUsdValue() {
-        const swapAmount = document.getElementById('swapAmount');
+        // This function now uses updateGetAmount() which handles USD equivalents
+        // Kept for backward compatibility with old USD converter field
         const swapUsdAmount = document.getElementById('swapUsdAmount');
-        const direction = document.getElementById('swapDirection');
-        
-        if (!swapAmount || !swapUsdAmount || !direction) {
-            return;
+        if (swapUsdAmount) {
+            // Old USD converter field still exists, update it
+            const swapAmount = document.getElementById('swapAmount');
+            const direction = document.getElementById('swapDirection');
+            
+            if (!swapAmount || !direction) {
+                return;
+            }
+            
+            const tokenAmount = parseFloat(swapAmount.value) || 0;
+            if (tokenAmount <= 0) {
+                swapUsdAmount.value = '';
+                return;
+            }
+            
+            if (!this.tokenPrice || Number(this.tokenPrice) <= 0) {
+                return;
+            }
+            
+            const tokenPrice = Number(this.tokenPrice);
+            
+            if (direction.value === 'dai-to-IAM') {
+                // DAI to USD (assuming 1 DAI = 1 USD)
+                const usdValue = tokenAmount;
+                swapUsdAmount.value = usdValue.toFixed(2);
+            } else if (direction.value === 'IAM-to-dai') {
+                // IAM to USD
+                const usdValue = tokenAmount * tokenPrice;
+                swapUsdAmount.value = usdValue.toFixed(2);
+            }
         }
         
-        const tokenAmount = parseFloat(swapAmount.value) || 0;
-        if (tokenAmount <= 0) {
-            swapUsdAmount.value = '';
-            return;
-        }
-        
-        if (!this.tokenPrice || Number(this.tokenPrice) <= 0) {
-            return;
-        }
-        
-        const tokenPrice = Number(this.tokenPrice);
-        
-        if (direction.value === 'dai-to-IAM') {
-            // DAI to USD (assuming 1 DAI = 1 USD)
-            const usdValue = tokenAmount;
-            swapUsdAmount.value = usdValue.toFixed(2);
-        } else if (direction.value === 'IAM-to-dai') {
-            // IAM to USD
-            const usdValue = tokenAmount * tokenPrice;
-            swapUsdAmount.value = usdValue.toFixed(2);
-        }
+        // Also update the new UI elements
+        this.updateGetAmount();
     }
 
     // Show/hide USD field based on swap direction
@@ -1852,12 +1860,29 @@ class SwapManager {
                     // If buying is disabled and currently selected, switch to selling
                     swapDirection.value = 'IAM-to-dai';
                     this.updateMaxAmount();
+                    this.updateSwapUI();
                 }
             }
             
             if (iamToDaiOption) {
                 iamToDaiOption.disabled = false; // Always enabled
             }
+            
+            // Update UI after contract change
+            this.updateSwapUI();
+        }
+        
+        // Update contract toggle button text
+        const contractToggleText = document.getElementById('contractToggleText');
+        if (contractToggleText) {
+            const contractNames = {
+                'contract1': 'Contract One',
+                'contract2': 'Contract Two',
+                'contract3': 'Contract Three',
+                'contract4': 'Contract Four',
+                'contract5': 'Contract Five'
+            };
+            contractToggleText.textContent = contractNames[this.selectedContract] || 'Contract';
         }
     }
 
@@ -1868,7 +1893,6 @@ class SwapManager {
         const swapForm = document.getElementById('swapForm');
         const swapDirection = document.getElementById('swapDirection');
         const swapAmount = document.getElementById('swapAmount');
-        const maxBtn = document.getElementById('maxBtn');
         const contractSelector = document.getElementById('contractSelector');
 
         if (swapForm) {
@@ -1900,35 +1924,11 @@ class SwapManager {
                 // Allow decimals; no truncation
                 // Real-time calculation of dollar equivalent when token amount changes
                 this.updateSwapUsdValue();
+                this.updateGetAmount();
             });
             console.log('✅ Swap amount event listener connected');
         } else {
             console.warn('⚠️ Swap amount not found');
-        }
-        
-        if (maxBtn) {
-            maxBtn.addEventListener('click', async (e) => {
-                e.preventDefault(); // Prevent default button behavior
-                e.stopPropagation(); // Stop event bubbling
-                console.log('🔢 Max button clicked');
-                try {
-                    // Check if balances are loaded
-                    if (!this.userBalances || (this.userBalances.dai === 0 && this.userBalances.IAM === 0)) {
-                        console.log('🔄 Balances not loaded, loading now...');
-                        await this.loadSwapData();
-                    }
-                    
-                    await this.setMaxAmount();
-                    // Don't show status message to avoid scrolling to Exchange Information section
-                    // this.showStatus('✅ Maximum available amount has been set. You can now proceed with your transaction.', 'success');
-                } catch (error) {
-                    console.error('❌ Error in max button click:', error);
-                    this.showStatus('Unable to set maximum amount. Please enter the amount manually.', 'error');
-                }
-            });
-            console.log('✅ Max button event listener connected');
-        } else {
-            console.warn('⚠️ Max button not found');
         }
         
         if (contractSelector) {
@@ -1991,7 +1991,293 @@ class SwapManager {
         // Initial execution to set initial state
         this.toggleSwapUsdConverter();
         
+        // New UI elements for modern swap design
+        const swapDirectionBtn = document.getElementById('swapDirectionBtn');
+        if (swapDirectionBtn) {
+            swapDirectionBtn.addEventListener('click', () => {
+                this.swapDirections();
+            });
+            console.log('✅ Swap direction button event listener connected');
+        }
+        
+        // Percentage buttons
+        const percentButtons = document.querySelectorAll('.percent-btn');
+        percentButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const percent = parseFloat(e.target.getAttribute('data-percent'));
+                this.setPercentageAmount(percent);
+            });
+        });
+        console.log('✅ Percentage buttons event listeners connected');
+        
+        // Update UI on direction change
+        if (swapDirection) {
+            swapDirection.addEventListener('change', () => {
+                this.updateSwapUI();
+            });
+        }
+        
+        // Update "You Get" amount on input change
+        if (swapAmount) {
+            swapAmount.addEventListener('input', () => {
+                this.updateGetAmount();
+            });
+        }
+        
+        // Initial UI update
+        this.updateSwapUI();
+        
+        // Update status bar
+        this.updateStatusBar();
+        
         console.log('✅ All event listeners configured');
+    }
+    
+    // Update status bar
+    updateStatusBar() {
+        const statusValue = document.getElementById('statusValue');
+        if (!statusValue) return;
+        
+        if (this.isSwapping) {
+            statusValue.textContent = 'Processing...';
+        } else if (!this.contract || !this.signer) {
+            statusValue.textContent = 'Connect Wallet';
+        } else if (this.tokenPrice && Number(this.tokenPrice) > 0) {
+            statusValue.textContent = `1 IAM = $${Number(this.tokenPrice).toFixed(6)}`;
+        } else {
+            statusValue.textContent = 'Loading...';
+        }
+    }
+    
+    // Swap directions (toggle between DAI → IAM and IAM → DAI)
+    swapDirections() {
+        const swapDirection = document.getElementById('swapDirection');
+        if (!swapDirection) return;
+        
+        // Check if buying is allowed (only contract 5)
+        const canBuy = this.selectedContract === 'contract5';
+        
+        if (swapDirection.value === 'dai-to-IAM') {
+            // Switch to selling (always allowed)
+            swapDirection.value = 'IAM-to-dai';
+        } else {
+            // Switch to buying (only if allowed)
+            if (!canBuy) {
+                this.showStatus('Buying (DAI → IAM) is only available with Contract Five. Please switch to Contract Five first.', 'error');
+                return;
+            }
+            swapDirection.value = 'dai-to-IAM';
+        }
+        
+        // Update UI
+        this.updateSwapUI();
+        
+        // Trigger change event for other listeners
+        swapDirection.dispatchEvent(new Event('change'));
+        
+        // Clear amounts
+        const swapAmount = document.getElementById('swapAmount');
+        if (swapAmount) {
+            swapAmount.value = '';
+            swapAmount.dispatchEvent(new Event('input'));
+        }
+    }
+    
+    // Update swap UI based on direction
+    updateSwapUI() {
+        const swapDirection = document.getElementById('swapDirection');
+        if (!swapDirection) return;
+        
+        const direction = swapDirection.value;
+        const isDaiToIam = direction === 'dai-to-IAM';
+        
+        // Update pay token
+        const payTokenSymbol = document.getElementById('payTokenSymbol');
+        const payTokenIcon = document.getElementById('payTokenIcon');
+        if (payTokenSymbol) {
+            payTokenSymbol.textContent = isDaiToIam ? 'DAI' : 'IAM';
+        }
+        if (payTokenIcon) {
+            // Update icon text based on direction
+            const iconText = payTokenIcon.querySelector('.token-icon-text');
+            if (iconText) {
+                iconText.textContent = isDaiToIam ? 'DAI' : 'IAM';
+            } else {
+                payTokenIcon.innerHTML = `<div class="token-icon-text">${isDaiToIam ? 'DAI' : 'IAM'}</div>`;
+            }
+        }
+        
+        // Update get token
+        const getTokenSymbol = document.getElementById('getTokenSymbol');
+        const getTokenIcon = document.getElementById('getTokenIcon');
+        if (getTokenSymbol) {
+            getTokenSymbol.textContent = isDaiToIam ? 'IAM' : 'DAI';
+        }
+        if (getTokenIcon) {
+            // Update icon text based on direction
+            const iconText = getTokenIcon.querySelector('.token-icon-text');
+            if (iconText) {
+                iconText.textContent = isDaiToIam ? 'IAM' : 'DAI';
+            } else {
+                getTokenIcon.innerHTML = `<div class="token-icon-text">${isDaiToIam ? 'IAM' : 'DAI'}</div>`;
+            }
+        }
+        
+        // Clear amounts
+        const swapAmount = document.getElementById('swapAmount');
+        if (swapAmount) {
+            swapAmount.value = '';
+        }
+        this.updateGetAmount();
+    }
+    
+    // Set percentage of balance
+    async setPercentageAmount(percent) {
+        const swapDirection = document.getElementById('swapDirection');
+        const swapAmount = document.getElementById('swapAmount');
+        
+        if (!swapDirection || !swapAmount) return;
+        
+        try {
+            // Ensure balances are loaded
+            if (!this.userBalances || (this.userBalances.dai === 0 && this.userBalances.IAM === 0)) {
+                await this.loadSwapData();
+            }
+            
+            const direction = swapDirection.value;
+            let balance = 0;
+            
+            if (direction === 'dai-to-IAM') {
+                balance = this.userBalances.dai || 0;
+            } else {
+                balance = this.userBalances.IAM || 0;
+            }
+            
+            if (balance <= 0) {
+                this.showStatus('No balance available for this token.', 'error');
+                return;
+            }
+            
+            const amount = (balance * percent / 100).toFixed(6);
+            swapAmount.value = parseFloat(amount);
+            
+            // Trigger input event to update calculations
+            swapAmount.dispatchEvent(new Event('input'));
+            
+        } catch (error) {
+            console.error('❌ Error setting percentage amount:', error);
+            this.showStatus('Error setting amount: ' + error.message, 'error');
+        }
+    }
+    
+    // Update "You Get" amount display
+    async updateGetAmount() {
+        const swapDirection = document.getElementById('swapDirection');
+        const swapAmount = document.getElementById('swapAmount');
+        const getAmountDisplay = document.getElementById('getAmountDisplay');
+        const getUsdEquivalent = document.getElementById('getUsdEquivalent');
+        const payUsdEquivalent = document.getElementById('payUsdEquivalent');
+        
+        if (!swapDirection || !swapAmount || !getAmountDisplay) return;
+        
+        const amount = parseFloat(swapAmount.value) || 0;
+        const direction = swapDirection.value;
+        
+        // Update pay USD equivalent
+        if (payUsdEquivalent) {
+            if (direction === 'dai-to-IAM') {
+                // DAI to USD (1 DAI = 1 USD)
+                payUsdEquivalent.textContent = `$${amount.toFixed(2)}`;
+            } else {
+                // IAM to USD
+                if (this.tokenPrice && Number(this.tokenPrice) > 0) {
+                    const usdValue = amount * Number(this.tokenPrice);
+                    payUsdEquivalent.textContent = `$${usdValue.toFixed(2)}`;
+                } else {
+                    payUsdEquivalent.textContent = '$0.00';
+                }
+            }
+        }
+        
+        if (amount <= 0) {
+            getAmountDisplay.textContent = '0';
+            if (getUsdEquivalent) {
+                getUsdEquivalent.textContent = '$0.00';
+            }
+            return;
+        }
+        
+        try {
+            if (direction === 'dai-to-IAM') {
+                // Estimate IAM tokens received
+                if (this.contract && this.tokenPrice && Number(this.tokenPrice) > 0) {
+                    try {
+                        const estimatedIAM = await this.contract.estimateBuy(
+                            ethers.utils.parseUnits(amount.toFixed(2), 18)
+                        );
+                        const iamAmount = parseFloat(ethers.utils.formatUnits(estimatedIAM, 18));
+                        getAmountDisplay.textContent = iamAmount.toFixed(6);
+                        
+                        // Update USD equivalent for IAM
+                        if (getUsdEquivalent && this.tokenPrice) {
+                            const usdValue = iamAmount * Number(this.tokenPrice);
+                            getUsdEquivalent.textContent = `$${usdValue.toFixed(2)}`;
+                        }
+                    } catch (error) {
+                        // Fallback calculation
+                        const tokenPrice = Number(this.tokenPrice);
+                        const iamAmount = amount / tokenPrice;
+                        getAmountDisplay.textContent = iamAmount.toFixed(6);
+                        
+                        if (getUsdEquivalent) {
+                            const usdValue = iamAmount * tokenPrice;
+                            getUsdEquivalent.textContent = `$${usdValue.toFixed(2)}`;
+                        }
+                    }
+                } else {
+                    getAmountDisplay.textContent = '0';
+                    if (getUsdEquivalent) {
+                        getUsdEquivalent.textContent = '$0.00';
+                    }
+                }
+            } else {
+                // Estimate DAI tokens received
+                if (this.contract && this.tokenPrice && Number(this.tokenPrice) > 0) {
+                    try {
+                        const estimatedDAI = await this.contract.estimateSell(
+                            ethers.utils.parseUnits(amount.toFixed(6), 18)
+                        );
+                        const daiAmount = parseFloat(ethers.utils.formatUnits(estimatedDAI, 18));
+                        getAmountDisplay.textContent = daiAmount.toFixed(2);
+                        
+                        // DAI to USD (1 DAI = 1 USD)
+                        if (getUsdEquivalent) {
+                            getUsdEquivalent.textContent = `$${daiAmount.toFixed(2)}`;
+                        }
+                    } catch (error) {
+                        // Fallback calculation
+                        const tokenPrice = Number(this.tokenPrice);
+                        const daiAmount = amount * tokenPrice;
+                        getAmountDisplay.textContent = daiAmount.toFixed(2);
+                        
+                        if (getUsdEquivalent) {
+                            getUsdEquivalent.textContent = `$${daiAmount.toFixed(2)}`;
+                        }
+                    }
+                } else {
+                    getAmountDisplay.textContent = '0';
+                    if (getUsdEquivalent) {
+                        getUsdEquivalent.textContent = '$0.00';
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('❌ Error updating get amount:', error);
+            getAmountDisplay.textContent = '0';
+            if (getUsdEquivalent) {
+                getUsdEquivalent.textContent = '$0.00';
+            }
+        }
     }
 
     async loadSwapData() {
@@ -2093,6 +2379,11 @@ class SwapManager {
             this.tokenPrice = null;
             this.userBalances = { IAM: 0, dai: 0 };
             this.showStatus('Unable to load wallet balances. Please check your connection and try again.', 'error');
+        } finally {
+            // Update status bar after loading data
+            this.updateStatusBar();
+            // Update "You Get" amount if there's an amount entered
+            this.updateGetAmount();
         }
     }
 

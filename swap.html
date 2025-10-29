@@ -31,99 +31,112 @@
 </head>
 <body>
     
-    <!-- Back Button -->
-    <a href="index.html" class="back-btn">← Back</a>
+    <!-- Header -->
+    <div class="swap-header">
+        <a href="index.html" class="header-back-btn">←</a>
+        <h1 class="header-title">Swap</h1>
+        <div class="header-spacer"></div>
+    </div>
 
     <!-- Main Content -->
-    <div class="main-container">
-        <!-- Swap Section -->
-        <div id="main-swap" class="page-section expandable-container" style="width:100%;max-width:none;margin:0;padding:0.5rem 0;">
-            
-            <div id="swap-main-content" style="display:block;">
-            <div class="expand-content" style="padding:1rem;">
-                    
-
-                    
-                    <!-- Exchange Form -->
-                    <div style="background:#1a1f2e;color:#ffffff;padding:1.5rem;border-radius:15px;margin-bottom:1rem;width:90%;max-width:800px;margin-left:auto;margin-right:auto;border:2px solid #00ff88;">
-                        
-                        <form id="swapForm" class="messenger-form" style="display:flex;flex-direction:column;gap:0.3rem;">
-                            
-                            <!-- Contract Selection -->
-                            <div class="form-group" style="margin-bottom:0.3rem;">
-                                <label for="contractSelector" style="display:block;color:#00ff88;margin-bottom:0.2rem;font-weight:600;font-size:0.85rem;">Contract:</label>
-                                <select id="contractSelector" required style="width:100%;background:#0a0f1c;border:2px solid #2a3441;color:#ffffff;padding:0.8rem;border-radius:12px;outline:none;transition:border-color 0.3s ease;font-size:0.85rem;">
-                                    <option value="contract1" style="color: #00ff88;">Contract One — 0x2DdD...cC26</option>
-                                    <option value="contract2" style="color: #00ff88;">Contract Two — 0xF473...2658</option>
-                                    <option value="contract3" style="color: #00ff88;">Contract Three — 0x8dc3...2548</option>
-                                    <option value="contract4" style="color: #00ff88;">Contract Four — 0x2D39...118D</option>
-                                    <option value="contract5" selected style="color: #00ff88;">Contract Five — 0xa4C3...0dBf</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Contract Info Display -->
-                            <div id="contractInfo"></div>
-                            
-                            <!-- Exchange Type -->
-                            <div class="form-group" style="margin-bottom:0.3rem;">
-                                <label for="swapDirection" style="display:block;color:#00ff88;margin-bottom:0.2rem;font-weight:600;font-size:0.85rem;">Type:</label>
-                                <select id="swapDirection" required style="width:100%;background:#0a0f1c;border:2px solid #2a3441;color:#ffffff;padding:0.8rem;border-radius:12px;outline:none;transition:border-color 0.3s ease;font-size:0.85rem;">
-                                    <option value="dai-to-IAM">DAI → IAM</option>
-                                    <option value="IAM-to-dai">IAM → DAI</option>
-                                </select>
-                            </div>
-                            
-                            <!-- Amount Input -->
-                            <div class="form-group" style="margin-bottom:0.3rem;">
-                                <label for="swapAmount" style="display:block;color:#00ff88;margin-bottom:0.2rem;font-weight:600;font-size:0.85rem;">Amount:</label>
-                                <div class="amount-input-group" style="display:flex;gap:0.5rem;align-items:center;">
-                                    <input type="number" id="swapAmount" placeholder="Enter amount" required step="1" inputmode="numeric" pattern="\\d*" style="flex:1;background:#0a0f1c;border:2px solid #2a3441;color:#ffffff;padding:0.8rem;border-radius:12px;outline:none;transition:border-color 0.3s ease;font-size:0.85rem;">
-                                    <button type="button" id="maxBtn" class="max-btn" style="background:linear-gradient(135deg,#a786ff,#00ff88);color:#0a0f1c;border:none;padding:0.8rem 1rem;border-radius:12px;font-weight:600;cursor:pointer;transition:all 0.3s ease;white-space:nowrap;font-size:0.85rem;">Max</button>
-                                </div>
-                            </div>
-                            
-                            <!-- USD Converter -->
-                            <div id="swap-usd-converter-row" style="display:none;margin-bottom:0.3rem;">
-                                <label for="swapUsdAmount" style="display:block;color:#00ff88;margin-bottom:0.2rem;font-weight:600;font-size:0.85rem;">USD:</label>
-                                <div class="usd-converter-container" style="display:flex;gap:0.5rem;align-items:center;">
-                                    <input type="number" id="swapUsdAmount" placeholder="5.00" style="flex:1;background:#0a0f1c;border:2px solid #2a3441;color:#ffffff;padding:0.8rem;border-radius:12px;outline:none;transition:border-color 0.3s ease;font-size:0.85rem;">
-                                    <button type="button" id="swapUsdToTokenBtn" style="background:linear-gradient(135deg,#00ff88,#a786ff);color:#0a0f1c;border:none;padding:0.8rem 1rem;border-radius:12px;font-weight:600;cursor:pointer;transition:all 0.3s ease;font-size:0.8rem;">🔄</button>
-                                </div>
-                            </div>
-                        
-                            <!-- Balance Display -->
-                            <div class="balance-display" style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);border-radius:8px;padding:0.6rem;margin-bottom:0.3rem;">
-                                <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;">
-                                    <div style="text-align:center;background:rgba(0,255,136,0.1);border-radius:6px;padding:0.5rem;">
-                                        <div style="color:#00ff88;font-weight:bold;font-size:0.75rem;">DAI</div>
-                                        <div id="daiBalance" style="color:#ffffff;font-family:monospace;font-size:0.8rem;font-weight:600;">-</div>
-                                    </div>
-                                    <div style="text-align:center;background:rgba(167,134,255,0.1);border-radius:6px;padding:0.5rem;">
-                                        <div style="color:#a786ff;font-weight:bold;font-size:0.75rem;">IAM</div>
-                                        <div id="IAMBalance" style="color:#ffffff;font-family:monospace;font-size:0.8rem;font-weight:600;">-</div>
-                                        <div id="IAMUsdValue" style="color:#a786ff;font-size:0.65rem;margin-top:0.1rem;">-</div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <!-- Exchange Button -->
-                            <button type="submit" class="exchange-btn" style="width:100%;background:linear-gradient(135deg,#00ff88,#00cc6a);color:#0a0f1c;border:none;border-radius:10px;padding:0.8rem;font-weight:bold;cursor:pointer;transition:all 0.3s ease;font-size:0.9rem;margin-top:0.2rem;">💱 Swap</button>
-                            
-                        </form>
-                    </div>
-                    
-
-                            
-                    <!-- Status Message -->
-                    <div id="swapStatus" class="swap-status" style="max-width:100%;margin-bottom:0.5rem;"></div>
+    <div class="swap-container">
+        
+        <!-- Contract Selection (Hidden by default, shown on click) -->
+        <div class="contract-selector-wrapper">
+            <button type="button" id="contractToggleBtn" class="contract-toggle-btn">
+                <span id="contractToggleText">Contract Five</span>
+                <span>▼</span>
+            </button>
+            <div id="contractSelectorWrapper" class="contract-selector-hidden">
+                <select id="contractSelector" class="contract-select">
+                    <option value="contract1">Contract One — 0x2DdD...cC26</option>
+                    <option value="contract2">Contract Two — 0xF473...2658</option>
+                    <option value="contract3">Contract Three — 0x8dc3...2548</option>
+                    <option value="contract4">Contract Four — 0x2D39...118D</option>
+                    <option value="contract5" selected>Contract Five — 0xa4C3...0dBf</option>
+                </select>
             </div>
+            <div id="contractInfo" class="contract-info"></div>
+        </div>
+
+        <!-- Swap Form -->
+        <form id="swapForm" class="swap-form">
+            <!-- Hidden direction selector -->
+            <select id="swapDirection" style="display:none;">
+                <option value="dai-to-IAM">DAI → IAM</option>
+                <option value="IAM-to-dai">IAM → DAI</option>
+            </select>
+            
+            <!-- You Pay Section -->
+            <div class="swap-section pay-section">
+                <div class="amount-display-wrapper">
+                    <input type="number" id="swapAmount" class="amount-input" placeholder="0" step="any" inputmode="decimal" />
+                    <div class="usd-equivalent" id="payUsdEquivalent">$0.00</div>
+                </div>
+                <div class="token-selector" id="payTokenSelector">
+                    <div class="token-icon" id="payTokenIcon">
+                        <div class="token-icon-text">DAI</div>
+                    </div>
+                    <div class="token-info">
+                        <div class="token-symbol" id="payTokenSymbol">DAI</div>
+                        <div class="token-type" id="payTokenType">ERC20</div>
+                    </div>
+                    <div class="token-arrow">></div>
                 </div>
             </div>
+
+            <!-- Swap Direction Button -->
+            <button type="button" id="swapDirectionBtn" class="swap-direction-btn" title="جابجایی توکن‌ها">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M7 16V4M7 4L3 8M7 4L11 8M17 8V20M17 20L21 16M17 20L13 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+
+            <!-- You Get Section -->
+            <div class="swap-section get-section">
+                <div class="amount-display-wrapper">
+                    <div class="amount-display" id="getAmountDisplay">0</div>
+                    <div class="usd-equivalent" id="getUsdEquivalent">$0.00</div>
+                </div>
+                <div class="token-selector" id="getTokenSelector">
+                    <div class="token-icon" id="getTokenIcon">
+                        <div class="token-icon-text">IAM</div>
+                    </div>
+                    <div class="token-info">
+                        <div class="token-symbol" id="getTokenSymbol">IAM</div>
+                        <div class="token-type" id="getTokenType">ERC20</div>
+                    </div>
+                    <div class="token-arrow">></div>
+                </div>
+            </div>
+
+            <!-- Percentage Buttons -->
+            <div class="percentage-buttons">
+                <button type="button" class="percent-btn" data-percent="25">25%</button>
+                <button type="button" class="percent-btn" data-percent="50">50%</button>
+                <button type="button" class="percent-btn" data-percent="75">75%</button>
+                <button type="button" class="percent-btn" data-percent="100">100%</button>
+            </div>
+
+            <!-- Preview Swap Button -->
+            <button type="submit" class="preview-swap-btn" id="previewSwapBtn">
+                PREVIEW SWAP
+            </button>
+        </form>
+
+        <!-- Status Bar -->
+        <div class="status-bar">
+            <span class="status-label">Quote</span>
+            <span class="status-value" id="statusValue">Processing...</span>
         </div>
+
+        <!-- Status Message -->
+        <div id="swapStatus" class="swap-status"></div>
     </div>
 
     <!-- Scripts -->
     
+    <script src="js/config.js"></script>
     <script src="js/swap.js"></script>
     
     <!-- Wallet Connection and SwapManager Initialization -->
@@ -140,6 +153,18 @@
                 console.log('⚠️ Wallet not connected');
             }
         }
+        
+        // Contract toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const contractToggleBtn = document.getElementById('contractToggleBtn');
+            const contractSelectorWrapper = document.getElementById('contractSelectorWrapper');
+            
+            if (contractToggleBtn && contractSelectorWrapper) {
+                contractToggleBtn.addEventListener('click', function() {
+                    contractSelectorWrapper.classList.toggle('show');
+                });
+            }
+        });
         
         // Initialize SwapManager when page loads
         let swapManagerInitialized = false;
@@ -160,8 +185,8 @@
                     // Wait for DOM to fully load
                     await new Promise(resolve => setTimeout(resolve, 1000));
                     
-                    // Check for required elements (updated list without removed elements)
-                    const requiredElements = ['swapForm', 'swapDirection', 'swapAmount', 'maxBtn', 'swapStatus'];
+                    // Check for required elements
+                    const requiredElements = ['swapForm', 'swapDirection', 'swapAmount', 'swapStatus', 'previewSwapBtn'];
                     const missingElements = requiredElements.filter(id => !document.getElementById(id));
                     
                     if (missingElements.length > 0) {
@@ -179,11 +204,28 @@
                     
                     console.log('✅ All required elements are present');
                     
-                    // Check for required variables
-                    if (!window.DAI_ADDRESS || !window.DAI_ABI) {
-                        console.error('❌ DAI_ADDRESS or DAI_ABI variables are not defined');
-                        // Wait for config to load
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Check for required variables (wait for config.js to load)
+                    // Note: DAI_ABI is defined in swap.js, not config.js, so we only check for DAI_ADDRESS
+                    let retryCount = 0;
+                    while (!window.DAI_ADDRESS && retryCount < 5) {
+                        console.log(`⏳ Waiting for config.js to load... (attempt ${retryCount + 1}/5)`);
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        retryCount++;
+                    }
+                    
+                    if (!window.DAI_ADDRESS) {
+                        console.error('❌ DAI_ADDRESS variable is not defined after waiting. Please check config.js');
+                        const statusEl = document.getElementById('swapStatus');
+                        if (statusEl) {
+                            statusEl.innerHTML = '<div style="color: #ff4444; padding: 1rem; background: rgba(255, 68, 68, 0.1); border-radius: 8px;">⚠️ Configuration file (config.js) not loaded. Please refresh the page.</div>';
+                        }
+                        return;
+                    }
+                    
+                    // DAI_ABI is defined in swap.js, so we check if swap.js has loaded
+                    if (typeof SwapManager === 'undefined') {
+                        console.error('❌ SwapManager class not found. swap.js may not have loaded.');
+                        return;
                     }
                     
                     console.log('✅ DAI variables are present');
@@ -220,44 +262,364 @@
     </script>
 
     <style>
-        :root{ --bg:#0b0f17; --card:#0f1420; --elev:#121a2a; --border:#22304a; --accent:#5da0ff; --accent2:#33d69f; --text:#e6eaf0; }
-        body{ background:var(--bg); color:var(--text); }
-        .main-container{ max-width:560px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.25); }
-        /* Back Button */
-        .back-btn {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
-            background: linear-gradient(135deg, #a786ff, #00ff88);
-            color: #0a0f1c;
-            border: none;
-            padding: 0.6rem 1rem;
-            border-radius: 20px;
-            font-weight: 600;
-            cursor: pointer;
-            text-decoration: none;
-            font-size: 0.9rem;
-            z-index: 1000;
+        :root {
+            --bg: #0a0b0f;
+            --card: #121521;
+            --elev: #0f1319;
+            --border: #1f2433;
+            --accent: #5da0ff;
+            --accent2: #00ff88;
+            --text: #e6eaf0;
+            --text-muted: #94a3b8;
         }
-        
-        .back-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(167, 134, 255, 0.3);
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-        
-        /* Fix scrolling issue */
+
         html, body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             overflow-x: hidden;
             overflow-y: auto;
-            height: auto !important;
             min-height: 100vh;
+            padding: 0;
+            margin: 0;
         }
-        
-        .main-container { width:100%; min-height:100vh; overflow-y:auto; }
-        
 
-        
-        /* Swap specific styles */
+        /* Header */
+        .swap-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.5rem;
+            background: var(--card);
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-back-btn {
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            background: transparent;
+            color: var(--text);
+            font-size: 1.2rem;
+            cursor: pointer;
+            text-decoration: none;
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+
+        .header-back-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .header-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 0;
+        }
+
+        .header-spacer {
+            width: 36px;
+        }
+
+        /* Main Container */
+        .swap-container {
+            max-width: 420px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Contract Selector */
+        .contract-selector-wrapper {
+            margin-bottom: 1rem;
+        }
+
+        .contract-toggle-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1rem;
+            background: var(--elev);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .contract-toggle-btn:hover {
+            border-color: var(--accent);
+        }
+
+        .contract-selector-hidden {
+            display: none;
+        }
+
+        .contract-selector-hidden.show {
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        .contract-select {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--elev);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .contract-info {
+            margin-top: 0.5rem;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        /* Swap Form */
+        .swap-form {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Swap Section */
+        .swap-section {
+            background: var(--elev);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            position: relative;
+        }
+
+        .pay-section {
+            margin-bottom: 0.5rem;
+        }
+
+        .get-section {
+            margin-top: 0.5rem;
+        }
+
+        .section-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .amount-display-wrapper {
+            margin-bottom: 1rem;
+        }
+
+        .amount-input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 2rem;
+            font-weight: 600;
+            outline: none;
+            padding: 0;
+            margin-bottom: 0.25rem;
+        }
+
+        .amount-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .amount-display {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.25rem;
+        }
+
+        .usd-equivalent {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .token-selector {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .token-selector:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .token-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: var(--card);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .token-icon-text {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .token-info {
+            flex: 1;
+        }
+
+        .token-symbol {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.1rem;
+        }
+
+        .token-type {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .token-arrow {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+        }
+
+        /* Swap Direction Button */
+        .swap-direction-btn {
+            position: relative;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--card);
+            border: 3px solid var(--border);
+            color: var(--text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: -24px auto;
+            z-index: 10;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .swap-direction-btn:hover {
+            border-color: var(--accent);
+            background: var(--elev);
+            transform: translateX(-50%) rotate(180deg) scale(1.1);
+            box-shadow: 0 4px 12px rgba(93, 160, 255, 0.4);
+        }
+
+        .swap-direction-btn:active {
+            transform: translateX(-50%) rotate(180deg) scale(0.95);
+        }
+
+        /* Percentage Buttons */
+        .percentage-buttons {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .percent-btn {
+            padding: 0.6rem;
+            background: var(--elev);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text);
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .percent-btn:hover {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .percent-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Preview Swap Button */
+        .preview-swap-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--accent);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .preview-swap-btn:hover:not(:disabled) {
+            background: var(--accent2);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(93, 160, 255, 0.3);
+        }
+
+        .preview-swap-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Status Bar */
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: var(--elev);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+
+        .status-label {
+            color: var(--text-muted);
+        }
+
+        .status-value {
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        /* Swap Status */
         .swap-status {
             margin-top: 1rem;
             padding: 0.8rem;
@@ -267,50 +629,210 @@
             font-weight: 500;
             transition: all 0.3s ease;
         }
-        
-        .swap-status.success { background: rgba(46, 204, 113, 0.1); color: #2ecc71; border: 1px solid rgba(46, 204, 113, 0.25); }
-        
-        .swap-status.error { background: rgba(231, 76, 60, 0.1); color: #e74c3c; border: 1px solid rgba(231, 76, 60, 0.25); }
-        
-        .swap-status.loading { background: rgba(93, 160, 255, 0.1); color: #5da0ff; border: 1px solid rgba(93, 160, 255, 0.25); }
 
-        /* Messenger animations */
-        @keyframes messageSlide {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        .swap-status.success {
+            background: rgba(46, 204, 113, 0.1);
+            color: #2ecc71;
+            border: 1px solid rgba(46, 204, 113, 0.25);
         }
 
-        /* Responsive design */
+        .swap-status.error {
+            background: rgba(231, 76, 60, 0.1);
+            color: #e74c3c;
+            border: 1px solid rgba(231, 76, 60, 0.25);
+        }
+
+        .swap-status.loading {
+            background: rgba(93, 160, 255, 0.1);
+            color: #5da0ff;
+            border: 1px solid rgba(93, 160, 255, 0.25);
+        }
+
+        /* Loading Spinner */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--text-muted);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            #main-swap {
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                left: 0 !important;
-                right: 0 !important;
-                padding: 0.5rem !important;
+            /* Header */
+            .swap-header {
+                padding: 0.75rem 1rem;
             }
-            
-            .expand-content {
-                padding: 0.5rem !important;
+
+            .header-title {
+                font-size: 1rem;
             }
-            
-            .amount-input-group {
-                flex-direction: column !important;
-                gap: 0.3rem !important;
+
+            .header-back-btn {
+                width: 32px;
+                height: 32px;
+                font-size: 1rem;
             }
-            
-            .balance-display > div {
-                grid-template-columns: 1fr !important;
+
+            /* Container */
+            .swap-container {
+                padding: 1rem;
+                max-width: 100%;
+            }
+
+            /* Form */
+            .swap-form {
+                padding: 1rem;
+                border-radius: 12px;
+            }
+
+            /* Swap Sections */
+            .swap-section {
+                padding: 1rem;
+                border-radius: 10px;
+            }
+
+            .section-label {
+                font-size: 0.75rem;
+                margin-bottom: 0.5rem;
+            }
+
+            /* Amount Display */
+            .amount-input,
+            .amount-display {
+                font-size: 1.75rem;
+            }
+
+            .amount-display-wrapper {
+                margin-bottom: 0.75rem;
+            }
+
+            .usd-equivalent {
+                font-size: 0.75rem;
+            }
+
+            /* Token Selector */
+            .token-selector {
+                padding: 0.6rem;
+                gap: 0.5rem;
+            }
+
+            .token-icon {
+                width: 32px;
+                height:  cl32px;
+                font-size: 1rem;
+            }
+
+            .token-symbol {
+                font-size: 0.9rem;
+            }
+
+            .token-type {
+                font-size: 0.7rem;
+            }
+
+            .token-arrow {
+                font-size: 1rem;
+            }
+
+            /* Swap Direction Button */
+            .swap-direction-btn {
+                width:  badge4px;
+                height: 44px;
+                margin: -22px auto;
+            }
+
+            .swap-direction-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            /* Percentage Buttons */
+            .percentage-buttons {
+                gap: 0.4rem;
+                margin: 1rem 0;
+            }
+
+            .percent-btn {
+                padding: 0.5rem;
+                font-size: 0.85rem;
+            }
+
+            /* Preview Swap Button */
+            .preview-swap-btn {
+                padding: 0.875rem;
+                font-size: 0.95rem;
+                margin-top: 0.75rem;
+            }
+
+            /* Status Bar */
+            .status-bar {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            /* Contract Selector */
+            .contract-toggle-btn {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .contract-select {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.85rem;
+            }
+
+            .contract-info {
+                font-size: 0.75rem;
+            }
+
+            /* Swap Status */
+            .swap-status {
+                padding: 0.7rem;
+                font-size: 0.85rem;
             }
         }
-        
+
+        /* Very Small Screens */
+        @media (max-width: 375px) {
+            .swap-container {
+                padding: 0.75rem;
+            }
+
+            .swap-form {
+                padding: 0.75rem;
+            }
+
+            .swap-section {
+                padding: 0.875rem;
+            }
+
+            .amount-input,
+            .amount-display {
+                font-size: 1.5rem;
+            }
+
+            .percentage-buttons {
+                gap: 0.3rem;
+            }
+
+            .percent-btn {
+                padding: 0.45rem;
+                font-size: 0.8rem;
+            }
+
+            .preview-swap-btn {
+                padding: 0.8rem;
+                font-size: 0.9rem;
+            }
+        }
     </style>
     
 </body>
