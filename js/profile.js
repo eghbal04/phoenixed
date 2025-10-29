@@ -990,8 +990,9 @@ function setupUpgradeCapButton(user, contract, address) {
             const effectiveCap = cap === 0 ? 1 : cap; // مطابق قرارداد
             const totalPurchased = Number(ethers.formatUnits((user.totalPurchasedKind || 0).toString(), 18));
 
-            // مقدار موردنیاز برای یک پوینت: _daiToTokens(cap*3) = (cap*3)*1e18 / price
-            const requiredDai = effectiveCap * 3; // عدد بر حسب DAI
+            // مقدار موردنیاز برای یک پوینت: purchase function از cap*3 استفاده می‌کند
+            // اما getPointUpgradeCost از cap*5 استفاده می‌کند (برای نمایش)
+            const requiredDai = effectiveCap * 3; // عدد بر حسب DAI (برای purchase)
             const requiredIAM = tokenPriceNum > 0 ? (requiredDai / tokenPriceNum) : 0; // بر حسب IAM
             const remainingIAM = requiredIAM > totalPurchased ? (requiredIAM - totalPurchased) : 0;
 
@@ -1002,7 +1003,7 @@ function setupUpgradeCapButton(user, contract, address) {
             const timeSinceUpgrade = now - upgradeTime;
             const canUpgrade = (upgradeTime === 0) || (timeSinceUpgrade >= fifteenDays);
 
-            // هزینه نمایشی از قرارداد (اختیاری)
+            // هزینه نمایشی از قرارداد (اختیاری) - getPointUpgradeCost از cap*5 استفاده می‌کند
             let upgradeCost = null;
             if (typeof contract.getPointUpgradeCost === 'function') {
                 try {
