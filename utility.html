@@ -1401,49 +1401,36 @@
           throw new Error('You are not registered');
         }
         
-        // Simple sequential iteration from 1 to total wallets
+        // DFS to traverse only downline (subtree) of connected account
         async function getAllDownlineUsers(rootAddress) {
           const users = [];
+          const visited = new Set();
           
-          // Get total wallets count
-          let totalWallets = 0;
-          try {
-            if (typeof contract.wallets === 'function') {
-              totalWallets = Number(await contract.wallets());
-            } else if (typeof contract.walletz === 'function') {
-              totalWallets = Number(await contract.walletz());
-            } else if (typeof contract.totalWallets === 'function') {
-              totalWallets = Number(await contract.totalWallets());
-            }
-          } catch (e) {
-            console.warn('Could not get total wallets', e);
-            return users;
+          // Start with children of root, not root itself
+          const rootUser = await contract.users(rootAddress);
+          const stack = [];
+          
+          if (rootUser.leftChild && rootUser.leftChild !== '0x0000000000000000000000000000000000000000') {
+            stack.push(rootUser.leftChild);
+          }
+          if (rootUser.rightChild && rootUser.rightChild !== '0x0000000000000000000000000000000000000000') {
+            stack.push(rootUser.rightChild);
           }
           
-          if (totalWallets === 0) {
-            return users;
-          }
+          let processedCount = 0;
           
-          // Simple loop from 1 to totalWallets
-          for (let num = 1; num <= totalWallets; num++) {
+          while (stack.length > 0) {
+            const addr = stack.pop();
+            const key = addr.toLowerCase();
+            
+            if (visited.has(key)) continue;
+            visited.add(key);
+            processedCount++;
+            
             try {
-              const addr = await contract.getAddressByNumber(num);
-              if (!addr || addr === '0x0000000000000000000000000000000000000000') {
-                continue;
-              }
-              
-              // Skip root user
-              if (addr.toLowerCase() === rootAddress.toLowerCase()) {
-                continue;
-              }
-              
-              // Check if in downline
-              const isInDownline = await contract.isInDownline(rootAddress, addr);
-              if (!isInDownline) {
-                continue;
-              }
-              
               const user = await contract.users(addr);
+              
+              // Check if user has unclaimed points
               const binaryPoints = BigInt(user.binaryPoints || 0);
               const binaryPointsClaimed = BigInt(user.binaryPointsClaimed || 0);
               const unclaimedPoints = binaryPoints > binaryPointsClaimed ? (binaryPoints - binaryPointsClaimed) : 0n;
@@ -1451,7 +1438,7 @@
               if (unclaimedPoints > 0n) {
                 const lastClaimTime = Number(user.lastClaimTime || 0);
                 const currentTime = Math.floor(Date.now() / 1000);
-                const eighteenHours = 18 * 3600;
+                const eighteenHours = 18 * 3600; // 18 hours in seconds
                 const timeSinceLastClaim = currentTime - lastClaimTime;
                 const canClaim = timeSinceLastClaim >= eighteenHours;
                 
@@ -1466,13 +1453,21 @@
                   binaryPointsClaimed: binaryPointsClaimed.toString()
                 });
               }
+              
+              // Add children to stack for DFS traversal
+              if (user.leftChild && user.leftChild !== '0x0000000000000000000000000000000000000000') {
+                stack.push(user.leftChild);
+              }
+              if (user.rightChild && user.rightChild !== '0x0000000000000000000000000000000000000000') {
+                stack.push(user.rightChild);
+              }
+              
+              // Update progress every 10 nodes
+              if (processedCount % 10 === 0) {
+                resultDiv.innerHTML = `⏳ Scanning downline... ${processedCount} users checked`;
+              }
             } catch (e) {
-              // Continue to next number
-            }
-            
-            // Update progress
-            if (num % 10 === 0) {
-              resultDiv.innerHTML = `⏳ Scanning... ${num}/${totalWallets}`;
+              console.warn('Error fetching user at', addr, e);
             }
           }
           
