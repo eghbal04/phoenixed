@@ -1400,11 +1400,86 @@
             }
           </style>
         </div>
+        <div style="margin: 0.75rem 0; padding: 0.6rem; background: rgba(0,255,136,0.1); border-radius: 8px; text-align: center;">
+          <strong style="color:#00ff88;">Downline pending users: <span id="pending-total">0</span></strong>
+        </div>
+        <div style="display:grid; gap:1rem;">
+          <div>
+            <div style="color:#9ecbff;font-weight:700;margin-bottom:.25rem;">✅ Proxy-claimable (≥ 18h): <span id="count-proxy">0</span></div>
+            <div style="display:grid; gap:.6rem;" id="downline-proxy"></div>
+          </div>
+          <div>
+            <div style="color:#9ecbff;font-weight:700;margin-bottom:.25rem;">🕛 Self-claimable (≥ 12h and < 18h): <span id="count-self">0</span></div>
+            <div style="display:grid; gap:.6rem;" id="downline-self"></div>
+          </div>
+          <div>
+            <div style="color:#9ecbff;font-weight:700;margin-bottom:.25rem;">⏳ Not ready (< 12h): <span id="count-wait">0</span></div>
+            <div style="display:grid; gap:.6rem;" id="downline-wait"></div>
+          </div>
+        </div>
       `;
       resultDiv.style.display = 'block';
       resultDiv.style.background = 'rgba(167,134,255,0.1)';
       resultDiv.style.borderColor = 'rgba(167,134,255,0.2)';
-      
+
+      // Helper to render one card
+      function renderItemCard(user, allowAction, mode) {
+        const hoursSinceClaim = Math.floor(user.timeSinceLastClaim / 3600);
+        const timeRemaining18 = user.canProxyClaim ? 0 : (18 * 3600 - user.timeSinceLastClaim);
+        const timeRemaining12 = user.canSelfClaim ? 0 : (12 * 3600 - user.timeSinceLastClaim);
+        const formatTime = (seconds) => {
+          const h = Math.floor(seconds / 3600);
+          const m = Math.floor((seconds % 3600) / 60);
+          if (h > 0) return `${h}h ${m}m`;
+          return `${m}m`;
+        };
+        const formatAddress = (addr) => addr.substring(0, 6) + '...' + addr.substring(38);
+        return `
+          <div style="
+            background: ${user.canProxyClaim ? 'rgba(0,255,136,0.1)' : user.canSelfClaim ? 'rgba(255,193,7,0.1)' : 'rgba(167,134,255,0.1)'};
+            border: 1px solid ${user.canProxyClaim ? 'rgba(0,255,136,0.3)' : user.canSelfClaim ? 'rgba(255,193,7,0.3)' : 'rgba(167,134,255,0.3)'};
+            border-radius: 8px;
+            padding: 1rem;
+          ">
+            <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
+              <div>
+                <div style="font-weight: 600; color: ${user.canProxyClaim ? '#00ff88' : user.canSelfClaim ? '#ffc107' : '#a786ff'}; margin-bottom: 0.25rem;">
+                  User #${user.num} • ${formatAddress(user.address)}
+                </div>
+                <div style="font-size: 0.85rem; color: #a0aec0;">
+                  Unclaimed: <strong style="color: #e2e8f0;">${user.unclaimedPoints}</strong> points
+                </div>
+                <div style="font-size: 0.8rem; color: #a0aec0; margin-top: 0.25rem;">
+                  ${user.lastClaimTime === 0 ? 'Never claimed' : `${hoursSinceClaim} hours since last claim`}
+                </div>
+              </div>
+              ${user.canProxyClaim && allowAction ? `
+                <button 
+                  onclick=\"window.claimForUser('${user.address}')\" 
+                  class=\"utility-btn\" 
+                  style=\"padding: 0.5rem 1rem; font-size: 0.85rem; white-space: nowrap;\"
+                  id=\"claim-btn-${user.address.toLowerCase()}\"
+                >
+                  💰 Claim
+                </button>
+              ` : `
+                <div style=\"
+                  padding: 0.5rem 1rem; 
+                  background: rgba(100,100,100,0.2); 
+                  border-radius: 8px; 
+                  font-size: 0.85rem;
+                  color: #a0aec0;
+                  text-align: center;
+                  white-space: nowrap;
+                \">
+                  ${mode === 'self' ? '🕛 User can self-claim' : mode === 'wait' ? `⏳ ${formatTime(timeRemaining12)} to 12h` : `⏳ ${formatTime(timeRemaining18)} to 18h`}
+                </div>
+              `}
+            </div>
+          </div>
+        `;
+      }
+
       try {
         const connection = await window.connectWallet();
         if (!connection || !connection.contract) {
@@ -1418,167 +1493,90 @@
         const eighteenHours = 18 * 3600;
         const NULL_ADDR = '0x0000000000000000000000000000000000000000';
 
+        // Compute pending status for a single address
         async function computePending(addr) {
           const user = await contract.users(addr);
           const binaryPoints = BigInt(user.binaryPoints || 0);
-          const binaryPointsClaimed = BigInt(user.binaryPointsClaimed || 0);
-          const unclaimedPoints = binaryPoints > binaryPointsClaimed ? (binaryPoints - binaryPointsClaimed) : 0n;
+          // Only current points matter for eligibility; ignore historical claimed count
+          const unclaimedPoints = binaryPoints;
           if (unclaimedPoints === 0n) return null;
           const lastClaimTime = Number(user.lastClaimTime || 0);
           const timeSinceLastClaim = now - lastClaimTime;
-          const canClaim = timeSinceLastClaim >= eighteenHours;
+          const canProxyClaim = timeSinceLastClaim >= eighteenHours;
+          const canSelfClaim = timeSinceLastClaim >= (12 * 3600);
           return {
             address: addr,
             num: user.num,
             unclaimedPoints: unclaimedPoints.toString(),
             lastClaimTime,
             timeSinceLastClaim,
-            canClaim
+            canProxyClaim,
+            canSelfClaim
           };
         }
 
-        // Downline traversal (DFS) from current user
-        const downline = [];
-        try {
-          const stack = [currentAddress];
-          const visited = new Set();
-          let guard = 0;
-          while (stack.length && guard < 5000) {
-            const addr = stack.pop();
-            const key = addr.toLowerCase();
-            if (visited.has(key)) { guard++; continue; }
-            visited.add(key);
-            const user = await contract.users(addr);
-            // push children
-            if (user.leftChild && user.leftChild !== NULL_ADDR) stack.push(user.leftChild);
-            if (user.rightChild && user.rightChild !== NULL_ADDR) stack.push(user.rightChild);
-            // collect pending except self (claim only for downline)
-            if (addr.toLowerCase() !== currentAddress.toLowerCase()) {
-              const p = await computePending(addr).catch(()=>null);
-              if (p) downline.push(p);
+        // Downline traversal (DFS) from current user with incremental rendering
+        const visited = new Set();
+        const stack = [currentAddress];
+        let total = 0, cntProxy = 0, cntSelf = 0, cntWait = 0;
+        const elProxy = () => document.getElementById('downline-proxy');
+        const elSelf = () => document.getElementById('downline-self');
+        const elWait = () => document.getElementById('downline-wait');
+        const elTotal = () => document.getElementById('pending-total');
+        const elCntProxy = () => document.getElementById('count-proxy');
+        const elCntSelf = () => document.getElementById('count-self');
+        const elCntWait = () => document.getElementById('count-wait');
+
+        while (stack.length) {
+          const addr = stack.pop();
+          const key = addr.toLowerCase();
+          if (visited.has(key)) continue;
+          visited.add(key);
+
+          const user = await contract.users(addr);
+          if (user.leftChild && user.leftChild !== NULL_ADDR) stack.push(user.leftChild);
+          if (user.rightChild && user.rightChild !== NULL_ADDR) stack.push(user.rightChild);
+
+          if (addr.toLowerCase() !== currentAddress.toLowerCase()) {
+            const p = await computePending(addr).catch(()=>null);
+            if (p) {
+              total += 1;
+              if (elTotal()) elTotal().textContent = String(total);
+              if (p.canProxyClaim) {
+                cntProxy += 1; if (elCntProxy()) elCntProxy().textContent = String(cntProxy);
+                if (elProxy()) elProxy().innerHTML += renderItemCard(p, true, 'proxy');
+              } else if (p.canSelfClaim) {
+                cntSelf += 1; if (elCntSelf()) elCntSelf().textContent = String(cntSelf);
+                if (elSelf()) elSelf().innerHTML += renderItemCard(p, false, 'self');
+              } else {
+                cntWait += 1; if (elCntWait()) elCntWait().textContent = String(cntWait);
+                if (elWait()) elWait().innerHTML += renderItemCard(p, false, 'wait');
+              }
             }
-            // update progress text
-            const pgTxt = document.getElementById('pending-progress-text');
-            if (pgTxt) pgTxt.textContent = `Checked: ${visited.size}`;
-            guard++;
           }
-        } catch (_) {}
 
-        if (downline.length === 0) {
-          resultDiv.innerHTML = `
-            <div style="text-align: center; padding: 1rem; color: #a0aec0;">
-              ✅ No pending claims found in your downline
-            </div>
-          `;
-          resultDiv.style.background = 'rgba(0,255,136,0.1)';
-          resultDiv.style.borderColor = 'rgba(0,255,136,0.2)';
-          return;
-        }
-        
-        const sortPendings = (arr) => arr.sort((a,b)=>{
-          if (a.canClaim !== b.canClaim) return a.canClaim ? -1 : 1; // claimable first
-          const da = BigInt(a.unclaimedPoints), db = BigInt(b.unclaimedPoints);
-          if (da === db) return 0;
-          return db > da ? 1 : -1; // higher points first
-        });
-        sortPendings(downline);
-        
-        const formatTime = (seconds) => {
-          const hours = Math.floor(seconds / 3600);
-          const minutes = Math.floor((seconds % 3600) / 60);
-          if (hours > 0) return `${hours}h ${minutes}m`;
-          return `${minutes}m`;
-        };
-        
-        const formatAddress = (addr) => addr.substring(0, 6) + '...' + addr.substring(38);
-
-        let html = `
-          <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(0,255,136,0.1); border-radius: 8px; text-align: center;">
-            <strong style="color: #00ff88;">Downline pending users: ${downline.length}</strong>
-          </div>
-          <div>
-            <div style="color:#9ecbff; font-weight:700; margin-bottom:.5rem;">⬇️ Downline</div>
-            <div style="display:grid; gap:.6rem;" id="downline-list"></div>
-          </div>
-        `;
-        
-        function renderItem(user, allowAction) {
-          const hoursSinceClaim = Math.floor(user.timeSinceLastClaim / 3600);
-          const timeRemaining = user.canClaim ? 0 : (18 * 3600 - user.timeSinceLastClaim);
-          
-          return `
-            <div style="
-              background: ${user.canClaim ? 'rgba(0,255,136,0.1)' : 'rgba(255,193,7,0.1)'};
-              border: 1px solid ${user.canClaim ? 'rgba(0,255,136,0.3)' : 'rgba(255,193,7,0.3)'};
-              border-radius: 8px;
-              padding: 1rem;
-            ">
-              <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem;">
-                <div>
-                  <div style="font-weight: 600; color: ${user.canClaim ? '#00ff88' : '#ffc107'}; margin-bottom: 0.25rem;">
-                    User #${user.num} • ${formatAddress(user.address)}
-                  </div>
-                  <div style="font-size: 0.85rem; color: #a0aec0;">
-                    Unclaimed: <strong style="color: #e2e8f0;">${user.unclaimedPoints}</strong> points
-                  </div>
-                  <div style="font-size: 0.8rem; color: #a0aec0; margin-top: 0.25rem;">
-                    ${user.lastClaimTime === 0 ? 'Never claimed' : `${hoursSinceClaim} hours since last claim`}
-                  </div>
-                </div>
-                ${user.canClaim && allowAction ? `
-                  <button 
-                    onclick="window.claimForUser('${user.address}')" 
-                    class="utility-btn" 
-                    style="padding: 0.5rem 1rem; font-size: 0.85rem; white-space: nowrap;"
-                    id="claim-btn-${user.address.toLowerCase()}"
-                  >
-                    💰 Claim
-                  </button>
-                  <div id="claim-status-${user.address.toLowerCase()}" style="display: none;"></div>
-                ` : `
-                  <div style="
-                    padding: 0.5rem 1rem; 
-                    background: rgba(100,100,100,0.2); 
-                    border-radius: 8px; 
-                    font-size: 0.85rem;
-                    color: #a0aec0;
-                    text-align: center;
-                    white-space: nowrap;
-                  ">
-                    ⏳ ${formatTime(timeRemaining)} remaining
-                  </div>
-                `}
-              </div>
-            </div>
-          `;
+          const pgTxt = document.getElementById('pending-progress-text');
+          if (pgTxt) pgTxt.textContent = `Checked: ${visited.size}`;
         }
 
-        // Build lists
-        const downlineHtml = downline.map(d => renderItem(d, true)).join('');
-        
-        html += `
-          <style>
-            @media (max-width: 768px) {
-              #pending-claims-result > div > div > div {
-                grid-template-columns: 1fr !important;
-                gap: 0.5rem !important;
-              }
-              #pending-claims-result button {
-                width: 100% !important;
-                margin-top: 0.5rem;
-              }
-              #pending-claims-result > div > div > div > div {
-                padding: 0.75rem !important;
-              }
-            }
-          </style>
-        `;
-        resultDiv.innerHTML = html;
-        const downList = resultDiv.querySelector('#downline-list');
-        if (downList) downList.innerHTML = downlineHtml || '<div style="color:#a0aec0;">No downline pending claims</div>';
+        // Mark progress as completed and stop animation
+        (function finalizePendingProgress(){
+          const pgTxt = document.getElementById('pending-progress-text');
+          const bar = document.querySelector('#pending-progress .pending-progress-bar');
+          const pg = document.getElementById('pending-progress');
+          if (bar) {
+            bar.style.animation = 'none';
+            bar.style.width = '100%';
+          }
+          if (pgTxt) pgTxt.textContent = 'Completed';
+          if (pg) {
+            setTimeout(function(){ pg.style.display = 'none'; }, 1200);
+          }
+        })();
+
+        // Finalize background styling
         resultDiv.style.background = 'rgba(167,134,255,0.1)';
         resultDiv.style.borderColor = 'rgba(167,134,255,0.2)';
-        
       } catch (error) {
         console.error('Error loading pending claims:', error);
         resultDiv.innerHTML = `
@@ -1606,12 +1604,11 @@
           throw new Error('Target user is not in your downline');
         }
         
-        // Get user data to verify claim conditions
+        // Get user data to verify claim conditions (current points only)
         const user = await contract.users(targetAddress);
         const binaryPoints = BigInt(user.binaryPoints || 0);
-        const binaryPointsClaimed = BigInt(user.binaryPointsClaimed || 0);
-        const unclaimedPoints = binaryPoints > binaryPointsClaimed ? (binaryPoints - binaryPointsClaimed) : 0n;
-        
+        const unclaimedPoints = binaryPoints; // current unclaimed points
+
         if (unclaimedPoints === 0n) {
           throw new Error('User has no unclaimed points');
         }
