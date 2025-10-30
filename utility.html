@@ -1383,7 +1383,24 @@
       const resultDiv = document.getElementById('pending-claims-result');
       if (!resultDiv) return;
       
-      resultDiv.innerHTML = '⏳ Loading downline...';
+      resultDiv.innerHTML = `
+        <div id="pending-progress" style="padding:0.75rem 1rem;background:rgba(167,134,255,0.1);border:1px solid rgba(167,134,255,0.2);border-radius:8px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+            <div style="color:#9ecbff;font-weight:700;">Scanning downline...</div>
+            <div id="pending-progress-text" style="color:#a0aec0;font-size:0.85rem;">Starting</div>
+          </div>
+          <div style="position:relative;height:8px;background:rgba(167,134,255,0.15);border-radius:6px;margin-top:8px;overflow:hidden;">
+            <div class="pending-progress-bar" style="position:absolute;left:0;top:0;height:100%;width:30%;background:linear-gradient(90deg,#a786ff,#00ff88);border-radius:6px;animation: pending-indeterminate 1.2s infinite;"></div>
+          </div>
+          <style>
+            @keyframes pending-indeterminate {
+              0% { transform: translateX(-100%); }
+              50% { transform: translateX(30%); }
+              100% { transform: translateX(100%); }
+            }
+          </style>
+        </div>
+      `;
       resultDiv.style.display = 'block';
       resultDiv.style.background = 'rgba(167,134,255,0.1)';
       resultDiv.style.borderColor = 'rgba(167,134,255,0.2)';
@@ -1440,6 +1457,9 @@
               const p = await computePending(addr).catch(()=>null);
               if (p) downline.push(p);
             }
+            // update progress text
+            const pgTxt = document.getElementById('pending-progress-text');
+            if (pgTxt) pgTxt.textContent = `Checked: ${visited.size}`;
             guard++;
           }
         } catch (_) {}
