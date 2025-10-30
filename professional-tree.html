@@ -3311,7 +3311,16 @@
             };
 
             const d = {};
-            d['IAM Index'] = iamIndex?.toString?.() || String(iamIndex ?? '');
+            // Prefer on-chain User.num for IAM Index; fallback to provided iamIndex
+            const iamIndexComputed = (() => {
+                try {
+                    const v = userData?.num !== undefined ? userData.num : (userData?.index !== undefined ? userData.index : iamIndex);
+                    if (typeof v === 'bigint') return v.toString();
+                    if (v === undefined || v === null) return String(iamIndex ?? '');
+                    return v.toString ? v.toString() : String(v);
+                } catch (_) { return String(iamIndex ?? ''); }
+            })();
+            d['IAM Index'] = iamIndexComputed;
             d['Address'] = shortenAddress(address || '');
             d['parent'] = userData?.parent ? shortenAddress(userData.parent) : '-';
             d['leftChild'] = userData?.leftChild ? shortenAddress(userData.leftChild) : '-';
