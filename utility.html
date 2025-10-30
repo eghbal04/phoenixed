@@ -368,9 +368,9 @@
       <div class="utility-card" dir="ltr">
         <h3><span class="icon">💰</span>Pending Claims Manager</h3>
         <div class="calculator-section">
-          <button class="utility-btn" style="width:100%;" onclick="window.loadPendingClaims()">🔍 Load ALL Users with Unclaimed Points</button>
+          <button class="utility-btn" style="width:100%;" onclick="window.loadPendingClaims()">🔍 Load Downline Pending Claims</button>
           <div class="calculator-result" id="pending-claims-result" style="display:none; overflow-y: auto;"></div>
-          <small style="color:#a0aec0; display:block; margin-top:.5rem;">Shows ALL users from #1 to last with unclaimed points. Claim is only possible for your downline if contract permits.</small>
+          <small style="color:#a0aec0; display:block; margin-top:.5rem;">Scans your entire downline using tree traversal. Proxy claim is only allowed for downline (not upline).</small>
         </div>
       </div>
 
@@ -1378,12 +1378,12 @@
       }
     }
 
-    // Load pending claims (scan ALL users from #1 to total)
+    // Load pending claims (Downline only via DFS traversal)
     window.loadPendingClaims = async function() {
       const resultDiv = document.getElementById('pending-claims-result');
       if (!resultDiv) return;
       
-      resultDiv.innerHTML = '⏳ Loading all users...';
+      resultDiv.innerHTML = '⏳ Loading downline...';
       resultDiv.style.display = 'block';
       resultDiv.style.background = 'rgba(167,134,255,0.1)';
       resultDiv.style.borderColor = 'rgba(167,134,255,0.2)';
@@ -1394,74 +1394,60 @@
           throw new Error('Contract connection failed');
         }
         
-        const { contract } = connection;
-        
-        // Determine total users count
-        let totalUsers = 0n;
+        const { contract, address: currentAddress } = connection;
+
+        // Helpers
+        const now = Math.floor(Date.now() / 1000);
+        const eighteenHours = 18 * 3600;
+        const NULL_ADDR = '0x0000000000000000000000000000000000000000';
+
+        async function computePending(addr) {
+          const user = await contract.users(addr);
+          const binaryPoints = BigInt(user.binaryPoints || 0);
+          const binaryPointsClaimed = BigInt(user.binaryPointsClaimed || 0);
+          const unclaimedPoints = binaryPoints > binaryPointsClaimed ? (binaryPoints - binaryPointsClaimed) : 0n;
+          if (unclaimedPoints === 0n) return null;
+          const lastClaimTime = Number(user.lastClaimTime || 0);
+          const timeSinceLastClaim = now - lastClaimTime;
+          const canClaim = timeSinceLastClaim >= eighteenHours;
+          return {
+            address: addr,
+            num: user.num,
+            unclaimedPoints: unclaimedPoints.toString(),
+            lastClaimTime,
+            timeSinceLastClaim,
+            canClaim
+          };
+        }
+
+        // Downline traversal (DFS) from current user
+        const downline = [];
         try {
-          if (typeof contract.wallets === 'function') {
-            totalUsers = await contract.wallets();
-          } else if (typeof contract.totalUsers === 'function') {
-            totalUsers = await contract.totalUsers();
-          } else if (typeof contract.usersCount === 'function') {
-            totalUsers = await contract.usersCount();
+          const stack = [currentAddress];
+          const visited = new Set();
+          let guard = 0;
+          while (stack.length && guard < 5000) {
+            const addr = stack.pop();
+            const key = addr.toLowerCase();
+            if (visited.has(key)) { guard++; continue; }
+            visited.add(key);
+            const user = await contract.users(addr);
+            // push children
+            if (user.leftChild && user.leftChild !== NULL_ADDR) stack.push(user.leftChild);
+            if (user.rightChild && user.rightChild !== NULL_ADDR) stack.push(user.rightChild);
+            // collect pending except self (claim only for downline)
+            if (addr.toLowerCase() !== currentAddress.toLowerCase()) {
+              const p = await computePending(addr).catch(()=>null);
+              if (p) downline.push(p);
+            }
+            guard++;
           }
         } catch (_) {}
-        if (!totalUsers || totalUsers === 0n) {
-          throw new Error('Total users not available');
-        }
-        
-        async function getAllUsersWithUnclaimed() {
-          const users = [];
-          let processedCount = 0;
-          const now = Math.floor(Date.now() / 1000);
-          const eighteenHours = 18 * 3600;
-          const total = Number(totalUsers);
-          for (let i = 1; i <= total; i++) {
-            try {
-              const addr = await contract.getAddressByNumber(i);
-              if (!addr || addr === '0x0000000000000000000000000000000000000000') {
-                processedCount++;
-                if (processedCount % 50 === 0) resultDiv.innerHTML = `⏳ Scanning all users... ${processedCount}/${total} checked`;
-                continue;
-              }
-              const user = await contract.users(addr);
-              const binaryPoints = BigInt(user.binaryPoints || 0);
-              const binaryPointsClaimed = BigInt(user.binaryPointsClaimed || 0);
-              const unclaimedPoints = binaryPoints > binaryPointsClaimed ? (binaryPoints - binaryPointsClaimed) : 0n;
-              if (unclaimedPoints > 0n) {
-                const lastClaimTime = Number(user.lastClaimTime || 0);
-                const timeSinceLastClaim = now - lastClaimTime;
-                const canClaim = timeSinceLastClaim >= eighteenHours;
-                users.push({
-                  address: addr,
-                  num: user.num,
-                  unclaimedPoints: unclaimedPoints.toString(),
-                  lastClaimTime,
-                  timeSinceLastClaim,
-                  canClaim,
-                  binaryPoints: binaryPoints.toString(),
-                  binaryPointsClaimed: binaryPointsClaimed.toString()
-                });
-              }
-              processedCount++;
-              if (processedCount % 50 === 0) resultDiv.innerHTML = `⏳ Scanning all users... ${processedCount}/${total} checked`;
-            } catch (e) {
-              processedCount++;
-              if (processedCount % 50 === 0) resultDiv.innerHTML = `⏳ Scanning all users... ${processedCount}/${total} checked`;
-            }
-          }
-          return users;
-        }
-        
-        resultDiv.innerHTML = '⏳ Scanning all users... This may take a while depending on total users...';
-        
-        const pendingUsers = await getAllUsersWithUnclaimed();
-        
-        if (pendingUsers.length === 0) {
+
+        if (downline.length === 0) {
           resultDiv.innerHTML = `
             <div style="text-align: center; padding: 1rem; color: #a0aec0;">
-              ✅ No users with unclaimed points found in your downline
+              ✅ No pending claims found in your downline
             </div>
           `;
           resultDiv.style.background = 'rgba(0,255,136,0.1)';
@@ -1469,15 +1455,13 @@
           return;
         }
         
-        // Sort by canClaim status (claimable first) and then by unclaimed points
-        pendingUsers.sort((a, b) => {
-          if (a.canClaim !== b.canClaim) return b.canClaim ? 1 : -1;
-          const aPoints = BigInt(a.unclaimedPoints);
-          const bPoints = BigInt(b.unclaimedPoints);
-          if (bPoints > aPoints) return 1;
-          if (bPoints < aPoints) return -1;
-          return 0;
+        const sortPendings = (arr) => arr.sort((a,b)=>{
+          if (a.canClaim !== b.canClaim) return a.canClaim ? -1 : 1; // claimable first
+          const da = BigInt(a.unclaimedPoints), db = BigInt(b.unclaimedPoints);
+          if (da === db) return 0;
+          return db > da ? 1 : -1; // higher points first
         });
+        sortPendings(downline);
         
         const formatTime = (seconds) => {
           const hours = Math.floor(seconds / 3600);
@@ -1486,22 +1470,23 @@
           return `${minutes}m`;
         };
         
-        const formatAddress = (addr) => {
-          return addr.substring(0, 6) + '...' + addr.substring(38);
-        };
-        
+        const formatAddress = (addr) => addr.substring(0, 6) + '...' + addr.substring(38);
+
         let html = `
           <div style="margin-bottom: 1rem; padding: 0.75rem; background: rgba(0,255,136,0.1); border-radius: 8px; text-align: center;">
-            <strong style="color: #00ff88;">Found ${pendingUsers.length} user(s) with unclaimed points</strong>
+            <strong style="color: #00ff88;">Downline pending users: ${downline.length}</strong>
           </div>
-          <div style="display: grid; gap: 0.75rem;">
+          <div>
+            <div style="color:#9ecbff; font-weight:700; margin-bottom:.5rem;">⬇️ Downline</div>
+            <div style="display:grid; gap:.6rem;" id="downline-list"></div>
+          </div>
         `;
         
-        pendingUsers.forEach((user, index) => {
+        function renderItem(user, allowAction) {
           const hoursSinceClaim = Math.floor(user.timeSinceLastClaim / 3600);
           const timeRemaining = user.canClaim ? 0 : (18 * 3600 - user.timeSinceLastClaim);
           
-          html += `
+          return `
             <div style="
               background: ${user.canClaim ? 'rgba(0,255,136,0.1)' : 'rgba(255,193,7,0.1)'};
               border: 1px solid ${user.canClaim ? 'rgba(0,255,136,0.3)' : 'rgba(255,193,7,0.3)'};
@@ -1520,7 +1505,7 @@
                     ${user.lastClaimTime === 0 ? 'Never claimed' : `${hoursSinceClaim} hours since last claim`}
                   </div>
                 </div>
-                ${user.canClaim ? `
+                ${user.canClaim && allowAction ? `
                   <button 
                     onclick="window.claimForUser('${user.address}')" 
                     class="utility-btn" 
@@ -1546,10 +1531,12 @@
               </div>
             </div>
           `;
-        });
+        }
+
+        // Build lists
+        const downlineHtml = downline.map(d => renderItem(d, true)).join('');
         
         html += `
-          </div>
           <style>
             @media (max-width: 768px) {
               #pending-claims-result > div > div > div {
@@ -1567,6 +1554,8 @@
           </style>
         `;
         resultDiv.innerHTML = html;
+        const downList = resultDiv.querySelector('#downline-list');
+        if (downList) downList.innerHTML = downlineHtml || '<div style="color:#a0aec0;">No downline pending claims</div>';
         resultDiv.style.background = 'rgba(167,134,255,0.1)';
         resultDiv.style.borderColor = 'rgba(167,134,255,0.2)';
         
@@ -1582,7 +1571,7 @@
       }
     };
 
-    // Claim points for a specific user (must be in downline)
+    // Claim points for a specific user — contract supports ONLY downline proxy claim
     window.claimForUser = async function(targetAddress) {
       try {
         const connection = await window.connectWallet();
@@ -1591,11 +1580,10 @@
         }
         
         const { contract, address: currentAddress } = connection;
-        
-        // Verify target is in downline
+        // Verify target is in downline (per contract restriction)
         const isInDownline = await contract.isInDownline(currentAddress, targetAddress);
         if (!isInDownline) {
-          throw new Error('User is not in your downline');
+          throw new Error('Target user is not in your downline');
         }
         
         // Get user data to verify claim conditions
@@ -1618,15 +1606,12 @@
           throw new Error(`Still ${remaining} hours remaining until next claim`);
         }
         
-        // Check if proxyClaimForDownline exists, otherwise use regular claim
-        // Note: Regular claim() only works for the caller themselves
-        // If proxyClaimForDownline exists, use it; otherwise show a message
+        // Attempt proxy claim (contract function: proxyClaimForDownline)
         let tx;
         if (typeof contract.proxyClaimForDownline === 'function') {
           tx = await contract.proxyClaimForDownline(targetAddress);
         } else {
-          // If no proxy function, user must claim themselves
-          throw new Error('Claiming for downline is not available. User must claim themselves.');
+          throw new Error('Proxy claim is not available on this contract. User must claim themselves.');
         }
         
         showStatus('⏳ Transaction sent, waiting for confirmation...', 'info');
