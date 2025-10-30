@@ -1662,7 +1662,155 @@
         console.error('Error claiming for user:', error);
       }
     };
+    // Upline Manager: list ancestors with like/dislike controls
+    window.loadUpline = async function() {
+      try {
+        const connection = await window.connectWallet();
+        if (!connection || !connection.contract) {
+          throw new Error('Contract connection failed');
+        }
+        const { contract, address: currentAddress } = connection;
+
+        // Resolve ancestors using contract helper
+        let ancestors = [];
+        if (typeof contract.getAncestors === 'function') {
+          ancestors = await contract.getAncestors(currentAddress);
+        } else if (typeof contract.getParent === 'function') {
+          // Fallback walk up manually
+          let cur = await contract.getParent(currentAddress);
+          const NULL_ADDR = '0x0000000000000000000000000000000000000000';
+          const seen = new Set();
+          while (cur && cur !== NULL_ADDR && !seen.has(cur.toLowerCase())) {
+            ancestors.push(cur);
+            seen.add(cur.toLowerCase());
+            cur = await contract.getParent(cur);
+          }
+        }
+
+        const container = document.getElementById('upline-list');
+        if (!container) return;
+        container.style.display = 'block';
+        container.style.background = 'rgba(167,134,255,0.08)';
+        container.style.borderColor = 'rgba(167,134,255,0.2)';
+        if (!ancestors || ancestors.length === 0) {
+          container.innerHTML = '<div style="padding:0.75rem;color:#a0aec0;text-align:center;">No upline found</div>';
+          return;
+        }
+
+        const formatAddr = (a) => a.substring(0,6) + '...' + a.substring(38);
+        const rows = [];
+        const list = Array.from(ancestors);
+        for (let i = list.length - 1; i >= 0; i--) {
+          const addr = list[i];
+          // Fetch vote status
+          let likes = 0, dislikes = 0, my = 0;
+          let num = 0;
+          try {
+            if (typeof contract.getVoteStatus === 'function') {
+              const vs = await contract.getVoteStatus(addr);
+              likes = Number(vs[0] ?? 0);
+              dislikes = Number(vs[1] ?? 0);
+              my = Number(vs[2] ?? 0);
+            }
+            const u = await contract.users(addr);
+            num = Number(u?.num || 0);
+          } catch {}
+          const myLike = my === 1;
+          const myDislike = my === 2;
+          rows.push(`
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid rgba(167,134,255,0.25);border-radius:8px;padding:.75rem;background:rgba(167,134,255,0.06);">
+              <div style="min-width:0;">
+                <div style="color:#e2e8f0;font-weight:600;">#${num} • ${formatAddr(addr)}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:.5rem;">
+                <button title="Like" onclick="window.voteForUser('${addr}', true)" style="background:transparent;border:1px solid rgba(167,134,255,0.25);border-radius:8px;color:#ff6ea6;padding:.25rem .5rem;cursor:pointer;">
+                  ❤️ <span id="likes-${addr.toLowerCase()}">${likes}</span>
+                </button>
+                <button title="Dislike" onclick="window.voteForUser('${addr}', false)" style="background:transparent;border:1px solid rgba(167,134,255,0.25);border-radius:8px;color:#b8798a;padding:.25rem .5rem;cursor:pointer;">
+                  💔 <span id="dislikes-${addr.toLowerCase()}">${dislikes}</span>
+                </button>
+              </div>
+            </div>
+          `);
+        }
+
+        container.innerHTML = rows.join('');
+      } catch (e) {
+        const container = document.getElementById('upline-list');
+        if (container) {
+          container.style.display = 'block';
+          container.style.background = 'rgba(255,68,68,0.08)';
+          container.style.borderColor = 'rgba(255,68,68,0.2)';
+          container.innerHTML = `<div style=\"padding:.75rem;color:#ff6b6b;text-align:center;\">❌ ${e?.message || 'Failed to load upline'}<\/div>`;
+        }
+      }
+    };
+
+    // Auto-load upline on page ready
+    (function autoLoadUpline(){
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', () => setTimeout(()=>{ window.loadUpline().catch(()=>{}); }, 200));
+      } else {
+        setTimeout(()=>{ window.loadUpline().catch(()=>{}); }, 200);
+      }
+    })();
+
+    // Voting handler (clickable hearts)
+    window.voteForUser = async function(target, isLike) {
+      try {
+        const connection = await window.connectWallet();
+        if (!connection || !connection.contract) {
+          throw new Error('Contract connection failed');
+        }
+        const { contract } = connection;
+        if (typeof contract.voteUser !== 'function') throw new Error('Voting not available');
+        const tx = await contract.voteUser(target, isLike);
+        await tx.wait();
+        if (typeof contract.getVoteStatus === 'function') {
+          const vs = await contract.getVoteStatus(target);
+          const likes = Number(vs[0] ?? 0);
+          const dislikes = Number(vs[1] ?? 0);
+          const likeEl = document.getElementById(`likes-${target.toLowerCase()}`);
+          const dislikeEl = document.getElementById(`dislikes-${target.toLowerCase()}`);
+          if (likeEl) likeEl.textContent = String(likes);
+          if (dislikeEl) dislikeEl.textContent = String(dislikes);
+        }
+      } catch (e) {
+        console.error('vote failed', e);
+      }
+    };
+
+    // No inline voting UI requested; counts only
+
   </script>
+
+  <div class="utility-card" dir="ltr" style="margin-top: 1rem;">
+    <h3><span class="icon">🧭</span>Your Supporters</h3>
+    <div class="calculator-section">
+      <div class="calculator-result" id="upline-list" style="display:none; margin-top:.75rem; display:grid; gap:.6rem;"></div>
+      <small style="color:#a0aec0; display:block; margin-top:.5rem;">Shows your upline hearts. Auto-loaded on page open.</small>
+    </div>
+  </div>
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
 </body>
 </html> 
