@@ -7,6 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Register - IAMPHOENIX</title>
+  
   <script>
     function parseFloatSafe(text){
       if (!text) return NaN;
@@ -17,19 +18,67 @@
       try {
         const btn = document.getElementById('register-btn');
         const status = document.getElementById('status-message');
-        const iamText = document.getElementById('IAM-balance')?.textContent || '';
-        const reqText = document.getElementById('required-cost-text')?.textContent || '';
-        const iam = parseFloatSafe(iamText);
-        const req = parseFloatSafe(reqText);
-        if (!isFinite(iam) || !isFinite(req)) { return; }
-        if (iam + 1e-9 < req) {
+        const buyBox = document.getElementById('buy-section');
+        const shortageEl = document.getElementById('iam-shortage');
+        const buyInput = document.getElementById('buy-dai-amount');
+        const buyBtn = document.getElementById('direct-buy-btn');
+        const buyHelper = document.getElementById('buy-dai-helper');
+        const requiredText = document.getElementById('buy-required-iam')?.textContent || document.getElementById('required-cost-text')?.textContent || '';
+        const required = parseFloatSafe(requiredText);
+        const iamBalText = document.getElementById('IAM-balance')?.textContent || document.getElementById('buy-current-iam')?.textContent || '';
+        const daiBalText = document.getElementById('buy-dai-balance')?.textContent || '';
+        const iamBal = parseFloatSafe(iamBalText);
+        const daiBal = parseFloatSafe(daiBalText);
+        // Calculate actual need (required - current balance)
+        const need = Math.max(0, (isFinite(required) && isFinite(iamBal) ? required - iamBal : 0));
+        // If both balances are effectively zero/unknown, disable both actions
+        if ((!isFinite(iamBal) || iamBal <= 0) && (!isFinite(daiBal) || daiBal <= 0)) {
+          if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+          if (buyBtn) { buyBtn.disabled = true; buyBtn.style.opacity = '0.5'; buyBtn.style.cursor = 'not-allowed'; }
+          if (buyInput) { buyInput.disabled = true; buyInput.style.opacity = '0.5'; buyInput.style.cursor = 'not-allowed'; }
+          if (status) { status.style.color = '#ff6b6b'; status.textContent = 'Connect wallet and fund with DAI to proceed.'; }
+          return;
+        }
+        if (!isFinite(need) && (!isFinite(required) || required <= 0)) { return; }
+        if (need > 0) {
+          // Insufficient balance - enable register form
           if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
-          if (status) { status.style.color = '#ff6b6b'; status.textContent = `Insufficient IAM balance. Need ${req.toFixed(2)} IAM, you have ${iam.toFixed(2)} IAM.`; }
+          if (status) { status.style.color = '#ff6b6b'; status.textContent = `Insufficient IAM balance. Need ${need.toFixed(2)} IAM.`; }
+          // Enable buy box with shortage
+          if (buyBox && shortageEl) {
+            shortageEl.textContent = need.toFixed(2);
+            // enable controls
+            if (buyInput) { buyInput.disabled = false; buyInput.style.opacity = '1'; buyInput.style.cursor = 'text'; }
+            if (buyBtn) { buyBtn.disabled = false; buyBtn.style.opacity = '1'; buyBtn.style.cursor = 'pointer'; }
+            if (buyHelper) { buyHelper.textContent = 'Suggested for shortage'; }
+            try { updateBuyEstimates(); } catch(_) {}
+          }
+          // Enable register form inputs
+          const registerForm = document.getElementById('register-section');
+          if (registerForm) {
+            const formInputs = registerForm.querySelectorAll('input, button, select');
+            formInputs.forEach(input => {
+              if (input.id !== 'register-btn') { // Keep register button disabled when need > 0
+                input.disabled = false;
+                input.style.opacity = '1';
+                input.style.cursor = input.type === 'button' ? 'pointer' : 'text';
+              }
+            });
+          }
         } else {
-          if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+          // Balance sufficient - keep form editable, just disable Register button
+          if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+          if (status) { status.style.color = '#00ff88'; status.textContent = '✅ IAM balance is sufficient.'; }
+          // Disable buy controls (balance sufficient)
+          if (buyInput) { buyInput.disabled = true; buyInput.style.opacity = '0.5'; buyInput.style.cursor = 'not-allowed'; }
+          if (buyBtn) { buyBtn.disabled = true; buyBtn.style.opacity = '0.5'; buyBtn.style.cursor = 'not-allowed'; }
+          if (buyHelper) { buyHelper.textContent = 'Balance sufficient — buying disabled'; }
+          // Keep register form inputs enabled for edits (no disabling here)
         }
       } catch {}
     }
+    // Ensure global access across all inline scripts
+    try { window.enforceRegisterButtonState = enforceRegisterButtonState; } catch(_) {}
     // Suppress noisy MetaMask RPC messages that don't affect functionality
     window.addEventListener('error', function(e){
       const m = (e && e.message) || '';
@@ -80,7 +129,7 @@
       color: #fff !important;
       border-radius: 16px;
       box-shadow: 0 8px 32px #00000033, 0 1.5px 6px #00ff8840;
-      padding: 16px 12px 12px 12px;
+      padding: 12px 10px 10px 10px;
     }
     
     /* Back Button Styles */
@@ -369,11 +418,6 @@
         font-size: 0.75rem !important;
         padding: 12px 8px !important;
         line-height: 1.3 !important;
-        word-break: break-all !important;
-        white-space: pre-wrap !important;
-        overflow-x: auto !important;
-        min-height: 50px !important;
-        resize: vertical !important;
         width: 100% !important;
         box-sizing: border-box !important;
       }
@@ -398,11 +442,25 @@
   }
   body{ background: var(--bg); color: var(--text); padding:16px; }
   .main-container{ max-width:560px; background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 24px rgba(0,0,0,.25); }
+  /* Two-pane responsive layout for Buy + Register */
+  .two-pane{ display:grid; gap:12px; }
+  @media(min-width:768px){
+    .main-container{ max-width:1100px; }
+    .two-pane{ grid-template-columns: 1fr 1fr; align-items:start; }
+  }
+  .section-title{ display:flex; align-items:center; gap:8px; font-weight:800; color:#cfe3ff; margin-bottom:8px; }
+  .step-badge{ background:rgba(0,255,136,0.2); color:#00ff88; border:1px solid rgba(0,255,136,0.35); padding:4px 8px; border-radius:999px; font-size:.85rem; }
   .register-form{ background:var(--elev)!important; border:1px solid var(--border); border-radius:14px; padding:16px 14px; }
   .register-form-title, .register-form label{ color:#cfe3ff!important; font-weight:600; }
   .form-group{ margin-bottom:10px; }
   .register-form-input, .register-form input{ background:#0f1420!important; color:var(--text)!important; border:1px solid var(--border); border-radius:12px; padding:12px; font-size:1rem; box-sizing:border-box; }
   .register-form input:focus{ border-color:var(--accent); outline:none; box-shadow:0 0 0 3px rgba(93,160,255,.15); }
+  /* Compact layout for index-address rows */
+  .index-address-row{ gap: 6px; }
+  .index-column{ min-width: 0; }
+  .index-column > input{ font-size: 0.9rem; padding: 8px; }
+  .index-column > button{ font-size: 0.7rem; padding: 4px 6px; }
+  .address-column > input{ font-size: 0.9rem; padding: 8px; }
   .index-input{ height:48px; font-size:1.05rem; }
   .address-input-group{ gap:8px; }
   .address-input-group input{ height:48px; font-size:1.05rem; }
@@ -415,11 +473,6 @@
     font-size: 0.85rem !important;
     padding: 12px !important;
     line-height: 1.3 !important;
-    word-break: break-all !important;
-    white-space: pre-wrap !important;
-    overflow-x: auto !important;
-    min-height: 60px !important;
-    resize: vertical !important;
     background: #0f1420 !important;
     border: 1px solid var(--border) !important;
     color: #cfd7ea !important;
@@ -464,12 +517,243 @@
   .register-form-status.success{ background:rgba(46,204,113,.08); color:#2ecc71; border:1px solid rgba(46,204,113,.25); }
   .register-form-status.error{ background:rgba(231,76,60,.08); color:#e74c3c; border:1px solid rgba(231,76,60,.25); }
   .register-form-status.loading{ background:rgba(93,160,255,.08); color:#5da0ff; border:1px solid rgba(93,160,255,.25); }
-  @media(max-width:480px){
-    body{ padding:12px; }
-    .register-form-input, .register-form input, .address-input-group input, .address-field{ height:50px; font-size:1.06rem; padding:12px; }
-    .apply-btn, .paste-btn-inside{ font-size:1.08rem; padding:14px; }
-    .register-btn, .buy-btn{ font-size:1.08rem; padding:13px; }
-    .form-group label{ font-size:.95rem; }
+  /* Mobile Responsive Styles - Comprehensive */
+  @media (max-width: 768px) {
+    body {
+      padding: 12px !important;
+    }
+    
+    .back-btn {
+      position: relative !important;
+      top: auto !important;
+      left: auto !important;
+      margin-bottom: 12px;
+      width: auto;
+      display: inline-block;
+      font-size: 0.9rem;
+      padding: 8px 14px;
+    }
+    
+    .main-container {
+      max-width: 100% !important;
+      border-radius: 12px;
+      padding: 12px;
+    }
+    
+    .two-pane {
+      grid-template-columns: 1fr !important;
+      gap: 16px;
+    }
+    
+    .section-title {
+      font-size: 0.95rem;
+      margin-bottom: 10px;
+    }
+    
+    .step-badge {
+      font-size: 0.75rem;
+      padding: 3px 6px;
+    }
+    
+    /* Buy Section Mobile */
+    #buy-section {
+      padding: 12px !important;
+      margin: 8px 0 !important;
+    }
+    
+    #buy-section .section-title {
+      font-size: 0.9rem;
+    }
+    
+    /* Quick Swap Section Mobile */
+    #buy-section > div:last-child {
+      padding: 10px !important;
+      margin-top: 12px !important;
+    }
+    
+    #buy-section > div:last-child > div:first-child {
+      font-size: 0.8rem !important;
+      margin-bottom: 10px !important;
+    }
+    
+    #quick-swap-dai-amount {
+      font-size: 0.95rem !important;
+      padding: 10px !important;
+    }
+    
+    #quick-swap-btn {
+      font-size: 0.85rem !important;
+      padding: 10px !important;
+      width: 100% !important;
+    }
+    
+    #quick-swap-status {
+      font-size: 0.75rem !important;
+      word-wrap: break-word;
+    }
+    
+    /* Register Form Mobile */
+    .register-form {
+      padding: 12px 10px !important;
+      border-radius: 12px;
+    }
+    
+    .form-group {
+      margin-bottom: 12px;
+    }
+    
+    .form-group label {
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      display: block;
+    }
+    
+    .register-form-input,
+    .register-form input,
+    .address-input-group input,
+    .address-field {
+      height: 46px;
+      font-size: 0.95rem;
+      padding: 10px;
+    }
+    
+    /* Index-Address Row Mobile */
+    .index-address-row {
+      flex-direction: column !important;
+      gap: 8px !important;
+    }
+    
+    .index-column {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+    }
+    
+    .address-column {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+    }
+    
+    .index-column > input {
+      width: 100% !important;
+      font-size: 0.9rem !important;
+    }
+    
+    .index-column > button {
+      width: 100% !important;
+      margin-top: 4px !important;
+      font-size: 0.85rem !important;
+      padding: 10px !important;
+    }
+    
+    .address-column > input {
+      width: 100% !important;
+      font-size: 0.9rem !important;
+    }
+    
+    /* Buttons Mobile */
+    .register-btn,
+    .buy-btn {
+      font-size: 0.95rem !important;
+      padding: 12px !important;
+      width: 100% !important;
+      margin-top: 8px;
+    }
+    
+    .apply-btn,
+    .paste-btn-inside,
+    #upper-apply-index-btn {
+      font-size: 0.9rem !important;
+      padding: 10px 12px !important;
+      width: 100%;
+    }
+    
+    #paste-new-user-btn {
+      width: 100% !important;
+      min-height: 46px !important;
+      font-size: 0.85rem !important;
+    }
+    
+    /* Status Messages Mobile */
+    .register-form-status {
+      font-size: 0.85rem !important;
+      padding: 10px !important;
+      margin-top: 8px;
+      word-wrap: break-word;
+    }
+    
+    /* Stats row mobile */
+    #buy-section > div:first-of-type {
+      flex-direction: column !important;
+      gap: 6px !important;
+    }
+    
+    #buy-section > div:first-of-type > div {
+      width: 100% !important;
+      text-align: center;
+      font-size: 0.75rem !important;
+    }
+  }
+  
+  /* Extra Small Mobile (up to 480px) */
+  @media (max-width: 480px) {
+    body {
+      padding: 8px !important;
+    }
+    
+    .back-btn {
+      font-size: 0.85rem;
+      padding: 6px 12px;
+      margin-bottom: 10px;
+    }
+    
+    .main-container {
+      padding: 10px !important;
+    }
+    
+    #buy-section {
+      padding: 10px !important;
+    }
+    
+    .register-form {
+      padding: 10px 8px !important;
+    }
+    
+    .form-group {
+      margin-bottom: 10px;
+    }
+    
+    .register-form-input,
+    .register-form input {
+      font-size: 0.9rem !important;
+      padding: 8px !important;
+      height: 44px !important;
+    }
+    
+    .section-title {
+      font-size: 0.85rem;
+    }
+    
+    .step-badge {
+      font-size: 0.7rem;
+      padding: 2px 5px;
+    }
+    
+    .register-btn,
+    .buy-btn {
+      font-size: 0.9rem !important;
+      padding: 10px !important;
+    }
+    
+    /* Compact Quick Swap */
+    #quick-swap-dai-amount {
+      font-size: 0.9rem !important;
+      padding: 8px !important;
+    }
+    
+    #quick-swap-btn {
+      font-size: 0.8rem !important;
+      padding: 8px !important;
+    }
   }
   
   </style>
@@ -481,50 +765,81 @@
 
   <!-- Main Content -->
   <div class="main-container">
-         <form class="register-form" autocomplete="off">
+    <div class="two-pane">
+        
+        <!-- Buy Section -->
+        <div class="info-box" id="buy-section" style="margin:8px 0; padding:8px; border-radius:10px; border:1px solid rgba(0,255,136,0.3); background: linear-gradient(135deg, rgba(0,255,136,0.05), rgba(167,134,255,0.05)); box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.03);">
+          <div class="section-title"><span class="step-badge">1</span><span>Buy IAM</span></div>
+          
+          
+
+          <!-- Quick Swap: DAI to IAM -->
+          <div style="background: rgba(93, 160, 255, 0.1); border: 1px solid rgba(93, 160, 255, 0.3); border-radius: 10px; padding: 12px; margin-top: 12px;">
+            <div style="font-size: 0.85rem; color: #cfe3ff; margin-bottom: 10px; font-weight: 600;">
+              💱 Quick Swap: DAI → IAM
+            </div>
+            
+            <!-- DAI Amount Input -->
+            <div style="margin-bottom: 8px;">
+              <label style="display: block; font-size: 0.75rem; color: #cfe3ff; margin-bottom: 4px;">DAI Amount</label>
+              <input type="number" id="quick-swap-dai-amount" placeholder="Your dollar amount (USD)" step="0.01" min="0" style="width: 100%; background: #0f1420; border: 1px solid var(--border); color: #cfd7ea; border-radius: 8px; padding: 10px; font-size: 1rem; box-sizing: border-box;">
+            </div>
+            
+            <!-- Stats row (Your IAM, Your DAI) -->
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; font-size:0.78rem;">
+              <div style="background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); padding:4px 8px; border-radius:8px; color:#cfe3ff;">
+                Your IAM: <b id="buy-current-iam" style="color:#a786ff;">...</b>
+              </div>
+              <div style="background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); padding:4px 8px; border-radius:8px; color:#cfe3ff;">
+                Your DAI: <b id="quick-swap-dai-balance" style="color:#5da0ff;">...</b>
+              </div>
+            </div>
+            
+            
+            
+            <!-- Swap Button -->
+            <button type="button" id="quick-swap-btn" class="buy-btn" style="width: 100%; padding: 10px; font-size: 0.9rem; white-space: nowrap;">
+              🔄 Swap DAI to IAM
+            </button>
+            
+            <!-- Status Message -->
+            <div id="quick-swap-status" style="margin-top: 8px; font-size: 0.8rem; min-height: 20px;"></div>
+          </div>
+        </div>
+
+        <!-- Register Section -->
+        <form class="register-form" id="register-section" autocomplete="off">
+          <div class="section-title"><span class="step-badge">2</span><span>Register</span></div>
                <!-- Registration tabs -->
       <div class="register-form-status warning" id="register-suggestion" style="display:none;"></div>
       
-      <!-- Registration Permission Notice -->
-      <div class="info-box" style="margin-bottom: 16px; padding: 12px; background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); color: #00ff88; border-radius: 8px;">
-        <div style="font-weight: 600; margin-bottom: 4px;">📋 Registration Rules:</div>
-        <div style="font-size: 0.85rem; line-height: 1.4;">
-          • <strong>New users:</strong> Can register for themselves only<br>
-          • <strong>Active users:</strong> Can register for themselves or their <strong>downlines</strong><br>
-          • <strong>Auto-fill:</strong> If you're active, your info will be auto-filled as referrer (locked)<br>
-          • <strong>Upper field:</strong> You can change upper to yourself or your downlines<br>
-          • Crossline and upline registrations are not allowed<br>
-          • This ensures proper tree structure and prevents conflicts
-        </div>
-      </div>
+      
       
       <!-- Referrer Address (Number or Address) -->
       <div class="form-group">
-        <label for="referrer-index">Referrer (Number or Address)</label>
-        <div class="input-with-button">
-          <input type="text" id="referrer-index" class="register-form-input" placeholder="Enter number (e.g. 123) or address (0x...)" autocomplete="off">
-          <button type="button" id="apply-referrer-index-btn" class="paste-btn-inside">Apply</button>
-        </div>
-        <input type="text" id="referrer-address-display" class="register-form-input address-field" placeholder="0x..." autocomplete="off" readonly>
+        <label for="referrer-address-display">Referrer (Address or Index)</label>
+        <input type="text" id="referrer-address-display" class="register-form-input address-field" placeholder="Enter address or index (e.g., 0x... or 123)" autocomplete="off" style="width: 100%;">
         <div id="referrer-validation-status" class="register-form-status" style="display:none; margin-top: 4px; font-size: 0.7rem;"></div>
       </div>
 
       <!-- Upper Address (Number or Address) -->
       <div class="form-group">
-        <label for="upper-index" id="upper-label">Upper (Number or Address)</label>
-        <div class="input-with-button">
-          <input type="text" id="upper-index" class="register-form-input" placeholder="Enter number (e.g. 123) or address (0x...)" autocomplete="off">
-          <button type="button" id="apply-upper-index-btn" class="paste-btn-inside">Apply</button>
-        </div>
-        <input type="text" id="upper-address" class="register-form-input address-field" placeholder="0x..." autocomplete="off" value="root" readonly>
+        <label for="upper-address" id="upper-label">Upper (Address or Index)</label>
+        <input type="text" id="upper-address" class="register-form-input address-field" placeholder="Enter address or index (e.g., 0x... or 123)" autocomplete="off" value="root" style="width: 100%;">
         <div id="upper-validation-status" class="register-form-status" style="display:none; margin-top: 4px; font-size: 0.7rem;"></div>
       </div>
 
       <!-- New User Address -->
       <div class="form-group">
         <label for="new-user-address">New User Address</label>
-        <textarea id="new-user-address" class="register-form-input" placeholder="0x..." autocomplete="off" rows="2" style="font-family: 'Fira Mono', monospace; letter-spacing: 0.5px; resize: vertical; min-height: 60px; width: 100%; margin-bottom: 8px;"></textarea>
-        <button type="button" id="paste-new-user-btn" class="paste-btn-inside" style="width: 100%; margin-bottom: 4px; padding: 8px 12px; font-size: 0.8rem;">📋 Paste Address</button>
+        <div class="index-address-row" style="display: flex; gap: 8px; align-items: stretch;">
+          <div class="index-column" style="flex: 0 0 25%;">
+            <button type="button" id="paste-new-user-btn" class="paste-btn-inside" style="width: 100%; padding: 8px 12px; font-size: 0.8rem; height: 100%; min-height: 46px;">📋 Paste</button>
+          </div>
+          <div class="address-column" style="flex: 0 0 75%;">
+            <input type="text" id="new-user-address" class="register-form-input" placeholder="0x..." autocomplete="off" style="font-family: 'Fira Mono', monospace; letter-spacing: 0.5px; width: 100%;">
+          </div>
+        </div>
         <div id="new-user-address-info" class="register-form-status" style="display:none; margin-top: 4px; font-size: 0.7rem; background: rgba(0, 255, 136, 0.1); border: 1px solid rgba(0, 255, 136, 0.3); color: #00ff88;"></div>
       </div>
        
@@ -661,6 +976,110 @@
      }
 
 
+    // Function to show guide for buying IAM
+    function showBuyIamGuide(shortageAmount = '') {
+        const guideBox = document.createElement('div');
+        guideBox.id = 'buy-iam-guide';
+        guideBox.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(93, 160, 255, 0.95);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+            z-index: 10000;
+            max-width: 90vw;
+            width: 400px;
+            text-align: center;
+            font-size: 16px;
+            line-height: 1.6;
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(93, 160, 255, 0.5);
+            font-weight: 500;
+        `;
+        
+        const shortageText = shortageAmount ? `You need ${shortageAmount} more IAM tokens. ` : '';
+        
+        guideBox.innerHTML = `
+            <div style="margin-bottom: 20px; font-size: 48px;">💡</div>
+            <div style="margin-bottom: 20px; font-size: 20px; font-weight: bold;">Insufficient IAM Balance</div>
+            <div style="margin-bottom: 25px; font-size: 15px; line-height: 1.6;">
+                ${shortageText}You can easily buy IAM tokens by swapping DAI on the Swap page.
+            </div>
+            <div style="margin-bottom: 25px; font-size: 14px; background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; line-height: 1.6;">
+                <strong>How to buy IAM:</strong><br>
+                1. Go to Swap page<br>
+                2. Convert DAI to IAM<br>
+                3. Return here to register
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button onclick="goToSwapPage('${shortageAmount}')" style="
+                    background: rgba(0, 255, 136, 0.9);
+                    border: 2px solid rgba(0, 255, 136, 0.5);
+                    color: white;
+                    padding: 12px 30px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='rgba(0, 255, 136, 1)'" onmouseout="this.style.background='rgba(0, 255, 136, 0.9)'">
+                    ➤ Go to Swap Page
+                </button>
+                <button onclick="this.closest('#buy-iam-guide').remove()" style="
+                    background: rgba(255, 255, 255, 0.2);
+                    border: 2px solid rgba(255, 255, 255, 0.3);
+                    color: white;
+                    padding: 12px 30px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    font-size: 16px;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+                    Close
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(guideBox);
+    }
+    
+    // Function to navigate to swap page with shortage amount
+    function goToSwapPage(shortageAmount = '') {
+        try {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refParam = urlParams.get('ref') || urlParams.get('referrer') || '';
+            
+            const swapUrl = new URL(window.location.origin + '/swap.html');
+            swapUrl.searchParams.set('direction', 'dai-to-IAM');
+            if (shortageAmount && parseFloat(shortageAmount) > 0) {
+                swapUrl.searchParams.set('amount', parseFloat(shortageAmount).toFixed(2));
+            }
+            if (refParam) {
+                swapUrl.searchParams.set('ref', refParam);
+            }
+            
+            window.open(swapUrl.toString(), '_blank');
+            
+            // Close guide box
+            const guideBox = document.getElementById('buy-iam-guide');
+            if (guideBox) {
+                guideBox.remove();
+            }
+        } catch(e) {
+            console.error('Error navigating to swap:', e);
+            window.open('swap.html', '_blank');
+        }
+    }
+    
+    // Make functions globally accessible
+    try { window.showBuyIamGuide = showBuyIamGuide; } catch(_) {}
+    try { window.goToSwapPage = goToSwapPage; } catch(_) {}
+
     // Function to display temporary messages (for validation)
     function showTempMessage(message, type = 'info', duration = 3000) {
         const tempBox = document.createElement('div');
@@ -740,24 +1159,29 @@
                   updateAddressDisplay(referrerDisplay);
                   await checkAddressValidity(referrerDisplay, 'referrer');
                 }
+                // If no explicit upper provided, set upper = referrer as well
+                if (!upperIndex && !upperAddress && upperInput) {
+                  upperInput.value = refParam;
+                  upperInput.setAttribute('data-full-address', refParam);
+                  updateAddressDisplay(upperInput);
+                  setTimeout(async () => { await checkAddressValidity(upperInput, 'upper'); }, 200);
+                }
               } else if (/^\d+$/.test(refParam)) {
                 // It's a number - convert to address
-                if (referrerIndexInput) {
-                  referrerIndexInput.value = refParam;
-                  await applyIndexToAddress(referrerIndexInput, referrerDisplay, 'referrer');
+                await applyIndexToAddress(refParam, referrerDisplay, 'referrer');
+                // If no explicit upper provided, set upper = referrer number as well
+                if (!upperIndex && !upperAddress) {
+                  setTimeout(async () => { await applyIndexToAddress(refParam, upperInput, 'upper'); }, 200);
                 }
               }
             }
             
             // Auto-fill upper information if provided
             if (upperIndex) {
-              if (upperIndexInput) {
-                upperIndexInput.value = upperIndex;
-                // Trigger conversion and validation
-                setTimeout(async () => {
-                  await applyIndexToAddress(upperIndexInput, upperInput, 'upper');
-                }, 700);
-              }
+              // Trigger conversion and validation
+              setTimeout(async () => {
+                await applyIndexToAddress(upperIndex, upperInput, 'upper');
+              }, 700);
             }
             
             if (upperAddress) {
@@ -798,25 +1222,64 @@
          document.addEventListener('DOMContentLoaded', function() {
            newUserInput = document.getElementById('new-user-address');
            referrerDisplay = document.getElementById('referrer-address-display');
-           referrerIndexInput = document.getElementById('referrer-index');
+           referrerIndexInput = null; // Index field removed - use address field directly
            upperInput = document.getElementById('upper-address');
-           upperIndexInput = document.getElementById('upper-index');
+           upperIndexInput = null; // Index field removed - use address field directly
            refInput = document.getElementById('referrer-address');
-           indexInput = referrerIndexInput; // Use referrer index as the main index input
+           indexInput = null; // Index field removed
            
            // Handle URL parameters for referral links
            handleReferralParameters().catch(err => console.error('Error handling referral parameters:', err));
            
            // Initialize global variables
-           window.upperIndexInput = upperIndexInput;
+           window.upperIndexInput = null; // Index field removed
            window.refInput = refInput;
            window.upperInput = upperInput;
            window.newUserInput = newUserInput;
            window.referrerDisplay = referrerDisplay;
-           window.referrerIndexInput = referrerIndexInput;
+           window.referrerIndexInput = null; // Index field removed
            
            // Set up all event listeners here
            setupEventListeners();
+
+           // Buy button → open swap with shortage prefilled
+           const goSwap = document.getElementById('go-to-swap-btn');
+           if (goSwap) {
+             goSwap.addEventListener('click', function(){
+               try {
+                 const shortageText = (document.getElementById('iam-shortage')?.textContent || '0').trim();
+                 const shortage = parseFloatSafe(shortageText);
+                 const urlParams = new URLSearchParams(window.location.search);
+                 const refParam = urlParams.get('ref') || urlParams.get('referrer') || '';
+                 // Send user to swap with prefilled IAM target
+                 const u = new URL(window.location.origin + '/swap.html');
+                 if (isFinite(shortage) && shortage > 0) u.searchParams.set('amount', shortage.toFixed(2));
+                 u.searchParams.set('direction', 'dai-to-IAM');
+                 if (refParam) u.searchParams.set('ref', refParam);
+                 window.open(u.toString(), '_blank');
+               } catch(_) {
+                 // Fallback: open swap without params
+                 window.open('swap.html', '_blank');
+               }
+             });
+           }
+
+           // Re-check balances on return focus
+           window.addEventListener('focus', async () => {
+             try {
+               await refreshBalancesAndAvailability();
+             } catch(_) {}
+           });
+
+           // Light polling while buy box visible
+           setInterval(async () => {
+             try {
+               const buyBox = document.getElementById('buy-section');
+               if (buyBox && buyBox.style.display !== 'none') {
+                 await refreshBalancesAndAvailability();
+               }
+             } catch(_) {}
+           }, 7000);
            
            function setupEventListeners() {
              // Ensure referrerDisplay is available
@@ -824,31 +1287,8 @@
                referrerDisplay = document.getElementById('referrer-address-display');
              }
              
-             // Referrer index application
-             document.getElementById('apply-referrer-index-btn').addEventListener('click', async function() {
-               await applyIndexToAddress(referrerIndexInput, referrerDisplay, 'referrer');
-             });
-             
-             // Upper index application
-             document.getElementById('apply-upper-index-btn').addEventListener('click', async function() {
-               await applyIndexToAddress(upperIndexInput, upperInput, 'upper');
-             });
-             
-             // Enter key support for referrer index field
-             referrerIndexInput.addEventListener('keypress', async function(e) {
-               if (e.key === 'Enter') {
-                 e.preventDefault();
-                 document.getElementById('apply-referrer-index-btn').click();
-               }
-             });
-
-             // Enter key support for upper index
-             upperIndexInput.addEventListener('keypress', async function(e) {
-               if (e.key === 'Enter') {
-                 e.preventDefault();
-                 document.getElementById('apply-upper-index-btn').click();
-               }
-             });
+            // Note: Index fields removed - users can type numbers directly into address fields
+            // The input event listeners on address fields will handle number-to-address conversion
              
              // Paste button for new user address
              const pasteNewUserBtn = document.getElementById('paste-new-user-btn');
@@ -883,6 +1323,28 @@
                await validateUpperAgainstReferrer();
                await calculatePlacementForNewUser();
              });
+            // Debounced resolve when user types a number in referrer address field
+            let referrerAddrTimer = null;
+            referrerDisplay.addEventListener('input', function() {
+              if (referrerAddrTimer) clearTimeout(referrerAddrTimer);
+              referrerAddrTimer = setTimeout(async () => {
+                const v = (referrerDisplay.value || '').trim();
+                if (!v) return;
+                if (/^(IAM\d+|\d+)$/.test(v)) {
+                  // Resolve number to address
+                  await applyIndexToAddress(v, referrerDisplay, 'referrer');
+                  await validateUpperAgainstReferrer();
+                  await calculatePlacementForNewUser();
+                } else if (/^0x[a-fA-F0-9]{40}$/.test(v)) {
+                  // It's already an address - validate it
+                  referrerDisplay.setAttribute('data-full-address', v);
+                  updateAddressDisplay(referrerDisplay);
+                  await checkAddressValidity(referrerDisplay, 'referrer');
+                  await validateUpperAgainstReferrer();
+                  await calculatePlacementForNewUser();
+                }
+              }, 2000);
+            });
              
              // New user address input handler - clean spaces automatically
              if (newUserInput) {
@@ -906,88 +1368,36 @@
                });
              }
              
-             referrerIndexInput.addEventListener('change', async function() {
-               // Validate if it's a valid number format or address
-               const value = this.value.trim();
-               if (value && (value.match(/^\d+$/) || value.match(/^IAM\d+$/) || /^0x[a-fA-F0-9]{40}$/.test(value))) {
-                 // If it's an address, check validity directly; if number, apply conversion first
-                 if (/^0x[a-fA-F0-9]{40}$/.test(value)) {
-                   referrerDisplay.value = value;
-                   referrerDisplay.setAttribute('data-full-address', value);
-                   updateAddressDisplay(referrerDisplay);
-                   await checkAddressValidity(referrerDisplay, 'referrer');
-                 } else {
-                   await applyIndexToAddress(referrerIndexInput, referrerDisplay, 'referrer');
-                 }
-                 await validateUpperAgainstReferrer();
-                 await calculatePlacementForNewUser();
-               }
-             });
              
              upperInput.addEventListener('change', async function() {
                await checkAddressValidity(upperInput, 'upper');
                await validateUpperAgainstReferrer();
              });
+            // Debounced resolve when user types a number in upper address field
+            let upperAddrTimer = null;
+            upperInput.addEventListener('input', function() {
+              if (upperAddrTimer) clearTimeout(upperAddrTimer);
+              upperAddrTimer = setTimeout(async () => {
+                const v = (upperInput.value || '').trim();
+                if (!v) return;
+                if (/^(IAM\d+|\d+)$/.test(v)) {
+                  // Resolve number to address
+                  await applyIndexToAddress(v, upperInput, 'upper');
+                  await validateUpperAgainstReferrer();
+                } else if (/^0x[a-fA-F0-9]{40}$/.test(v)) {
+                  // It's already an address - validate it
+                  upperInput.setAttribute('data-full-address', v);
+                  updateAddressDisplay(upperInput);
+                  await checkAddressValidity(upperInput, 'upper');
+                  await validateUpperAgainstReferrer();
+                }
+              }, 2000);
+            });
            }
            
            
            
-          // When user clicks on referrer index input
-           referrerIndexInput.addEventListener('click', async function() {
-               try {
-              // Read clipboard content
-                 const clipboardText = await navigator.clipboard.readText();
-                 
-              // Check if copied text looks like a number or IAM format
-                 if (clipboardText.match(/^(\d+|IAM\d+)$/)) {
-                   referrerIndexInput.value = clipboardText;
-                
-                                 // Display success message (optional)
-                 alert('Referrer index copied from clipboard successfully!');
-                 }
-               } catch (err) {
-                           console.error('Error accessing clipboard:', err);
-             // If needed, you can display an error message to user
-             }
-           });
-
-          // When user clicks on upper input
-           upperInput.addEventListener('click', async function() {
-               try {
-              // Read clipboard content
-                 const clipboardText = await navigator.clipboard.readText();
-                 
-              // Check if copied text looks like Ethereum address
-                 if (clipboardText.match(/^0x[a-fA-F0-9]{40}$/)) {
-                   upperInput.value = clipboardText;
-                
-                                 // Display success message (optional)
-                 alert('Upper address copied from clipboard successfully!');
-                 }
-               } catch (err) {
-                           console.error('Error accessing clipboard:', err);
-             // If needed, you can display an error message to user
-             }
-           });
-
-          // When user clicks on upper index input
-           upperIndexInput.addEventListener('click', async function() {
-               try {
-              // Read clipboard content
-                 const clipboardText = await navigator.clipboard.readText();
-                 
-              // Check if copied text looks like a number or IAM format
-                 if (clipboardText.match(/^(\d+|IAM\d+)$/)) {
-                   upperIndexInput.value = clipboardText;
-                
-                                 // Display success message (optional)
-                 alert('Upper index copied from clipboard successfully!');
-                 }
-               } catch (err) {
-                           console.error('Error accessing clipboard:', err);
-             // If needed, you can display an error message to user
-             }
-           });
+          // Note: Index input fields removed - clipboard functionality can be added to address fields if needed
            
            // New user input event listeners
            if (newUserInput) {
@@ -1035,22 +1445,13 @@
            }
          });
        </script>
-             <div class="info-box" id="register-info" style="background:rgba(28,28,40,0.97);color:#fff;font-size:0.8rem;box-shadow:0 2px 8px #a786ff22;margin-bottom:6px;padding:6px;">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-          <span>Cost: <b id="register-cost" style="color:#00ff88;">...</b></span>
-          <span>Type: <b id="registration-type" style="color:#a786ff;">Normal</b></span>
-        </div>
-        <div style="display:flex;justify-content:space-between;font-size:0.75rem;">
-          <span>MATIC: <b id="matic-balance">...</b></span>
-          <span>IAM: <b id="IAM-balance">...</b></span>
-        </div>
-             </div>
       <div class="avatar-row" style="display:none; margin:0;">
         <span class="avatar-choice selected" data-avatar="man">👨‍💼</span>
         <span class="avatar-choice" data-avatar="woman">👩‍💼</span>
         <span class="avatar-choice" data-avatar="student-man">👨‍🎓</span>
         <span class="avatar-choice" data-avatar="student-woman">👩‍🎓</span>
       </div>
+      
       <div class="register-form-status" id="status-message"></div>
       
       <!-- Manual retry button for wallet connection issues -->
@@ -1060,10 +1461,6 @@
         </button>
       </div>
   
-  <div class="info-box" id="required-cost-box" style="display:none; margin-top:8px; padding:8px; border-radius:8px;">
-    <span>Required IAM for this registration: </span>
-    <b id="required-cost-text">...</b>
-  </div>
       
 
     </form>
@@ -1124,43 +1521,359 @@
       }
       return null; // gracefully fallback
     };
+    // Minimal ERC20 ABI for approve/balance
+    const MIN_ERC20_ABI = [
+      { "constant": false, "inputs": [{"name":"spender","type":"address"},{"name":"amount","type":"uint256"}], "name": "approve", "outputs": [{"name":"","type":"bool"}], "type": "function" },
+      { "constant": true, "inputs": [{"name":"owner","type":"address"}], "name": "balanceOf", "outputs": [{"name":"","type":"uint256"}], "type": "function" },
+      { "constant": true, "inputs": [], "name": "decimals", "outputs": [{"name":"","type":"uint8"}], "type": "function" }
+    ];
+
+    async function getDaiContract(provider){
+      const daiAddr = window.DAI_ADDRESS || window.daiAddress || '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
+      try {
+        const signer = await provider.getSigner();
+        return new ethers.Contract(daiAddr, MIN_ERC20_ABI, signer);
+      } catch(_) { return null; }
+    }
+
+    async function updateBuyEstimates(){
+      try {
+        const helper = document.getElementById('buy-dai-helper');
+        const input = document.getElementById('buy-dai-amount');
+        const reqEl = document.getElementById('buy-required-iam');
+        const curEl = document.getElementById('buy-current-iam');
+        const daiBalEl = document.getElementById('buy-dai-balance');
+        if (!helper || !input) return;
+        const needText = document.getElementById('buy-required-iam')?.textContent || document.getElementById('required-cost-text')?.textContent || '0';
+        const iamText = document.getElementById('IAM-balance')?.textContent || '0';
+        const needIam = Math.max(0, parseFloatSafe(needText) || 0);
+        if (reqEl && isFinite(needIam)) reqEl.textContent = Number(needIam).toFixed(2);
+        if (curEl) curEl.textContent = isFinite(parseFloatSafe(iamText)) ? Number(parseFloatSafe(iamText)).toFixed(2) : '...';
+        if (needIam <= 0) { input.value = ''; input.placeholder = '0.00'; helper.textContent = 'Balance sufficient'; return; }
+        // Get price from contract
+        let price = 1;
+        try {
+          let c = window.contractConfig && window.contractConfig.contract;
+          if (!c && typeof window.connectWallet === 'function') {
+            const conn = await window.connectWallet();
+            c = conn && conn.contract ? conn.contract : c;
+          }
+          if (c && typeof c.getTokenPrice === 'function') {
+            const p = await c.getTokenPrice();
+            price = Number(ethers.formatUnits(p, 18)) || 1;
+          }
+        } catch(_) {}
+        // Round up to 4 decimals to avoid underbuy due to precision
+        let needDai = needIam * price;
+        needDai = Math.ceil(needDai * 10000) / 10000;
+        const val = needDai > 0 ? needDai.toFixed(4) : '';
+        input.value = val;
+        input.placeholder = val || '0.00';
+        helper.textContent = `~ ${val || '0.0000'} DAI needed at current price`;
+        // Set button label with needed DAI
+        const buyBtn = document.getElementById('direct-buy-btn');
+        if (buyBtn) buyBtn.textContent = val ? `Buy IAM (~ ${val} DAI)` : 'Buy IAM';
+
+        // Update DAI balance
+        try {
+          if (daiBalEl && window.ethereum) {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const me = await signer.getAddress();
+            const dai = await getDaiContract(provider);
+            if (dai && typeof dai.balanceOf === 'function') {
+              const bal = await dai.balanceOf(me);
+              // attempt decimals; if fails assume 18
+              let dec = 18;
+              try { dec = await dai.decimals(); } catch(_) {}
+              const balNum = Number(ethers.formatUnits(bal, dec));
+              daiBalEl.textContent = balNum.toFixed(4);
+            }
+          }
+        } catch(_) {}
+      } catch(_) {}
+    }
+
+    async function refreshBuyCardBalances(conn){
+      try {
+        // Get regPrice directly from contract for buy-required-iam
+        const reqEl = document.getElementById('buy-required-iam');
+        const contract = conn?.contract || (window.contractConfig && window.contractConfig.contract);
+        if (reqEl && contract) {
+          try {
+            let wei = null;
+            if (typeof contract.getRegPrice === 'function') {
+              wei = await contract.getRegPrice();
+            } else if (window.safeGetRegPrice) {
+              wei = await window.safeGetRegPrice(contract);
+            }
+            if (wei !== null && wei !== undefined) {
+              const regIAM = Number(ethers.formatUnits(wei, 18)) || 0;
+              reqEl.textContent = regIAM > 0 ? regIAM.toFixed(2) : '...';
+            }
+          } catch(_) {}
+        }
+        // Get current IAM balance directly from contract
+        try {
+        const curEl = document.getElementById('buy-current-iam');
+          if (curEl && window.ethereum) {
+            // Resolve provider, signer and user address
+            const provider = conn?.provider || new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const me = conn?.address || await signer.getAddress();
+            // Resolve contract instance
+            let contract = conn?.contract || (window.contractConfig && window.contractConfig.contract);
+            if (!contract && typeof window.connectWallet === 'function') {
+              try { const c = await window.connectWallet(); contract = c && c.contract ? c.contract : contract; } catch(_) {}
+            }
+            if (contract && typeof contract.balanceOf === 'function') {
+              const bal = await contract.balanceOf(me);
+              curEl.textContent = Number(ethers.formatUnits(bal, 18)).toFixed(2);
+            }
+          }
+        } catch(_) {}
+        // DAI balance
+        const daiEl = document.getElementById('buy-dai-balance');
+        if (daiEl && window.ethereum) {
+          const provider = conn?.provider || new ethers.BrowserProvider(window.ethereum);
+          const signer = await provider.getSigner();
+          const me = conn?.address || await signer.getAddress();
+          const dai = await getDaiContract(provider);
+          if (dai && typeof dai.balanceOf === 'function') {
+            const bal = await dai.balanceOf(me);
+            let dec = 18;
+            try { dec = await dai.decimals(); } catch(_) {}
+            daiEl.textContent = Number(ethers.formatUnits(bal, dec)).toFixed(4);
+          }
+        }
+        // Ensure DAI input suggestion is computed
+        await updateBuyEstimates();
+        // Auto-fill Quick Swap DAI field with required amount (no buffer)
+        await autoFillQuickSwapDai();
+      } catch(_) {}
+    }
+    
+    // Auto-fill Quick Swap DAI field with required amount (no buffer)
+    async function autoFillQuickSwapDai() {
+      try {
+        const daiInput = document.getElementById('quick-swap-dai-amount');
+        if (!daiInput) return;
+        // Skip if user has manually entered a value
+        if (daiInput.dataset.userEdited === 'true') return;
+        
+        // Get contract and required IAM amount directly from contract
+        let contract = window.contractConfig && window.contractConfig.contract;
+        if (!contract && typeof window.connectWallet === 'function') {
+          try { const c = await window.connectWallet(); contract = c && c.contract ? c.contract : contract; } catch(_) {}
+        }
+        
+        if (!contract) return;
+        
+        // Get required IAM from contract
+        let requiredIam = 0;
+        try {
+          let wei = null;
+          if (typeof contract.getRegPrice === 'function') {
+            wei = await contract.getRegPrice();
+          } else if (window.safeGetRegPrice) {
+            wei = await window.safeGetRegPrice(contract);
+          }
+          if (wei !== null && wei !== undefined) {
+            requiredIam = Number(ethers.formatUnits(wei, 18)) || 0;
+          }
+        } catch(_) {}
+        
+        // Get current IAM balance
+        let currentIam = 0;
+        try {
+          if (window.ethereum) {
+            const provider = new ethers.BrowserProvider(window.ethereum);
+            const signer = await provider.getSigner();
+            const me = await signer.getAddress();
+            if (contract && typeof contract.balanceOf === 'function') {
+              const bal = await contract.balanceOf(me);
+              currentIam = Number(ethers.formatUnits(bal, 18)) || 0;
+            }
+          }
+        } catch(_) {}
+        
+        const needIam = Math.max(0, requiredIam - currentIam);
+        
+        if (needIam <= 0) {
+          daiInput.value = '';
+          return;
+        }
+        
+        // Get token price
+        let price = 1;
+        try {
+          if (contract && typeof contract.getTokenPrice === 'function') {
+            const p = await contract.getTokenPrice();
+            price = Number(ethers.formatUnits(p, 18)) || 1;
+          }
+        } catch(_) {}
+        
+        // Calculate DAI needed with 1% buffer
+        let needDai = needIam * price * 1.01;
+        needDai = Math.ceil(needDai * 10000) / 10000;
+        
+        if (needDai > 0) {
+          daiInput.value = needDai.toFixed(4);
+          // Trigger estimate update
+          try { daiInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_) {}
+        }
+      } catch(_) {}
+    }
+
+    async function performDirectBuy(){
+      const status = document.getElementById('buy-status');
+      const btn = document.getElementById('direct-buy-btn');
+      const input = document.getElementById('buy-dai-amount');
+      function showBuyStatus(text, type){
+        if (!status) return;
+        status.style.display = 'block';
+        status.className = 'register-form-status ' + (type || 'loading');
+        status.textContent = text;
+      }
+      try {
+        if (!window.ethereum) throw new Error('Wallet not connected');
+        if (btn) btn.disabled = true;
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        // ensure contract present
+        let contract = window.contractConfig && window.contractConfig.contract;
+        if (!contract && typeof window.connectWallet === 'function') {
+          try { const conn = await window.connectWallet(); contract = conn && conn.contract ? conn.contract : contract; } catch(_) {}
+        }
+        if (!contract) throw new Error('Contract not available');
+        let daiAmount = parseFloatSafe(input && input.value);
+        if (!isFinite(daiAmount) || daiAmount <= 0) {
+          // Compute on-the-fly from shortage
+          const reqText = (document.getElementById('required-cost-text') && document.getElementById('required-cost-text').textContent) || '0';
+          const iamText = (document.getElementById('IAM-balance') && document.getElementById('IAM-balance').textContent) || '0';
+          const needIam = Math.max(0, (parseFloatSafe(reqText) - parseFloatSafe(iamText)) || 0);
+          if (needIam <= 0) throw new Error('Balance sufficient, nothing to buy');
+          let price = 1;
+          try {
+            if (typeof contract.getTokenPrice === 'function') {
+              const p = await contract.getTokenPrice();
+              price = Number(ethers.formatUnits(p, 18)) || 1;
+            }
+          } catch(_) {}
+          let needDai = needIam * price * 1.01; // add 1% buffer on click as well
+          needDai = Math.ceil(needDai * 10000) / 10000;
+          daiAmount = needDai;
+        }
+        // Approve DAI to contract
+        const dai = await getDaiContract(provider);
+        if (!dai) throw new Error('DAI token not configured');
+        const decimals = (await dai.decimals?.().catch(()=>18)) || 18;
+        const daiWei = ethers.parseUnits(daiAmount.toString(), decimals);
+        showBuyStatus('Approving DAI...', 'loading');
+        const ap = await dai.approve(contract.target || contract.address, daiWei);
+        await ap.wait();
+        // Buy
+        showBuyStatus('Buying IAM with DAI...', 'loading');
+        let tx;
+        if (typeof contract.buyTokens === 'function') {
+          tx = await contract.buyTokens(daiWei);
+        } else if (typeof contract.buyTokensWithDAI === 'function') {
+          tx = await contract.buyTokensWithDAI(daiWei);
+        } else if (typeof contract.swapDAIForTokens === 'function') {
+          tx = await contract.swapDAIForTokens(daiWei);
+        } else {
+          throw new Error('Direct buy not supported, use Swap');
+        }
+        await tx.wait();
+        showBuyStatus('✅ Purchase confirmed. Updating balance...', 'success');
+        // Refresh availability
+        try { await refreshBalancesAndAvailability(); } catch(_) {}
+        try { await updateBuyEstimates(); } catch(_) {}
+        try { await autoFillQuickSwapDai(); } catch(_) {}
+        // Post-check: still shortage?
+        try {
+          const reqText2 = (document.getElementById('required-cost-text') && document.getElementById('required-cost-text').textContent) || '0';
+          const iamText2 = (document.getElementById('IAM-balance') && document.getElementById('IAM-balance').textContent) || '0';
+          const remaining = Math.max(0, (parseFloatSafe(reqText2) - parseFloatSafe(iamText2)) || 0);
+          if (remaining > 0 && status) {
+            status.style.display = 'block';
+            status.className = 'register-form-status warning';
+            status.textContent = `⚠️ Still need ${remaining.toFixed(2)} IAM to register`;
+          } else if (status) {
+            status.style.display = 'block';
+            status.className = 'register-form-status success';
+            status.textContent = '✅ IAM balance is sufficient. You can register now.';
+          }
+          enforceRegisterButtonState();
+        } catch(_) {}
+      } catch(e) {
+        const msg = (e && e.message) ? e.message : 'Buy failed';
+        showBuyStatus('❌ ' + msg, 'error');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+      const buyBtn = document.getElementById('direct-buy-btn');
+      if (buyBtn) buyBtn.addEventListener('click', performDirectBuy);
+      const daiInput = document.getElementById('buy-dai-amount');
+      if (daiInput) daiInput.addEventListener('input', () => {
+        const helper = document.getElementById('buy-dai-helper');
+        if (helper) helper.textContent = '';
+      });
+      // Initial fill
+      setTimeout(async () => { try {
+        let conn = null;
+        if (typeof window.connectWallet === 'function') {
+          try { conn = await window.connectWallet(); } catch(_) {}
+        }
+        await refreshBuyCardBalances(conn || {});
+      } catch(_) {} }, 300);
+      // Periodic refresh while page open
+      setInterval(async () => { try {
+        await refreshBuyCardBalances(window.contractConfig || {});
+        enforceRegisterButtonState();
+      } catch(_) {} }, 8000);
+    });
   </script>
+  
   <script>
     async function updateRegistrationCost(){
       try {
         const box = document.getElementById('required-cost-box');
         const txt = document.getElementById('required-cost-text');
         if (!box || !txt) return;
-        let contract = window.contractConfig && window.contractConfig.contract;
-        if (!contract && typeof window.connectWallet === 'function') {
-          try { const conn = await window.connectWallet(); contract = conn && conn.contract ? conn.contract : contract; } catch(_) {}
+        let conn = window.contractConfig;
+        if ((!conn || !conn.contract || !conn.address) && typeof window.connectWallet === 'function') {
+          try { conn = await window.connectWallet(); } catch(_) {}
         }
-        if (!contract) return;
-        if (currentRegistrationType === 'free') {
-          // Reserve: 23 USD worth of IAM
-          let price = 1;
-          try {
-            let p;
-            if (typeof contract.getTokenPrice === 'function') p = await contract.getTokenPrice();
-            else if (typeof contract.tokenPrice === 'function') p = await contract.tokenPrice();
-            if (p !== undefined) price = Number(ethers.formatUnits(p, 18)) || 1;
-          } catch(_) {}
-          const required = 23 / price;
-          txt.textContent = `${required.toFixed(2)} IAM`;
-          box.style.display = 'block';
-        } else {
-          // Normal: regPrice from contract
-          try {
-            const wei = await (window.safeGetRegPrice ? window.safeGetRegPrice(contract) : null);
-            if (wei) {
-              const val = Number(ethers.formatUnits(wei, 18));
-              txt.textContent = `${val.toFixed(2)} IAM`;
-              box.style.display = 'block';
-            } else {
-              box.style.display = 'none';
-            }
-          } catch(_) {}
-        }
+        const contract = conn && conn.contract ? conn.contract : null;
+        const userAddr = conn && conn.address ? conn.address : null;
+        if (!contract || !userAddr) return;
+        // Compute needed IAM = max(regPrice - userIAM, 0)
+        let regIAM = 0;
+        try {
+          let wei = null;
+          if (typeof contract.getRegPrice === 'function') {
+            wei = await contract.getRegPrice();
+          } else if (window.safeGetRegPrice) {
+            wei = await window.safeGetRegPrice(contract);
+          }
+          if (wei !== null && wei !== undefined) regIAM = Number(ethers.formatUnits(wei, 18)) || 0;
+        } catch(_) {}
+        let userIAM = 0;
+        try {
+          if (typeof contract.balanceOf === 'function') {
+            const bal = await contract.balanceOf(userAddr);
+            userIAM = Number(ethers.formatUnits(bal, 18)) || 0;
+          }
+        } catch(_) {}
+        const needed = Math.max(0, regIAM - userIAM);
+        txt.textContent = `${needed.toFixed(2)} IAM`;
+        // Update buy-required-iam with regPrice directly (not needed amount)
+        const buyNeed = document.getElementById('buy-required-iam');
+        if (buyNeed) buyNeed.textContent = regIAM > 0 ? regIAM.toFixed(2) : '...';
+        box.style.display = 'block';
       } catch(_) {}
     }
     // Try to connect wallet on load and report status
@@ -1266,6 +1979,7 @@
                   } catch(_) {}
                 }
               } catch(_) {}
+              try { await refreshBuyCardBalances(conn); } catch(_) {}
               enforceRegisterButtonState();
             } else {
               console.warn('⚠️ Wallet not connected on register after all retry attempts');
@@ -1418,6 +2132,60 @@
       });
     })();
   </script>
+  
+  <script>
+    // When clicking on the Required chip, prefill the Quick Swap DAI amount with the needed DAI
+    (function(){
+      function parseNumSafe(v){
+        const n = parseFloat(v);
+        return isFinite(n) ? n : 0;
+      }
+      async function getTokenPriceSafe(){
+        try {
+          let contract = window.contractConfig && window.contractConfig.contract;
+          if (!contract && typeof window.connectWallet === 'function') {
+            try { const c = await window.connectWallet(); contract = c && c.contract ? c.contract : contract; } catch(_) {}
+          }
+          if (contract && typeof contract.getTokenPrice === 'function') {
+            const p = await contract.getTokenPrice();
+            if (window.ethers && window.ethers.formatUnits) {
+              const price = Number(window.ethers.formatUnits(p, 18));
+              return isFinite(price) && price > 0 ? price : 1;
+            } else if (window.ethers && window.ethers.utils && window.ethers.utils.formatUnits) {
+              const price = Number(window.ethers.utils.formatUnits(p, 18));
+              return isFinite(price) && price > 0 ? price : 1;
+            }
+          }
+        } catch(_) {}
+        return 1;
+      }
+      async function handleRequiredClick(){
+        try {
+          const reqText = (document.getElementById('buy-required-iam') && document.getElementById('buy-required-iam').textContent) || (document.getElementById('required-cost-text') && document.getElementById('required-cost-text').textContent) || '0';
+          const iamBalText = (document.getElementById('buy-current-iam') && document.getElementById('buy-current-iam').textContent) || (document.getElementById('IAM-balance') && document.getElementById('IAM-balance').textContent) || '0';
+          const needIam = Math.max(0, parseNumSafe(reqText) - parseNumSafe(iamBalText));
+          const price = await getTokenPriceSafe();
+          let needDai = needIam * price;
+          needDai = Math.ceil(needDai * 10000) / 10000;
+          const input = document.getElementById('quick-swap-dai-amount');
+          if (input) {
+            input.value = needDai > 0 ? needDai.toFixed(4) : '';
+            // Trigger estimate update in Quick Swap
+            try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch(_) {}
+            input.focus();
+          }
+        } catch(_) {}
+      }
+      document.addEventListener('click', function(e){
+        const target = e.target;
+        if (!target) return;
+        // Click on the bold number or its containing chip
+        if (target.id === 'buy-required-iam' || (target.closest && target.closest('#buy-section') && target.closest('div') && target.closest('div').textContent && target.closest('div').textContent.includes('Required:') && target.closest('div').querySelector('#buy-required-iam'))) {
+          handleRequiredClick();
+        }
+      });
+    })();
+  </script>
   <script>
     let selectedAvatar = 'man';
     
@@ -1494,55 +2262,35 @@
             try {
               console.log(`🔄 Auto-filling referrer fields for active user: ${userAddress} (Index: ${userIndex})`);
               
-              // Fill referrer index field
-              const referrerIndexInput = document.getElementById('referrer-index');
-              if (referrerIndexInput && userIndex) {
-                referrerIndexInput.value = userIndex;
-                referrerIndexInput.readOnly = true;
-                referrerIndexInput.style.backgroundColor = '#2a2a2a';
-                referrerIndexInput.style.color = '#888';
-                referrerIndexInput.style.cursor = 'not-allowed';
-                referrerIndexInput.placeholder = 'Auto-filled (Read-only)';
-              }
-              
               // Fill referrer address field
               const referrerDisplay = document.getElementById('referrer-address-display');
               if (referrerDisplay) {
-                referrerDisplay.value = truncateAddress(userAddress);
+                referrerDisplay.value = userAddress;
                 referrerDisplay.setAttribute('data-full-address', userAddress);
-                referrerDisplay.readOnly = true;
-                referrerDisplay.style.backgroundColor = '#2a2a2a';
-                referrerDisplay.style.color = '#888';
-                referrerDisplay.style.cursor = 'not-allowed';
-                referrerDisplay.placeholder = 'Auto-filled (Read-only)';
-              }
-              
-              // Fill upper index field (keep editable)
-              const upperIndexInput = document.getElementById('upper-index');
-              if (upperIndexInput && userIndex) {
-                upperIndexInput.value = userIndex;
-                // Keep upper fields editable - user can change to their downlines
+                if (userIndex) referrerDisplay.setAttribute('data-index', userIndex);
+                updateAddressDisplay(referrerDisplay);
+                // keep editable
+                referrerDisplay.readOnly = false;
+                referrerDisplay.style.backgroundColor = '';
+                referrerDisplay.style.color = '';
+                referrerDisplay.style.cursor = '';
+                referrerDisplay.placeholder = 'Enter referrer wallet address or index';
               }
               
               // Fill upper address field (keep editable)
               const upperInput = document.getElementById('upper-address');
               if (upperInput) {
-                upperInput.value = truncateAddress(userAddress);
+                upperInput.value = userAddress;
                 upperInput.setAttribute('data-full-address', userAddress);
-                // Keep upper fields editable - user can change to their downlines
+                if (userIndex) upperInput.setAttribute('data-index', userIndex);
+                updateAddressDisplay(upperInput);
+                // keep editable
+                upperInput.readOnly = false;
+                upperInput.style.backgroundColor = '';
+                upperInput.style.color = '';
+                upperInput.style.cursor = '';
+                upperInput.placeholder = 'Enter upper wallet address or index';
               }
-              
-              // Disable referrer apply button only
-              const applyReferrerBtn = document.getElementById('apply-referrer-index-btn');
-              
-              if (applyReferrerBtn) {
-                applyReferrerBtn.disabled = true;
-                applyReferrerBtn.style.opacity = '0.5';
-                applyReferrerBtn.style.cursor = 'not-allowed';
-                applyReferrerBtn.textContent = 'Auto-filled';
-              }
-              
-              // Keep upper apply button enabled - user can change upper to their downlines
               
               // Show success message
               showTempMessage(`✅ Auto-filled referrer fields with your info (Index: ${userIndex}) - Referrer locked, Upper editable`, 'success');
@@ -1648,18 +2396,20 @@
       try {
         // Get referrer user data
         const referrerUser = await contract.users(referrer);
-        if (!referrerUser || !(referrerUser.index && BigInt(referrerUser.index) > 0n)) {
+        const refNum = (referrerUser && (referrerUser.num !== undefined ? referrerUser.num : referrerUser.index));
+        if (!referrerUser || !(refNum !== undefined && BigInt(refNum) > 0n)) {
           throw new Error('Referrer is not active or does not exist');
         }
         
         // Get upper user data
         const upperUser = await contract.users(upper);
-        if (!upperUser || !(upperUser.index && BigInt(upperUser.index) > 0n)) {
+        const upperNum = (upperUser && (upperUser.num !== undefined ? upperUser.num : upperUser.index));
+        if (!upperUser || !(upperNum !== undefined && BigInt(upperNum) > 0n)) {
           throw new Error('Upper address is not active or does not exist');
         }
         
-        const referrerIndex = Number(referrerUser.index);
-        const upperIndex = Number(upperUser.index);
+        const referrerIndex = Number(refNum);
+        const upperIndex = Number(upperNum);
         
         console.log(`🔍 Referrer index: ${referrerIndex}, Upper index: ${upperIndex}`);
         
@@ -1732,8 +2482,8 @@
       // Show registration suggestion
       const suggestionDiv = document.getElementById('register-suggestion');
       if (suggestionDiv) {
-        suggestionDiv.style.display = '';
-        suggestionDiv.textContent = 'Please fill in the registration form below.';
+        suggestionDiv.style.display = 'none';
+        suggestionDiv.textContent = '';
       }
       
       // Clear all fields for manual input
@@ -1778,9 +2528,10 @@
     // --- Manual index application with button ---
     // Event listeners are now set up in the main DOMContentLoaded function
 
-    // Function to apply index to address field
-    async function applyIndexToAddress(indexInput, addressInput, type) {
-      const value = indexInput.value.trim();
+    // Function to apply index to address field (now takes value directly)
+    async function applyIndexToAddress(valueOrInput, addressInput, type) {
+      // Support both direct value (string) or input element for backward compatibility
+      const value = typeof valueOrInput === 'string' ? valueOrInput.trim() : (valueOrInput?.value || '').trim();
       console.log(`🔍 Applying ${type} number/address: ${value}`);
       
       if (!value) {
@@ -1851,21 +2602,12 @@
         // Set the address (store full address, display truncated)
         addressInput.value = address;
         addressInput.setAttribute('data-full-address', address);
+        addressInput.setAttribute('data-index', index); // Store index for display
         addressInput.style.backgroundColor = '#232946';
         addressInput.style.color = '#fff';
         
-        // Update display with truncated address
+        // Update display with truncated address and index
         updateAddressDisplay(addressInput);
-        
-        // For referrer, also update the display field
-        if (type === 'referrer') {
-          addressInput.value = address;
-          addressInput.setAttribute('data-full-address', address);
-          updateAddressDisplay(addressInput);
-          
-          // Clear the index input after successful conversion
-          referrerIndexInput.value = '';
-        }
         
         showTempMessage(`${type} address set successfully`, 'success');
         console.log(`✅ ${type} address set: ${address}`);
@@ -1890,12 +2632,21 @@
       return address.substring(0, 6) + '...' + address.substring(address.length - 4);
     }
     
-    // Function to update address display with truncation
+    // Function to update address display with truncation and index suffix
     function updateAddressDisplay(addressInput) {
       const fullAddress = addressInput.getAttribute('data-full-address') || addressInput.value;
+      let display = fullAddress;
       if (fullAddress && fullAddress.length > 10) {
-        addressInput.value = truncateAddress(fullAddress);
+        display = truncateAddress(fullAddress);
       }
+      // Append corresponding index after address if available from data attribute
+      try {
+        const idx = addressInput.getAttribute('data-index') || '';
+        if (idx) {
+          display = display + ' (' + idx + ')';
+        }
+      } catch(_) {}
+      addressInput.value = display;
     }
     
     // Function to check address validity
@@ -1946,54 +2697,82 @@
       const statusEl = document.getElementById('upper-validation-status');
       if (!statusEl) return;
       
+      // Always hide status message
+      statusEl.style.display = 'none';
+      
       const referrer = referrerDisplay.getAttribute('data-full-address') || referrerDisplay.value.trim();
       const upper = upperInput.getAttribute('data-full-address') || upperInput.value.trim();
       
+      // Reset field colors to default
+      const referrerField = document.getElementById('referrer-address-display');
+      const upperField = document.getElementById('upper-address');
+      const referrerIndexField = document.getElementById('referrer-index');
+      const upperIndexField = document.getElementById('upper-index');
+      
+      // Default border color
+      const defaultBorder = '1px solid var(--border)';
+      
       if (!referrer || referrer === 'root') {
-        statusEl.style.display = 'none';
-        placementEl.style.display = 'none';
+        if (referrerField) referrerField.style.border = defaultBorder;
+        if (upperField) upperField.style.border = defaultBorder;
+        if (referrerIndexField) referrerIndexField.style.border = defaultBorder;
+        if (upperIndexField) upperIndexField.style.border = defaultBorder;
         return;
       }
       if (!/^0x[a-fA-F0-9]{40}$/.test(referrer)) {
-        statusEl.style.display = 'none';
-        placementEl.style.display = 'none';
+        if (referrerField) referrerField.style.border = defaultBorder;
+        if (upperField) upperField.style.border = defaultBorder;
+        if (referrerIndexField) referrerIndexField.style.border = defaultBorder;
+        if (upperIndexField) upperIndexField.style.border = defaultBorder;
         return;
       }
       
       try {
-        if (!window.contractConfig || !window.contractConfig.contract) return;
+        if (!window.contractConfig || !window.contractConfig.contract) {
+          if (referrerField) referrerField.style.border = defaultBorder;
+          if (upperField) upperField.style.border = defaultBorder;
+          if (referrerIndexField) referrerIndexField.style.border = defaultBorder;
+          if (upperIndexField) upperIndexField.style.border = defaultBorder;
+          return;
+        }
         const contract = window.contractConfig.contract;
         
         if (currentRegistrationType === 'normal') {
           // Normal registration: validate upper against referrer
           if (!upper || upper === 'root' || !/^0x[a-fA-F0-9]{40}$/.test(upper)) {
-            statusEl.style.display = 'none';
-            placementEl.style.display = 'none';
+            if (referrerField) referrerField.style.border = defaultBorder;
+            if (upperField) upperField.style.border = defaultBorder;
+            if (referrerIndexField) referrerIndexField.style.border = defaultBorder;
+            if (upperIndexField) upperIndexField.style.border = defaultBorder;
             return;
           }
           
-          // Check if current user can register for this upper address
-          const canRegisterForUpper = await canUserRegisterForAddress(upper, 'upper');
-          if (!canRegisterForUpper) {
-            statusEl.className = 'register-form-status error';
-            statusEl.textContent = '❌ You can only register for yourself or your downlines';
-            statusEl.style.display = '';
-            showTempMessage('You can only register for yourself or your downlines. This upper address is not in your downline.', 'error');
-            return;
-          }
-          
+          // Check if upper is in referrer's subtree (subtree check)
+          try {
           await validateReferrerUpperRelationship(contract, referrer, upper);
-          statusEl.className = 'register-form-status success';
-          statusEl.textContent = '✅ Upper address is valid for this referrer';
-          statusEl.style.display = '';
-          
-          showTempMessage('Upper address is valid for this referrer', 'success');
+            // Upper is in referrer's subtree - Set green border for all fields
+            if (referrerField) referrerField.style.border = '2px solid #00ff88';
+            if (upperField) upperField.style.border = '2px solid #00ff88';
+            if (referrerIndexField) referrerIndexField.style.border = '2px solid #00ff88';
+            if (upperIndexField) upperIndexField.style.border = '2px solid #00ff88';
+          } catch (error) {
+            // Upper is NOT in referrer's subtree - Set red border for all fields
+            if (referrerField) referrerField.style.border = '2px solid #ff6b6b';
+            if (upperField) upperField.style.border = '2px solid #ff6b6b';
+            if (referrerIndexField) referrerIndexField.style.border = '2px solid #ff6b6b';
+            if (upperIndexField) upperIndexField.style.border = '2px solid #ff6b6b';
+          }
+        } else {
+          // For non-normal registration, just validate referrer
+          if (referrerField) referrerField.style.border = '2px solid #00ff88';
+          if (referrerIndexField) referrerIndexField.style.border = '2px solid #00ff88';
         }
       } catch (error) {
-        statusEl.className = 'register-form-status error';
-        statusEl.textContent = '❌ ' + error.message;
-        statusEl.style.display = '';
-        showTempMessage(error.message, 'error');
+        // Set red border for all fields on error
+        if (referrerField) referrerField.style.border = '2px solid #ff6b6b';
+        if (upperField) upperField.style.border = '2px solid #ff6b6b';
+        if (referrerIndexField) referrerIndexField.style.border = '2px solid #ff6b6b';
+        if (upperIndexField) upperIndexField.style.border = '2px solid #ff6b6b';
       }
     }
     
@@ -2308,12 +3087,10 @@
         } else if (/invalid referrer|referrer/i.test(errorMsg)) {
            showTempMessage('Invalid referrer address or does not exist.', 'error');
                    } else if (/insufficient|balance/i.test(errorMsg)) {
-              // اگر خطای کمبود موجودی از smart contract آمده، همان پیام رو نشون بده
-             if (errorMsg.includes('IAM balance insufficient')) {
-             showMessageBox(errorMsg, 'error');
-           } else {
-             showTempMessage('Your IAM balance is insufficient for registration.', 'error');
-           }
+              // Show guide message with link to swap page
+             const shortage = errorMsg.match(/Required: ([\d.]+)|need ([\d.]+)/i);
+             const shortageAmount = shortage ? (shortage[1] || shortage[2]) : '';
+             showBuyIamGuide(shortageAmount);
                    } else if (/user rejected|reject/i.test(errorMsg)) {
           showTempMessage('Registration process was cancelled by you.', 'error');
         } else if (/execution reverted/i.test(errorMsg)) {
@@ -2336,8 +3113,244 @@
      
 
     // Index input event listeners are now set up in setupEventListeners function
+    
+    // Quick Swap: DAI to IAM functionality
+    (async function() {
+      const daiInput = document.getElementById('quick-swap-dai-amount');
+      const estimatedIamEl = document.getElementById('quick-swap-estimated-iam');
+      const daiBalanceEl = document.getElementById('quick-swap-dai-balance');
+      const swapBtn = document.getElementById('quick-swap-btn');
+      const statusEl = document.getElementById('quick-swap-status');
+      
+      if (!daiInput || !swapBtn) return;
+      
+      let tokenPrice = null;
+      let daiContract = null;
+      let iamContract = null;
+      let signer = null;
+      let userAddress = null;
+      
+      // Initialize contracts and get token price
+      async function initializeSwap() {
+        try {
+          if (!window.ethereum) {
+            statusEl.textContent = 'Please connect MetaMask';
+            statusEl.style.color = '#e74c3c';
+            return false;
+          }
+          
+          // Check ethers version and use appropriate provider
+          let provider, signerInstance;
+          if (ethers.BrowserProvider) {
+            // ethers v6
+            provider = new ethers.BrowserProvider(window.ethereum);
+            signerInstance = await provider.getSigner();
+            userAddress = await signerInstance.getAddress();
+          } else if (ethers.providers && ethers.providers.Web3Provider) {
+            // ethers v5
+            provider = new ethers.providers.Web3Provider(window.ethereum);
+            signerInstance = provider.getSigner();
+            userAddress = await signerInstance.getAddress();
+          } else {
+            throw new Error('Ethers.js not properly loaded');
+          }
+          signer = signerInstance;
+          
+          // Get contract instance
+          let contract = null;
+          if (window.contractConfig && window.contractConfig.contract) {
+            contract = window.contractConfig.contract;
+            iamContract = contract;
+          } else if (typeof window.connectWallet === 'function') {
+            const conn = await window.connectWallet();
+            contract = conn && conn.contract ? conn.contract : null;
+            iamContract = contract;
+          }
+          
+          if (!iamContract) {
+            statusEl.textContent = 'Contract not available. Please connect wallet.';
+            statusEl.style.color = '#e74c3c';
+            return false;
+          }
+          
+          // Get token price
+          if (typeof iamContract.getTokenPrice === 'function') {
+            const price = await iamContract.getTokenPrice();
+            // Support both ethers v5 and v6
+            if (ethers.formatUnits) {
+              tokenPrice = parseFloat(ethers.formatUnits(price, 18));
+            } else {
+              tokenPrice = parseFloat(ethers.utils.formatUnits(price, 18));
+            }
+          }
+          
+          // Initialize DAI contract
+          const DAI_ADDRESS = window.DAI_ADDRESS || '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
+          const DAI_ABI = [
+            "function balanceOf(address) view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function allowance(address owner, address spender) view returns (uint256)"
+          ];
+          
+          daiContract = new ethers.Contract(DAI_ADDRESS, DAI_ABI, signer);
+          
+          // Load DAI balance
+          await updateDaiBalance();
+          
+          // Auto-fill Quick Swap DAI field with required amount (no buffer)
+          if (typeof autoFillQuickSwapDai === 'function') {
+            await autoFillQuickSwapDai();
+          }
+          
+          return true;
+        } catch (e) {
+          console.error('Error initializing swap:', e);
+          if (statusEl) {
+            statusEl.textContent = 'Error initializing: ' + (e.message || e);
+            statusEl.style.color = '#e74c3c';
+          }
+          return false;
+        }
+      }
+      
+      // Update DAI balance display
+      async function updateDaiBalance() {
+        try {
+          if (!daiContract || !userAddress) return;
+          const balance = await daiContract.balanceOf(userAddress);
+          // Support both ethers v5 and v6
+          const balanceFormatted = ethers.formatUnits 
+            ? parseFloat(ethers.formatUnits(balance, 18)).toFixed(2)
+            : parseFloat(ethers.utils.formatUnits(balance, 18)).toFixed(2);
+          if (daiBalanceEl) daiBalanceEl.textContent = balanceFormatted + ' DAI';
+        } catch (e) {
+          console.error('Error updating DAI balance:', e);
+        }
+      }
+      
+      // Calculate estimated IAM from DAI amount
+      function calculateEstimatedIam(daiAmount) {
+        if (!daiAmount || daiAmount <= 0 || !tokenPrice || tokenPrice <= 0) {
+          return '0.00';
+        }
+        const estimatedIam = daiAmount / tokenPrice;
+        return estimatedIam.toFixed(6);
+      }
+      
+      // Update estimated IAM on input change
+      daiInput.addEventListener('input', function() {
+        const daiAmount = parseFloat(this.value) || 0;
+        const estimatedIam = calculateEstimatedIam(daiAmount);
+        if (estimatedIamEl) estimatedIamEl.textContent = estimatedIam;
+        // Mark as user-edited to prevent auto-fill override
+        this.dataset.userEdited = 'true';
+      });
+      
+      // Swap button click handler
+      swapBtn.addEventListener('click', async function() {
+        const daiAmount = parseFloat(daiInput.value) || 0;
+        
+        if (daiAmount <= 0) {
+          statusEl.textContent = 'Please enter a valid DAI amount';
+          statusEl.style.color = '#e74c3c';
+          return;
+        }
+        
+        if (!await initializeSwap()) {
+          return;
+        }
+        
+        // Check DAI balance
+        try {
+          const balance = await daiContract.balanceOf(userAddress);
+          // Support both ethers v5 and v6
+          const balanceFormatted = ethers.formatUnits
+            ? parseFloat(ethers.formatUnits(balance, 18))
+            : parseFloat(ethers.utils.formatUnits(balance, 18));
+          
+          if (balanceFormatted < daiAmount) {
+            statusEl.textContent = `Insufficient DAI balance. You have ${balanceFormatted.toFixed(4)} DAI.`;
+            statusEl.style.color = '#e74c3c';
+            return;
+          }
+        } catch (e) {
+          statusEl.textContent = 'Error checking balance: ' + (e.message || e);
+          statusEl.style.color = '#e74c3c';
+          return;
+        }
+        
+        // Disable button and show processing
+        swapBtn.disabled = true;
+        swapBtn.textContent = '⏳ Processing...';
+        statusEl.textContent = 'Starting swap transaction...';
+        statusEl.style.color = '#5da0ff';
+        
+        try {
+          const IAM_ADDRESS = window.IAM_ADDRESS || iamContract.address;
+          // Support both ethers v5 and v6
+          const daiAmountWei = ethers.parseUnits
+            ? ethers.parseUnits(daiAmount.toString(), 18)
+            : ethers.utils.parseUnits(daiAmount.toString(), 18);
+          
+          // Check and approve DAI if needed
+          const allowance = await daiContract.allowance(userAddress, IAM_ADDRESS);
+          // Support both ethers v5 and v6 comparison
+          const needsApproval = allowance && typeof allowance.lt === 'function' 
+            ? allowance.lt(daiAmountWei)
+            : BigInt(allowance) < BigInt(daiAmountWei);
+          
+          if (needsApproval) {
+            statusEl.textContent = 'Approving DAI... Please confirm transaction.';
+            const maxUint = ethers.MaxUint256 || ethers.constants.MaxUint256;
+            const approveTx = await daiContract.approve(IAM_ADDRESS, maxUint);
+            await approveTx.wait();
+            statusEl.textContent = 'DAI approved. Executing swap...';
+          }
+          
+          // Execute swap
+          statusEl.textContent = 'Executing swap transaction... Please confirm.';
+          const tx = await iamContract.buyTokens(daiAmountWei);
+          statusEl.textContent = 'Transaction submitted. Waiting for confirmation...';
+          
+          await tx.wait();
+          
+          // Success
+          statusEl.textContent = '✅ Swap successful! Your IAM balance has been updated.';
+          statusEl.style.color = '#00ff88';
+          
+          // Update balances
+          await updateDaiBalance();
+          if (typeof refreshBuyCardBalances === 'function') {
+            setTimeout(refreshBuyCardBalances, 2000);
+          }
+          
+          // Clear input
+          daiInput.value = '';
+          if (estimatedIamEl) estimatedIamEl.textContent = '0.00';
+          
+        } catch (e) {
+          let errorMsg = 'Swap failed: ' + (e.message || e);
+          if (e.code === 4001 || (e.message && e.message.includes('user denied'))) {
+            errorMsg = 'Transaction cancelled by user.';
+          } else if (e.code === -32002) {
+            errorMsg = 'MetaMask is processing a previous request. Please wait.';
+          }
+          statusEl.textContent = errorMsg;
+          statusEl.style.color = '#e74c3c';
+        } finally {
+          swapBtn.disabled = false;
+          swapBtn.textContent = '🔄 Swap DAI to IAM';
+        }
+      });
+      
+      // Initialize on load
+      setTimeout(async () => {
+        await initializeSwap();
+      }, 1000);
+    })();
   </script>
   
   
 </body>
+</html> 
 </html> 

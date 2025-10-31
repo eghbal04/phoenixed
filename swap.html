@@ -31,33 +31,31 @@
 </head>
 <body>
     
-    <!-- Back Button (consistent with other pages) -->
-    <a href="index.html" class="back-btn">← Back</a>
-
-    <!-- Header -->
-    <div class="swap-header">
-        <h1 class="header-title">Swap</h1>
-        <div class="header-spacer"></div>
+    <!-- Navigation Buttons -->
+    <div class="nav-buttons">
+        <a href="index.html" class="back-btn">← Back</a>
+        <button type="button" id="addDaiBtn" class="nav-wallet-btn">
+            ➕ Add DAI to Wallet
+        </button>
+        <button type="button" id="addIamBtn" class="nav-wallet-btn">
+            ➕ Add IAM to Wallet
+        </button>
     </div>
+
+    <!-- Floating Title -->
+    <div class="floating-title">Swap</div>
 
     <!-- Main Content -->
     <div class="swap-container">
-        
-        <!-- Contract Selection (Hidden by default, shown on click) -->
+        <!-- Contract Selection -->
         <div class="contract-selector-wrapper">
-            <button type="button" id="contractToggleBtn" class="contract-toggle-btn">
-                <span id="contractToggleText">Contract Five</span>
-                <span>▼</span>
-            </button>
-            <div id="contractSelectorWrapper" class="contract-selector-hidden">
-                <select id="contractSelector" class="contract-select">
-                    <option value="contract1">Contract One — 0x2DdD...cC26</option>
-                    <option value="contract2">Contract Two — 0xF473...2658</option>
-                    <option value="contract3">Contract Three — 0x8dc3...2548</option>
-                    <option value="contract4">Contract Four — 0x2D39...118D</option>
-                    <option value="contract5" selected>Contract Five — 0xa4C3...0dBf</option>
-                </select>
-            </div>
+            <select id="contractSelector" class="contract-select">
+                <option value="contract1">Contract One — 0x2DdD...cC26</option>
+                <option value="contract2">Contract Two — 0xF473...2658</option>
+                <option value="contract3">Contract Three — 0x8dc3...2548</option>
+                <option value="contract4">Contract Four — 0x2D39...118D</option>
+                <option value="contract5" selected>Contract Five — 0xa4C3...0dBf</option>
+            </select>
             <div id="contractInfo" class="contract-info"></div>
         </div>
 
@@ -136,7 +134,9 @@
 
         <!-- Status Message -->
         <div id="swapStatus" class="swap-status"></div>
+
     </div>
+
 
     <!-- Scripts -->
     
@@ -157,18 +157,6 @@
                 console.log('⚠️ Wallet not connected');
             }
         }
-        
-        // Contract toggle functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const contractToggleBtn = document.getElementById('contractToggleBtn');
-            const contractSelectorWrapper = document.getElementById('contractSelectorWrapper');
-            
-            if (contractToggleBtn && contractSelectorWrapper) {
-                contractToggleBtn.addEventListener('click', function() {
-                    contractSelectorWrapper.classList.toggle('show');
-                });
-            }
-        });
         
         // Initialize SwapManager when page loads
         let swapManagerInitialized = false;
@@ -263,6 +251,113 @@
         });
         
         // SwapManager handles its own wallet connection and refresh
+        
+        // Add token to wallet functions
+        async function addDaiToWallet(){
+            try {
+                if (!window.ethereum) {
+                    alert('Please install MetaMask or another Web3 wallet');
+                    return;
+                }
+                
+                const daiAddress = window.DAI_ADDRESS || '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
+                
+                const wasAdded = await window.ethereum.request({
+                    method: 'wallet_watchAsset',
+                    params: {
+                        type: 'ERC20',
+                        options: {
+                            address: daiAddress,
+                            symbol: 'DAI',
+                            decimals: 18
+                        }
+                    }
+                });
+                
+                if (wasAdded) {
+                    const statusEl = document.getElementById('swapStatus');
+                    if (statusEl) {
+                        statusEl.className = 'swap-status success';
+                        statusEl.textContent = '✅ DAI added to your wallet';
+                        setTimeout(() => {
+                            statusEl.textContent = '';
+                            statusEl.className = '';
+                        }, 3000);
+                    }
+                }
+            } catch(e) {
+                console.error('Error adding DAI to wallet:', e);
+                const statusEl = document.getElementById('swapStatus');
+                if (statusEl) {
+                    statusEl.className = 'swap-status error';
+                    statusEl.textContent = '❌ Failed to add DAI: ' + (e.message || e);
+                    setTimeout(() => {
+                        statusEl.textContent = '';
+                        statusEl.className = '';
+                    }, 5000);
+                }
+            }
+        }
+
+        async function addIamToWallet(){
+            try {
+                if (!window.ethereum) {
+                    alert('Please install MetaMask or another Web3 wallet');
+                    return;
+                }
+                
+                const iamAddress = window.IAM_ADDRESS || (window.swapManager && window.swapManager.contractAddress) || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf';
+                
+                const wasAdded = await window.ethereum.request({
+                    method: 'wallet_watchAsset',
+                    params: {
+                        type: 'ERC20',
+                        options: {
+                            address: iamAddress,
+                            symbol: 'IAM',
+                            decimals: 18
+                        }
+                    }
+                });
+                
+                if (wasAdded) {
+                    const statusEl = document.getElementById('swapStatus');
+                    if (statusEl) {
+                        statusEl.className = 'swap-status success';
+                        statusEl.textContent = '✅ IAM added to your wallet';
+                        setTimeout(() => {
+                            statusEl.textContent = '';
+                            statusEl.className = '';
+                        }, 3000);
+                    }
+                }
+            } catch(e) {
+                console.error('Error adding IAM to wallet:', e);
+                const statusEl = document.getElementById('swapStatus');
+                if (statusEl) {
+                    statusEl.className = 'swap-status error';
+                    statusEl.textContent = '❌ Failed to add IAM: ' + (e.message || e);
+                    setTimeout(() => {
+                        statusEl.textContent = '';
+                        statusEl.className = '';
+                    }, 5000);
+                }
+            }
+        }
+
+        // Add event listeners for token buttons
+        document.addEventListener('DOMContentLoaded', function(){
+            const addDaiBtn = document.getElementById('addDaiBtn');
+            const addIamBtn = document.getElementById('addIamBtn');
+            
+            if (addDaiBtn) {
+                addDaiBtn.addEventListener('click', addDaiToWallet);
+            }
+            
+            if (addIamBtn) {
+                addIamBtn.addEventListener('click', addIamToWallet);
+            }
+        });
     </script>
 
     <style>
@@ -298,20 +393,47 @@
         .swap-header {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 1rem 1.5rem;
-            background: var(--card);
-            border-bottom: 1px solid var(--border);
-            position: sticky;
-            top: 0;
+            justify-content: center;
+            padding: 0.75rem 1.5rem;
+            padding-bottom: 0.5rem;
+            background: transparent;
+            border: none;
+            position: relative;
             z-index: 100;
+            margin-top: 5.5rem; /* Space below navigation buttons */
+        }
+
+        /* Floating Title */
+        .floating-title {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 8rem;
+            font-weight: 700;
+            color: var(--text);
+            opacity: 0.08;
+            z-index: 1;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        /* Navigation buttons container */
+        .nav-buttons {
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            right: 1rem;
+            display: flex;
+            justify-content: space-evenly;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 110;
+            flex-wrap: wrap;
         }
 
         /* Back button - same style as other pages */
         .back-btn {
-            position: fixed;
-            top: 1rem;
-            left: 1rem;
             background: linear-gradient(135deg, #a786ff, #00ff88);
             color: #0a0f1c;
             border: none;
@@ -321,7 +443,99 @@
             cursor: pointer;
             text-decoration: none;
             font-size: 0.9rem;
-            z-index: 110;
+            white-space: nowrap;
+            display: inline-block; /* Ensure proper layout */
+        }
+
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(167, 134, 255, 0.4);
+        }
+
+        /* Register button - fixed like Back button */
+        .register-btn {
+            position: relative; /* Ensure it's part of the fixed container */
+            background: linear-gradient(135deg, #00ff88, #a786ff);
+            color: #0a0f1c;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            display: inline-block; /* Ensure proper layout */
+        }
+
+        .register-btn:hover:not(.disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 255, 136, 0.4);
+        }
+
+        .register-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            background: rgba(167, 134, 255, 0.3);
+            color: rgba(10, 15, 28, 0.5);
+        }
+
+        /* Nav wallet buttons - different style from Back and Register */
+        .nav-wallet-btn {
+            position: relative;
+            background: rgba(167, 134, 255, 0.1);
+            color: var(--text);
+            border: 1px solid rgba(167, 134, 255, 0.3);
+            padding: 0.5rem 0.75rem;
+            border-radius: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .nav-wallet-btn:hover {
+            background: rgba(167, 134, 255, 0.2);
+            border-color: rgba(167, 134, 255, 0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(167, 134, 255, 0.2);
+        }
+
+        .nav-wallet-btn:active {
+            transform: translateY(0);
+            background: rgba(167, 134, 255, 0.15);
+        }
+
+        /* Header token buttons - styled like Back and Register */
+        .header-token-buttons {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .header-token-btn {
+            background: linear-gradient(135deg, #a786ff, #00ff88);
+            color: #0a0f1c;
+            border: none;
+            padding: 0.6rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .header-token-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(167, 134, 255, 0.4);
+        }
+
+        .header-token-btn:active {
+            transform: translateY(0);
         }
 
         .header-title {
@@ -338,41 +552,13 @@
         /* Main Container */
         .swap-container {
             max-width: 420px;
-            margin: 0 auto;
+            margin: 3rem auto 0 auto; /* Space below navigation buttons */
             padding: 1.5rem;
         }
 
         /* Contract Selector */
         .contract-selector-wrapper {
             margin-bottom: 1rem;
-        }
-
-        .contract-toggle-btn {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0.75rem 1rem;
-            background: var(--elev);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            color: var(--text);
-            font-size: 0.9rem;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .contract-toggle-btn:hover {
-            border-color: var(--accent);
-        }
-
-        .contract-selector-hidden {
-            display: none;
-        }
-
-        .contract-selector-hidden.show {
-            display: block;
-            margin-top: 0.5rem;
         }
 
         .contract-select {
@@ -644,6 +830,7 @@
             transition: all 0.3s ease;
         }
 
+
         .swap-status.success {
             background: rgba(46, 204, 113, 0.1);
             color: #2ecc71;
@@ -680,13 +867,27 @@
 
         /* Responsive */
         @media (max-width: 768px) {
-            /* Header */
-            .swap-header {
-                padding: 0.75rem 1rem;
+            /* Floating Title */
+            .floating-title {
+                font-size: 5rem;
+                opacity: 0.06;
             }
 
-            .header-title {
-                font-size: 1rem;
+            /* Header */
+            .swap-header {
+                padding: 0.5rem 1rem;
+                padding-bottom: 0.25rem;
+                margin-top: 4.5rem; /* Less space on mobile */
+            }
+
+
+            .header-token-buttons {
+                gap: 0.5rem;
+            }
+
+            .header-token-btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
             }
 
             .header-back-btn {
@@ -699,6 +900,7 @@
             .swap-container {
                 padding: 1rem;
                 max-width: 100%;
+                margin-top: 3rem; /* Space below navigation buttons on mobile */
             }
 
             /* Form */
@@ -793,11 +995,6 @@
             }
 
             /* Contract Selector */
-            .contract-toggle-btn {
-                padding: 0.6rem 0.8rem;
-                font-size: 0.85rem;
-            }
-
             .contract-select {
                 padding: 0.6rem 0.8rem;
                 font-size: 0.85rem;
@@ -811,6 +1008,26 @@
             .swap-status {
                 padding: 0.7rem;
                 font-size: 0.85rem;
+            }
+
+
+            /* Navigation buttons on mobile */
+            .nav-buttons {
+                top: 0.5rem;
+                left: 0.5rem;
+                right: 0.5rem;
+                gap: 0.5rem;
+            }
+
+            .back-btn,
+            .register-btn {
+                padding: 0.5rem 0.75rem;
+                font-size: 0.8rem;
+            }
+
+            .nav-wallet-btn {
+                padding: 0.4rem 0.6rem;
+                font-size: 0.65rem;
             }
         }
 
@@ -847,6 +1064,7 @@
                 font-size: 0.9rem;
             }
         }
+
     </style>
     
 </body>
