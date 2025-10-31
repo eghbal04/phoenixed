@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Referral Register</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root{ --bg:#0b1220; --panel:#111a2e; --border:#22304a; --accent:#00ff88; --text:#cfd7ea; }
+    *{ box-sizing:border-box; }
+    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; background:var(--bg); color:var(--text); }
+    .container{ max-width:900px; margin:20px auto; padding:16px; }
+    .card{ background:linear-gradient(135deg,#0f172a 80%,#0b1220 100%); border:1px solid var(--border); border-radius:12px; padding:16px; box-shadow:0 6px 20px rgba(0,0,0,0.35); }
+    .title{ font-family: 'Montserrat', sans-serif; font-weight:700; font-size:1.2rem; text-align:right; margin-bottom:10px; }
+    .form-group{ margin:12px 0; }
+    label{ display:block; margin-bottom:6px; color:#a786ff; font-weight:600; }
+    input{ width:100%; padding:10px 12px; border-radius:8px; border:1px solid var(--border); background:#0f1420; color:var(--text); font-size:0.95rem; }
+    .row{ display:flex; gap:10px; align-items:center; }
+    .btn{ width:100%; background:linear-gradient(90deg,#00ff88,#00cc66); color:#0b1220; border:none; border-radius:10px; padding:12px 14px; font-weight:700; cursor:pointer; }
+    .btn:disabled{ opacity:.5; cursor:not-allowed; }
+    .status{ margin-top:8px; min-height:20px; font-size:.9rem; }
+    .info{ font-size:.85rem; color:#94a3b8; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.10.0/ethers.umd.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="title">Buy IAM</div>
+
+      <!-- Buy Section (copied behavior from register.html) -->
+      <div id="buy-section" style="margin:8px 0; padding:8px; border-radius:10px; border:1px solid rgba(0,255,136,0.3); background: linear-gradient(135deg, rgba(0,255,136,0.05), rgba(167,134,255,0.05)); box-shadow: 0 4px 16px rgba(0,0,0,0.2), inset 0 0 0 1px rgba(255,255,255,0.03);">
+        <!-- Quick Swap: DAI to IAM -->
+        <div style="background: rgba(93, 160, 255, 0.1); border: 1px solid rgba(93, 160, 255, 0.3); border-radius: 10px; padding: 12px; margin-top: 12px;">
+          <div style="font-size: 0.85rem; color: #cfe3ff; margin-bottom: 10px; font-weight: 600;">
+            💱 Quick Swap: DAI → IAM
+          </div>
+          <!-- DAI Amount Input -->
+          <div style="margin-bottom: 8px;">
+            <label style="display: block; font-size: 0.75rem; color: #cfe3ff; margin-bottom: 4px;">DAI Amount</label>
+            <input type="number" id="quick-swap-dai-amount" placeholder="Your dollar amount (USD)" step="0.01" min="0" style="width: 100%; background: #0f1420; border: 1px solid var(--border); color: #cfd7ea; border-radius: 8px; padding: 10px; font-size: 1rem; box-sizing: border-box;">
+          </div>
+          <!-- Stats row (Your IAM, Your DAI) -->
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin:8px 0; font-size:0.78rem;">
+            <div style="background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); padding:4px 8px; border-radius:8px; color:#cfe3ff;">
+              Your IAM: <b id="buy-current-iam" style="color:#a786ff;">...</b>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.08); padding:4px 8px; border-radius:8px; color:#cfe3ff;">
+              Your DAI: <b id="quick-swap-dai-balance" style="color:#5da0ff;">...</b>
+            </div>
+          </div>
+          <!-- Swap Button -->
+          <button type="button" id="quick-swap-btn" class="btn">
+            🔄 Swap DAI to IAM
+          </button>
+          <!-- Status Message -->
+          <div id="quick-swap-status" class="status" style="margin-top: 8px; font-size: 0.8rem; min-height: 20px;"></div>
+        </div>
+      </div>
+
+      <div style="background: rgba(167, 134, 255, 0.1); border: 1px solid rgba(167, 134, 255, 0.3); border-radius: 10px; padding: 12px; margin-bottom: 16px; margin-top: 16px; font-size: 0.9rem; line-height: 1.6; color: #cfd7ea;">
+        <div style="font-weight: 600; color: #a786ff; margin-bottom: 8px;">🌟 About IAM Platform</div>
+        <div style="margin-bottom: 8px;">IAM is a decentralized platform that empowers users to build and manage their network through a unique referral system. Join our growing community and start your journey today.</div>
+        <div style="margin-bottom: 8px;"><strong>Key Features:</strong></div>
+        <ul style="margin: 0; padding-left: 20px; color: #94a3b8;">
+          <li>Decentralized identity management</li>
+          <li>Network growth through referrals</li>
+          <li>Transparent and secure transactions</li>
+          <li>Community-driven ecosystem</li>
+        </ul>
+      </div>
+
+      <div class="form-group">
+        <label for="new-user-address">New User Address (Your Wallet)</label>
+        <div class="row">
+          <input id="new-user-address" type="text" placeholder="0x..." autocomplete="off" readonly style="background:#2a2a2a; color:#888; cursor:not-allowed;" />
+        </div>
+      </div>
+
+      <button id="register-btn" class="btn" disabled>Register</button>
+      <div id="status" class="status"></div>
+      <div class="info" id="referral-info">Referrer and Upper are auto-set from referral link.</div>
+    </div>
+  </div>
+
+  <script>
+  // Minimal config - use same contract as register.html
+  const IAM_ADDRESS = window.IAM_ADDRESS || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf';
+  const DAI_ADDRESS = window.DAI_ADDRESS || '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
+
+  // Minimal ABI
+  const IAM_ABI = [
+    "function balanceOf(address) view returns (uint256)",
+    "function getRegPrice() view returns (uint256)",
+    "function registrationPrice() view returns (uint256)",
+    "function getRegistrationPrice() view returns (uint256)",
+    "function getTokenPrice() view returns (uint256)",
+    "function registerAndActivate(address referrer, address upper, address newUser) returns (bool)",
+    "function users(address) view returns (uint256 num, uint256 index, address referrer, address left, address right, bool active)"
+  ];
+
+  const $ = (id) => document.getElementById(id);
+  const statusEl = $('status');
+  const registerBtn = $('register-btn');
+  const newUserInput = $('new-user-address');
+
+  let provider, signer, me, contract;
+  let requiredIam = 0;
+  let myIam = 0;
+  let referrerAddress = null; // Will be set from URL or connected wallet
+
+  function setStatus(msg, color){ statusEl.textContent = msg || ''; statusEl.style.color = color || '#cfd7ea'; }
+
+  // Get referrer from URL parameter
+  function getReferrerFromURL(){
+    const urlParams = new URLSearchParams(window.location.search);
+    const ref = urlParams.get('ref') || urlParams.get('referrer') || urlParams.get('r');
+    if (ref && /^0x[a-fA-F0-9]{40}$/.test(ref)) {
+      return ref;
+    }
+    return null;
+  }
+
+  // Check if user is active/registered
+  async function checkUserActive(userAddress){
+    try {
+      if (!contract) return false;
+      const userData = await contract.users(userAddress);
+      // Support both old (index) and new (num) contracts
+      const userNum = userData.num !== undefined ? userData.num : userData.index;
+      const isActive = !!(userNum && BigInt(userNum) > 0n);
+      return isActive;
+    } catch(e) {
+      console.warn('Error checking user status:', e);
+      return false;
+    }
+  }
+
+  async function connect(){
+    if (!window.ethereum) throw new Error('Please install MetaMask');
+    provider = new ethers.BrowserProvider(window.ethereum);
+    signer = await provider.getSigner();
+    me = await signer.getAddress();
+    
+    contract = new ethers.Contract(IAM_ADDRESS, IAM_ABI, signer);
+    
+    // Check if user is already active/registered - redirect to home if yes
+    const isActive = await checkUserActive(me);
+    if (isActive) {
+      setStatus('✅ Wallet is already registered and active. Redirecting to home...', '#00ff88');
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 1500);
+      return;
+    }
+    
+    // Auto-fill new user address with connected wallet
+    newUserInput.value = me;
+    
+    // Get referrer from URL or use connected wallet
+    referrerAddress = getReferrerFromURL() || me;
+    const infoEl = document.getElementById('referral-info');
+    if (referrerAddress && referrerAddress !== me) {
+      infoEl.textContent = `Referrer/Upper: ${referrerAddress.substring(0,6)}...${referrerAddress.substring(38)} (from referral link)`;
+    } else {
+      infoEl.textContent = 'Referrer/Upper: Your wallet address (self-referral)';
+    }
+  }
+
+  async function fetchRegPrice(){
+    try {
+      if (contract.getRegPrice) { return await contract.getRegPrice(); }
+    } catch(_){}
+    try { if (contract.getRegistrationPrice) { return await contract.getRegistrationPrice(); } } catch(_){ }
+    try { if (contract.registrationPrice) { return await contract.registrationPrice(); } } catch(_){ }
+    return ethers.parseUnits('100','wei');
+  }
+
+  async function refresh(){
+    try {
+      const priceWei = await fetchRegPrice();
+      requiredIam = Number(ethers.formatUnits(priceWei, 18));
+
+      const balWei = await contract.balanceOf(me);
+      myIam = Number(ethers.formatUnits(balWei, 18));
+
+      // Update Buy IAM mini-cards
+      const curEl = document.getElementById('buy-current-iam');
+      if (curEl) curEl.textContent = myIam.toFixed(2);
+      try { await updateReferralDaiBalance(); } catch(_){}
+      try { await autoFillQuickSwapDai(); } catch(_){}
+
+      if (myIam >= requiredIam && requiredIam > 0) {
+        registerBtn.disabled = false;
+      } else {
+        registerBtn.disabled = true;
+      }
+    } catch(e){ setStatus('Refresh failed: ' + (e.message||e), '#ff6b6b'); }
+  }
+
+  async function doRegister(){
+    try{
+      setStatus('Preparing registration...', '#5da0ff');
+      
+      // Use connected wallet address as new user (must be active/registered user)
+      const newUser = me;
+      if (!newUser || !/^0x[a-fA-F0-9]{40}$/.test(newUser)){
+        setStatus('Invalid wallet address', '#ff6b6b');
+        return;
+      }
+      
+      // Referrer and Upper are same - from referral link or connected wallet
+      const referrer = referrerAddress || me;
+      const upper = referrer; // Same as referrer
+      
+      registerBtn.disabled = true;
+      setStatus('Sending registration transaction...', '#5da0ff');
+      const tx = await contract.registerAndActivate(referrer, upper, newUser);
+      setStatus('Waiting for confirmation...', '#5da0ff');
+      await tx.wait();
+      setStatus('✅ Registered successfully', '#00ff88');
+      await refresh();
+      // Redirect to home page after successful registration
+      setTimeout(() => {
+        window.location.href = 'index.html';
+      }, 2000);
+    } catch(e){
+      let errorMsg = '❌ Register failed: ' + (e && e.message ? e.message : e);
+      if (/already registered|Already registered/i.test(errorMsg)) {
+        errorMsg = 'This address is already registered';
+      } else if (/not active|inactive/i.test(errorMsg)) {
+        errorMsg = 'Referrer address is not active';
+      } else if (/insufficient|balance/i.test(errorMsg)) {
+        errorMsg = 'Insufficient IAM balance. Please buy more IAM tokens.';
+      }
+      setStatus(errorMsg, '#ff6b6b');
+      registerBtn.disabled = false;
+    }
+  }
+
+  (async function(){
+    try{
+      await connect();
+      await initReferralSwap();
+      await refresh();
+      // Periodic refresh
+      setInterval(refresh, 8000);
+    } catch(e){ setStatus(e.message || String(e), '#ff6b6b'); }
+  })();
+
+  registerBtn.addEventListener('click', doRegister);
+
+  // ----- Quick Swap: DAI -> IAM (mirrors register.html behavior) -----
+  let tokenPrice = null;
+  let daiContract = null;
+  async function initReferralSwap(){
+    try {
+      if (!provider || !signer) return;
+      // Price
+      if (contract && typeof contract.getTokenPrice === 'function') {
+        const p = await contract.getTokenPrice();
+        tokenPrice = parseFloat(ethers.formatUnits(p, 18));
+      }
+      // DAI contract
+      const DAI_ABI = [
+        "function balanceOf(address) view returns (uint256)",
+        "function approve(address spender, uint256 amount) returns (bool)",
+        "function allowance(address owner, address spender) view returns (uint256)"
+      ];
+      daiContract = new ethers.Contract(DAI_ADDRESS, DAI_ABI, signer);
+      await updateReferralDaiBalance();
+      wireReferralSwap();
+    } catch(e){ console.error('Swap init error:', e); }
+  }
+
+  async function updateReferralDaiBalance(){
+    try {
+      const el = document.getElementById('quick-swap-dai-balance');
+      if (!el || !daiContract || !me) return;
+      const bal = await daiContract.balanceOf(me);
+      const num = parseFloat(ethers.formatUnits(bal, 18));
+      el.textContent = num.toFixed(2) + ' DAI';
+    } catch(e){ console.warn('DAI balance failed', e); }
+  }
+
+  function referralEstimateIamFromDai(d){
+    if (!d || d <= 0 || !tokenPrice || tokenPrice <= 0) return '0.00';
+    return (d / tokenPrice).toFixed(6);
+  }
+
+  async function autoFillQuickSwapDai(){
+    try {
+      const input = document.getElementById('quick-swap-dai-amount');
+      if (!input) return;
+      // compute need with 1% buffer
+      if (!(requiredIam > 0)) return;
+      const needIam = Math.max(0, requiredIam - myIam);
+      if (needIam <= 0) { input.value = ''; return; }
+      // fetch price if missing
+      if (!tokenPrice && contract && contract.getTokenPrice){
+        const p = await contract.getTokenPrice();
+        tokenPrice = parseFloat(ethers.formatUnits(p, 18));
+      }
+      let needDai = needIam * (tokenPrice || 1);
+      needDai = Math.ceil(needDai * 1.01 * 10000) / 10000; // +1%
+      input.value = needDai.toFixed(4);
+      try { input.dispatchEvent(new Event('input', { bubbles:true })); } catch(_){ }
+    } catch(_){ }
+  }
+
+  function wireReferralSwap(){
+    const daiInput = document.getElementById('quick-swap-dai-amount');
+    const statusEl2 = document.getElementById('quick-swap-status');
+    const swapBtn = document.getElementById('quick-swap-btn');
+    daiInput?.addEventListener('input', function(){
+      // no live estimate label in UI here; keep behavior minimal
+    });
+    swapBtn?.addEventListener('click', async function(){
+      try {
+        const amount = parseFloat(daiInput.value) || 0;
+        if (amount <= 0) { statusEl2.textContent = 'Please enter a valid DAI amount'; statusEl2.style.color = '#e74c3c'; return; }
+        if (!daiContract) await initReferralSwap();
+        // allowance check
+        const amountWei = ethers.parseUnits(amount.toString(), 18);
+        const allowance = await daiContract.allowance(me, IAM_ADDRESS);
+        const needsApproval = (typeof allowance.lt === 'function') ? allowance.lt(amountWei) : (BigInt(allowance) < BigInt(amountWei));
+        if (needsApproval){
+          statusEl2.textContent = 'Approving DAI...'; statusEl2.style.color = '#5da0ff';
+          const maxUint = ethers.MaxUint256 || ethers.constants?.MaxUint256;
+          const ap = await daiContract.approve(IAM_ADDRESS, maxUint);
+          await ap.wait();
+        }
+        statusEl2.textContent = 'Executing swap...'; statusEl2.style.color = '#5da0ff';
+        const tx = await contract.buyTokens ? contract.buyTokens(amountWei) : contract.registerAndActivate; // fallback guard
+        if (!tx || !tx.wait){
+          // If buyTokens not available, show message
+          statusEl2.textContent = 'Direct buy not supported by contract'; statusEl2.style.color = '#e74c3c'; return;
+        }
+        await tx.wait();
+        statusEl2.textContent = '✅ Swap successful'; statusEl2.style.color = '#00ff88';
+        await refresh();
+        await updateReferralDaiBalance();
+        daiInput.value = '';
+      } catch(e){
+        let msg = (e && e.message) ? e.message : String(e);
+        if (/denied|reject/i.test(msg)) msg = 'Transaction cancelled by user';
+        statusEl2.textContent = 'Swap failed: ' + msg; statusEl2.style.color = '#e74c3c';
+      }
+    });
+  }
+  </script>
+</body>
+</html>
+
+

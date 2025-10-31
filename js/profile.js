@@ -123,7 +123,7 @@ function updateProfileUI(profile) {
         const userNum = profile.userStruct && (profile.userStruct.num !== undefined ? profile.userStruct.num : (profile.userStruct.index !== undefined ? profile.userStruct.index : undefined));
         const isActive = !!(userNum && BigInt(userNum) > 0n);
         if (profile.address && isActive) {
-            const fullLink = window.location.origin + '/register.html?ref=' + profile.address;
+            const fullLink = window.location.origin + '/referral.html?ref=' + profile.address;
             linkEl.href = fullLink;
             linkEl.textContent = fullLink;
             linkEl.style.pointerEvents = 'auto';
@@ -143,7 +143,7 @@ function updateProfileUI(profile) {
                 if (profile.address) {
                     const isActive = !!(profile.userStruct && profile.userStruct.index && BigInt(profile.userStruct.index) > 0n);
                     if (!isActive) { throw new Error('اکانت شما هنوز فعال نشده است'); }
-                    const fullLink = window.location.origin + '/register.html?ref=' + profile.address;
+                    const fullLink = window.location.origin + '/referral.html?ref=' + profile.address;
                     
                     // تلاش برای کپی کردن
                     if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -404,7 +404,7 @@ function setupReferralCopy() {
                 const userNum = profile && profile.userStruct && (profile.userStruct.num !== undefined ? profile.userStruct.num : (profile.userStruct.index !== undefined ? profile.userStruct.index : undefined));
                 const isActive = !!(userNum && BigInt(userNum) > 0n);
                 if (!isActive) { throw new Error('اکانت شما هنوز فعال نشده است'); }
-                const referralLink = `${window.location.origin}/register.html?ref=${address}`;
+                const referralLink = `${window.location.origin}/referral.html?ref=${address}`;
                 
                 console.log('📋 Generated link:', referralLink);
                 
