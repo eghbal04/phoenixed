@@ -262,39 +262,79 @@
                 
                 const daiAddress = window.DAI_ADDRESS || '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
                 
-                const wasAdded = await window.ethereum.request({
-                    method: 'wallet_watchAsset',
-                    params: {
-                        type: 'ERC20',
-                        options: {
-                            address: daiAddress,
-                            symbol: 'DAI',
-                            decimals: 18
-                        }
-                    }
-                });
+                // Check if wallet supports wallet_watchAsset
+                const isMetaMask = window.ethereum.isMetaMask;
+                const isSafePal = window.ethereum.isSafePal || (window.ethereum.providerName && window.ethereum.providerName.toLowerCase().includes('safepal'));
                 
-                if (wasAdded) {
+                // Try the standard method first
+                try {
+                    const wasAdded = await window.ethereum.request({
+                        method: 'wallet_watchAsset',
+                        params: {
+                            type: 'ERC20',
+                            options: {
+                                address: daiAddress,
+                                symbol: 'DAI',
+                                decimals: 18
+                            }
+                        }
+                    });
+                    
+                    if (wasAdded) {
+                        const statusEl = document.getElementById('swapStatus');
+                        if (statusEl) {
+                            statusEl.className = 'swap-status success';
+                            statusEl.textContent = '✅ DAI added to your wallet';
+                            setTimeout(() => {
+                                statusEl.textContent = '';
+                                statusEl.className = '';
+                            }, 3000);
+                        }
+                        return;
+                    }
+                } catch (methodError) {
+                    // If method is not supported, show manual instructions
+                    console.warn('wallet_watchAsset not supported:', methodError);
+                    
+                    // Show instructions for manual addition
                     const statusEl = document.getElementById('swapStatus');
                     if (statusEl) {
-                        statusEl.className = 'swap-status success';
-                        statusEl.textContent = '✅ DAI added to your wallet';
+                        const manualInstructions = isSafePal 
+                            ? `SafePal: Copy DAI address:\n${daiAddress}\n\nThen manually add token in SafePal app.\nSymbol: DAI\nDecimals: 18`
+                            : `Please manually add DAI token:\nAddress: ${daiAddress}\nSymbol: DAI\nDecimals: 18\n\nOr copy address to clipboard.`;
+                        
+                        // Copy address to clipboard
+                        try {
+                            await navigator.clipboard.writeText(daiAddress);
+                            statusEl.className = 'swap-status info';
+                            statusEl.textContent = `📋 DAI address copied to clipboard!\n${daiAddress}\n\nPlease add manually:\nSymbol: DAI\nDecimals: 18`;
+                        } catch (clipError) {
+                            statusEl.className = 'swap-status info';
+                            statusEl.textContent = `📋 Please copy DAI address manually:\n${daiAddress}\n\nAdd token with:\nSymbol: DAI\nDecimals: 18`;
+                        }
+                        
+                        // Show message longer for manual steps
                         setTimeout(() => {
                             statusEl.textContent = '';
                             statusEl.className = '';
-                        }, 3000);
+                        }, 8000);
+                        
+                        // Also show alert for better visibility
+                        alert(`Please add DAI token manually to your wallet:\n\nAddress: ${daiAddress}\nSymbol: DAI\nDecimals: 18\n\nThe address has been copied to your clipboard.`);
                     }
+                    return;
                 }
             } catch(e) {
                 console.error('Error adding DAI to wallet:', e);
                 const statusEl = document.getElementById('swapStatus');
                 if (statusEl) {
+                    const daiAddress = window.DAI_ADDRESS || '0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063';
                     statusEl.className = 'swap-status error';
-                    statusEl.textContent = '❌ Failed to add DAI: ' + (e.message || e);
+                    statusEl.textContent = `❌ Auto-add not supported. Please add manually:\nAddress: ${daiAddress}\nSymbol: DAI\nDecimals: 18`;
                     setTimeout(() => {
                         statusEl.textContent = '';
                         statusEl.className = '';
-                    }, 5000);
+                    }, 8000);
                 }
             }
         }
@@ -308,39 +348,79 @@
                 
                 const iamAddress = window.IAM_ADDRESS || (window.swapManager && window.swapManager.contractAddress) || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf';
                 
-                const wasAdded = await window.ethereum.request({
-                    method: 'wallet_watchAsset',
-                    params: {
-                        type: 'ERC20',
-                        options: {
-                            address: iamAddress,
-                            symbol: 'IAM',
-                            decimals: 18
-                        }
-                    }
-                });
+                // Check if wallet supports wallet_watchAsset
+                const isMetaMask = window.ethereum.isMetaMask;
+                const isSafePal = window.ethereum.isSafePal || (window.ethereum.providerName && window.ethereum.providerName.toLowerCase().includes('safepal'));
                 
-                if (wasAdded) {
+                // Try the standard method first
+                try {
+                    const wasAdded = await window.ethereum.request({
+                        method: 'wallet_watchAsset',
+                        params: {
+                            type: 'ERC20',
+                            options: {
+                                address: iamAddress,
+                                symbol: 'IAM',
+                                decimals: 18
+                            }
+                        }
+                    });
+                    
+                    if (wasAdded) {
+                        const statusEl = document.getElementById('swapStatus');
+                        if (statusEl) {
+                            statusEl.className = 'swap-status success';
+                            statusEl.textContent = '✅ IAM added to your wallet';
+                            setTimeout(() => {
+                                statusEl.textContent = '';
+                                statusEl.className = '';
+                            }, 3000);
+                        }
+                        return;
+                    }
+                } catch (methodError) {
+                    // If method is not supported, show manual instructions
+                    console.warn('wallet_watchAsset not supported:', methodError);
+                    
+                    // Show instructions for manual addition
                     const statusEl = document.getElementById('swapStatus');
                     if (statusEl) {
-                        statusEl.className = 'swap-status success';
-                        statusEl.textContent = '✅ IAM added to your wallet';
+                        const manualInstructions = isSafePal 
+                            ? `SafePal: Copy IAM address:\n${iamAddress}\n\nThen manually add token in SafePal app.\nSymbol: IAM\nDecimals: 18`
+                            : `Please manually add IAM token:\nAddress: ${iamAddress}\nSymbol: IAM\nDecimals: 18\n\nOr copy address to clipboard.`;
+                        
+                        // Copy address to clipboard
+                        try {
+                            await navigator.clipboard.writeText(iamAddress);
+                            statusEl.className = 'swap-status info';
+                            statusEl.textContent = `📋 IAM address copied to clipboard!\n${iamAddress}\n\nPlease add manually:\nSymbol: IAM\nDecimals: 18`;
+                        } catch (clipError) {
+                            statusEl.className = 'swap-status info';
+                            statusEl.textContent = `📋 Please copy IAM address manually:\n${iamAddress}\n\nAdd token with:\nSymbol: IAM\nDecimals: 18`;
+                        }
+                        
+                        // Show message longer for manual steps
                         setTimeout(() => {
                             statusEl.textContent = '';
                             statusEl.className = '';
-                        }, 3000);
+                        }, 8000);
+                        
+                        // Also show alert for better visibility
+                        alert(`Please add IAM token manually to your wallet:\n\nAddress: ${iamAddress}\nSymbol: IAM\nDecimals: 18\n\nThe address has been copied to your clipboard.`);
                     }
+                    return;
                 }
             } catch(e) {
                 console.error('Error adding IAM to wallet:', e);
                 const statusEl = document.getElementById('swapStatus');
                 if (statusEl) {
+                    const iamAddress = window.IAM_ADDRESS || (window.swapManager && window.swapManager.contractAddress) || '0xa4C37107AbaeD664978e5f6db79249Ad08Fe0dBf';
                     statusEl.className = 'swap-status error';
-                    statusEl.textContent = '❌ Failed to add IAM: ' + (e.message || e);
+                    statusEl.textContent = `❌ Auto-add not supported. Please add manually:\nAddress: ${iamAddress}\nSymbol: IAM\nDecimals: 18`;
                     setTimeout(() => {
                         statusEl.textContent = '';
                         statusEl.className = '';
-                    }, 5000);
+                    }, 8000);
                 }
             }
         }
@@ -847,6 +927,14 @@
             background: rgba(93, 160, 255, 0.1);
             color: #5da0ff;
             border: 1px solid rgba(93, 160, 255, 0.25);
+        }
+
+        .swap-status.info {
+            background: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+            border: 1px solid rgba(255, 193, 7, 0.25);
+            white-space: pre-line;
+            line-height: 1.6;
         }
 
         /* Loading Spinner */
