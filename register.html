@@ -6,6 +6,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
+  <meta http-equiv="Last-Modified" content="0">
   <title>Register - IAMPHOENIX</title>
   
   <script>
@@ -1011,8 +1012,9 @@
      }
 
 
-    // Function to show guide for buying IAM
+    // Function to show guide for buying IAM (updated to redirect to buy section instead of swap page)
     function showBuyIamGuide(shortageAmount = '') {
+        console.log('📱 Showing buy IAM guide with shortage:', shortageAmount);
         const guideBox = document.createElement('div');
         guideBox.id = 'buy-iam-guide';
         guideBox.style.cssText = `
@@ -1042,16 +1044,17 @@
             <div style="margin-bottom: 20px; font-size: 48px;">💡</div>
             <div style="margin-bottom: 20px; font-size: 20px; font-weight: bold;">Insufficient IAM Balance</div>
             <div style="margin-bottom: 25px; font-size: 15px; line-height: 1.6;">
-                ${shortageText}You can easily buy IAM tokens by swapping DAI on the Swap page.
+                ${shortageText}You can easily buy IAM tokens by swapping DAI in the Buy section above.
             </div>
             <div style="margin-bottom: 25px; font-size: 14px; background: rgba(255,255,255,0.15); padding: 15px; border-radius: 10px; line-height: 1.6;">
                 <strong>How to buy IAM:</strong><br>
-                1. Go to Swap page<br>
-                2. Convert DAI to IAM<br>
-                3. Return here to register
+                1. Scroll to Buy IAM section above<br>
+                2. Enter DAI amount<br>
+                3. Click Swap DAI to IAM<br>
+                4. Return here to register
             </div>
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button onclick="goToSwapPage('${shortageAmount}')" style="
+                <button onclick="goToBuySection('${shortageAmount}')" style="
                     background: rgba(0, 255, 136, 0.9);
                     border: 2px solid rgba(0, 255, 136, 0.5);
                     color: white;
@@ -1062,7 +1065,7 @@
                     font-weight: 600;
                     transition: all 0.3s ease;
                 " onmouseover="this.style.background='rgba(0, 255, 136, 1)'" onmouseout="this.style.background='rgba(0, 255, 136, 0.9)'">
-                    ➤ Go to Swap Page
+                    ➤ Go to Buy Section
                 </button>
                 <button onclick="this.closest('#buy-iam-guide').remove()" style="
                     background: rgba(255, 255, 255, 0.2);
@@ -1083,37 +1086,87 @@
         document.body.appendChild(guideBox);
     }
     
-    // Function to navigate to swap page with shortage amount
-    function goToSwapPage(shortageAmount = '') {
+    // Function to scroll to buy section and auto-fill amount
+    function goToBuySection(shortageAmount = '') {
+        console.log('📍 Navigating to Buy Section with shortage:', shortageAmount);
         try {
-            const urlParams = new URLSearchParams(window.location.search);
-            const refParam = urlParams.get('ref') || urlParams.get('referrer') || '';
-            
-            const swapUrl = new URL(window.location.origin + '/swap.html');
-            swapUrl.searchParams.set('direction', 'dai-to-IAM');
-            if (shortageAmount && parseFloat(shortageAmount) > 0) {
-                swapUrl.searchParams.set('amount', parseFloat(shortageAmount).toFixed(2));
-            }
-            if (refParam) {
-                swapUrl.searchParams.set('ref', refParam);
-            }
-            
-            window.open(swapUrl.toString(), '_blank');
-            
             // Close guide box
             const guideBox = document.getElementById('buy-iam-guide');
             if (guideBox) {
                 guideBox.remove();
             }
+            
+            // Find buy section element
+            const buySection = document.getElementById('buy-section');
+            if (!buySection) {
+                console.warn('Buy section not found');
+                return;
+            }
+            
+            // Scroll to buy section smoothly
+            buySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            
+            // Highlight the buy section briefly
+            buySection.style.transition = 'box-shadow 0.3s ease';
+            buySection.style.boxShadow = '0 0 30px rgba(0, 255, 136, 0.6)';
+            setTimeout(() => {
+                buySection.style.boxShadow = '';
+            }, 2000);
+            
+            // Auto-fill DAI amount if shortage amount is provided
+            if (shortageAmount && parseFloat(shortageAmount) > 0) {
+                setTimeout(() => {
+                    const quickSwapInput = document.getElementById('quick-swap-dai-amount');
+                    if (quickSwapInput) {
+                        // Calculate DAI needed from IAM shortage
+                        try {
+                            let contract = window.contractConfig && window.contractConfig.contract;
+                            if (contract && typeof contract.getTokenPrice === 'function') {
+                                contract.getTokenPrice().then(price => {
+                                    const tokenPrice = Number(ethers.formatUnits(price, 18)) || 1;
+                                    const daiNeeded = parseFloat(shortageAmount) * tokenPrice * 1.1; // 10% buffer
+                                    quickSwapInput.value = daiNeeded.toFixed(4);
+                                    quickSwapInput.focus();
+                                    // Trigger input event to update estimates
+                                    quickSwapInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                }).catch(() => {
+                                    // Fallback if price fetch fails
+                                    const daiNeeded = parseFloat(shortageAmount) * 1.1;
+                                    quickSwapInput.value = daiNeeded.toFixed(4);
+                                    quickSwapInput.focus();
+                                });
+                            } else {
+                                // Fallback: assume 1:1 ratio
+                                const daiNeeded = parseFloat(shortageAmount) * 1.1;
+                                quickSwapInput.value = daiNeeded.toFixed(4);
+                                quickSwapInput.focus();
+                            }
+                        } catch(e) {
+                            console.error('Error calculating DAI amount:', e);
+                            // Fallback: assume 1:1 ratio
+                            const daiNeeded = parseFloat(shortageAmount) * 1.1;
+                            if (quickSwapInput) {
+                                quickSwapInput.value = daiNeeded.toFixed(4);
+                                quickSwapInput.focus();
+                            }
+                        }
+                    }
+                }, 500); // Wait for scroll to complete
+            }
         } catch(e) {
-            console.error('Error navigating to swap:', e);
-            window.open('swap.html', '_blank');
+            console.error('Error navigating to buy section:', e);
         }
+    }
+    
+    // Keep goToSwapPage for backward compatibility but redirect to buy section
+    function goToSwapPage(shortageAmount = '') {
+        goToBuySection(shortageAmount);
     }
     
     // Make functions globally accessible
     try { window.showBuyIamGuide = showBuyIamGuide; } catch(_) {}
     try { window.goToSwapPage = goToSwapPage; } catch(_) {}
+    try { window.goToBuySection = goToBuySection; } catch(_) {}
 
     // Function to display temporary messages (for validation)
     function showTempMessage(message, type = 'info', duration = 3000) {
@@ -1277,24 +1330,30 @@
            // Set up all event listeners here
            setupEventListeners();
 
-           // Buy button → open swap with shortage prefilled
+           // Buy button → scroll to buy section with shortage prefilled
            const goSwap = document.getElementById('go-to-swap-btn');
            if (goSwap) {
              goSwap.addEventListener('click', function(){
                try {
                  const shortageText = (document.getElementById('iam-shortage')?.textContent || '0').trim();
                  const shortage = parseFloatSafe(shortageText);
-                 const urlParams = new URLSearchParams(window.location.search);
-                 const refParam = urlParams.get('ref') || urlParams.get('referrer') || '';
-                 // Send user to swap with prefilled IAM target
-                 const u = new URL(window.location.origin + '/swap.html');
-                 if (isFinite(shortage) && shortage > 0) u.searchParams.set('amount', shortage.toFixed(2));
-                 u.searchParams.set('direction', 'dai-to-IAM');
-                 if (refParam) u.searchParams.set('ref', refParam);
-                 window.open(u.toString(), '_blank');
+                 const shortageStr = isFinite(shortage) && shortage > 0 ? shortage.toFixed(2) : '';
+                 // Scroll to buy section with prefilled amount
+                 if (typeof window.goToBuySection === 'function') {
+                   window.goToBuySection(shortageStr);
+                 } else {
+                   // Fallback: manual scroll
+                   const buySection = document.getElementById('buy-section');
+                   if (buySection) {
+                     buySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                   }
+                 }
                } catch(_) {
-                 // Fallback: open swap without params
-                 window.open('swap.html', '_blank');
+                 // Fallback: just scroll to buy section
+                 const buySection = document.getElementById('buy-section');
+                 if (buySection) {
+                   buySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                 }
                }
              });
            }
@@ -2212,35 +2271,7 @@
         statusEl.textContent = icon + message;
     }
 
-                                                // Function to check if target index is in current user's subtree
-          function isIndexInUserSubtree(targetIndex, currentUserIndex) {
-            console.log(`🔍 Checking: target index=${targetIndex}, current user=${currentUserIndex}`);
-            
-            if (targetIndex === currentUserIndex) {
-              console.log(`❌ Cannot be a subtree of itself`);
-              return false;
-            }
-            
-            // Check if target index is in current user's subtree
-            let checkIndex = targetIndex;
-            while (checkIndex > currentUserIndex) {
-              checkIndex = Math.floor(checkIndex / 2);
-              console.log(`🔍 Checking path: ${checkIndex}`);
-              if (checkIndex === currentUserIndex) {
-                console.log(`✅ Is in subtree`);
-                return true;
-              }
-            }
-            
-            // Additional check: if target index is less than current user, it's not in subtree
-            if (targetIndex < currentUserIndex) {
-              console.log(`❌ Target index is less than current user`);
-              return false;
-            }
-            
-            console.log(`❌ Not in subtree`);
-            return false;
-                    }
+                                                // Note: isIndexInUserSubtree function removed - now using contract's isInDownline function
 
           // Function to auto-fill referrer fields with current user's info
           async function autoFillReferrerFields(userAddress, userIndex) {
@@ -2338,29 +2369,48 @@
               }
               
               // For inactive users, allow registration for any active referrer/upper
-              if (!myUser || !(myUser.index && BigInt(myUser.index) > 0n)) {
+              const myNum = myUser && (myUser.num !== undefined ? myUser.num : (myUser.index !== undefined ? myUser.index : undefined));
+              if (!myUser || !(myNum && BigInt(myNum) > 0n)) {
                 console.log(`ℹ️ Current user is not active. Allowing registration with any active ${addressType}.`);
                 return true; // Allow inactive users to register with any active referrer/upper
               }
               
-              // For active users, check if target is in their downline or is themselves
-              const targetUser = await contract.users(targetAddress);
-              if (!targetUser || !(targetUser.index && BigInt(targetUser.index) > 0n)) {
-                console.log(`❌ Target ${addressType} is not active`);
-                return false;
-              }
-              
-              const myIndex = Number(myUser.index);
-              const targetIndex = Number(targetUser.index);
-              
-              // Check if target is in current user's downline (subtree) or is the same user
-              if (isIndexInUserSubtree(targetIndex, myIndex) || targetIndex === myIndex) {
-                console.log(`✅ Can register for ${addressType} (in downline or self)`);
-                return true;
-              }
-              
-              console.log(`❌ Cannot register for ${addressType} (not in downline)`);
+          // For active users, check if target is in their downline or is themselves using contract function
+          const targetUser = await contract.users(targetAddress);
+          const targetNum = (targetUser && (targetUser.num !== undefined ? targetUser.num : (targetUser.index !== undefined ? targetUser.index : undefined)));
+          if (!targetUser || !(targetNum && BigInt(targetNum) > 0n)) {
+            console.log(`❌ Target ${addressType} is not active`);
+            return false;
+          }
+          
+          // Use contract's isInDownline function to check if target is in current user's downline
+          let isInDownline = false;
+          try {
+            if (typeof contract.isInDownline === 'function') {
+              // Check: isInDownline(ancestor, descendant) - is target in current user's downline?
+              isInDownline = await contract.isInDownline(myAddress, targetAddress);
+              console.log(`🔍 Contract isInDownline(${myAddress}, ${targetAddress}) = ${isInDownline}`);
+            } else if (typeof contract.isAncestor === 'function') {
+              // Fallback: use isAncestor to check if current user is ancestor of target
+              isInDownline = await contract.isAncestor(myAddress, targetAddress);
+              console.log(`🔍 Contract isAncestor(${myAddress}, ${targetAddress}) = ${isInDownline}`);
+            } else {
+              console.warn('⚠️ Contract does not have isInDownline or isAncestor function');
               return false;
+            }
+          } catch (contractError) {
+            console.error(`❌ Error calling contract validation function:`, contractError);
+            return false;
+          }
+          
+          // Check if target is in current user's downline or is the same user
+          if (isInDownline) {
+            console.log(`✅ Can register for ${addressType} (in downline)`);
+            return true;
+          }
+          
+          console.log(`❌ Cannot register for ${addressType} (not in downline)`);
+          return false;
               
             } catch (error) {
               console.error(`❌ Error checking registration permission:`, error);
@@ -2368,7 +2418,7 @@
             }
           }
 
-    // Function to validate referrer and upper relationship
+    // Function to validate referrer and upper relationship using contract's isInDownline function
     async function validateReferrerUpperRelationship(contract, referrer, upper) {
       console.log(`🔍 Validating referrer-upper relationship: referrer=${referrer}, upper=${upper}`);
       
@@ -2379,31 +2429,49 @@
       }
       
       try {
-        // Get referrer user data
+        // Get referrer user data to check if active
         const referrerUser = await contract.users(referrer);
         const refNum = (referrerUser && (referrerUser.num !== undefined ? referrerUser.num : referrerUser.index));
         if (!referrerUser || !(refNum !== undefined && BigInt(refNum) > 0n)) {
           throw new Error('Referrer is not active or does not exist');
         }
         
-        // Get upper user data
+        // Get upper user data to check if active
         const upperUser = await contract.users(upper);
         const upperNum = (upperUser && (upperUser.num !== undefined ? upperUser.num : upperUser.index));
         if (!upperUser || !(upperNum !== undefined && BigInt(upperNum) > 0n)) {
           throw new Error('Upper address is not active or does not exist');
         }
         
-        const referrerIndex = Number(refNum);
-        const upperIndex = Number(upperNum);
+        // Use contract's isInDownline function to check if upper is in referrer's downline
+        let isInDownline = false;
+        try {
+          if (typeof contract.isInDownline === 'function') {
+            // Check: isInDownline(ancestor, descendant) - is upper in referrer's downline?
+            isInDownline = await contract.isInDownline(referrer, upper);
+            console.log(`🔍 Contract isInDownline(${referrer}, ${upper}) = ${isInDownline}`);
+          } else {
+            // Fallback: try isAncestor if available (note: this checks reverse relationship)
+            console.warn('⚠️ isInDownline not found, trying alternative methods');
+            // If isAncestor exists, it checks if first is ancestor of second
+            // So we need: isAncestor(referrer, upper) to check if referrer is ancestor of upper
+            if (typeof contract.isAncestor === 'function') {
+              isInDownline = await contract.isAncestor(referrer, upper);
+              console.log(`🔍 Contract isAncestor(${referrer}, ${upper}) = ${isInDownline}`);
+            } else {
+              throw new Error('Contract does not have isInDownline or isAncestor function');
+            }
+          }
+        } catch (contractError) {
+          console.error('❌ Error calling contract validation function:', contractError);
+          throw new Error('Failed to validate relationship using contract: ' + (contractError.message || contractError));
+        }
         
-        console.log(`🔍 Referrer index: ${referrerIndex}, Upper index: ${upperIndex}`);
-        
-        // Check if upper is in referrer's subtree
-        if (isIndexInUserSubtree(upperIndex, referrerIndex)) {
-          console.log(`✅ Upper address is in referrer's subtree - valid`);
+        if (isInDownline) {
+          console.log(`✅ Upper address is in referrer's downline - valid`);
           return;
         } else {
-          throw new Error('Upper address must be either the same as referrer or a descendant of referrer in the tree structure');
+          throw new Error('Upper address must be either the same as referrer or in referrer\'s downline');
         }
         
       } catch (error) {
