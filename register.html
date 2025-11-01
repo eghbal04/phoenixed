@@ -26,20 +26,51 @@
         const requiredText = document.getElementById('buy-required-iam')?.textContent || document.getElementById('required-cost-text')?.textContent || '';
         const required = parseFloatSafe(requiredText);
         const iamBalText = document.getElementById('IAM-balance')?.textContent || document.getElementById('buy-current-iam')?.textContent || '';
-        const daiBalText = document.getElementById('buy-dai-balance')?.textContent || '';
+        const daiBalText = document.getElementById('buy-dai-balance')?.textContent || document.getElementById('quick-swap-dai-balance')?.textContent || '';
         const iamBal = parseFloatSafe(iamBalText);
         const daiBal = parseFloatSafe(daiBalText);
         // Calculate actual need (required - current balance)
         const need = Math.max(0, (isFinite(required) && isFinite(iamBal) ? required - iamBal : 0));
-        // If both balances are effectively zero/unknown, disable both actions
-        if ((!isFinite(iamBal) || iamBal <= 0) && (!isFinite(daiBal) || daiBal <= 0)) {
+        
+        // Check if wallet is connected
+        const walletConnected = window.ethereum && (window.contractConfig && window.contractConfig.address);
+        
+        // If balances are not loaded yet (textContent is empty or "..."), don't show error yet
+        const balancesNotLoaded = (!iamBalText || iamBalText === '...' || iamBalText === 'N/A') && 
+                                   (!daiBalText || daiBalText === '...' || daiBalText === 'N/A');
+        
+        // If both balances are effectively zero/unknown and wallet is not connected
+        if (!walletConnected) {
           if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
           if (buyBtn) { buyBtn.disabled = true; buyBtn.style.opacity = '0.5'; buyBtn.style.cursor = 'not-allowed'; }
           if (buyInput) { buyInput.disabled = true; buyInput.style.opacity = '0.5'; buyInput.style.cursor = 'not-allowed'; }
-          if (status) { status.style.color = '#ff6b6b'; status.textContent = 'Connect wallet and fund with DAI to proceed.'; }
+          if (status && !balancesNotLoaded) {
+            status.style.color = '#ff6b6b';
+            status.textContent = 'Please connect your wallet first.';
+          }
           return;
         }
-        if (!isFinite(need) && (!isFinite(required) || required <= 0)) { return; }
+        
+        // If wallet is connected but both balances are zero
+        if (walletConnected && isFinite(iamBal) && isFinite(daiBal) && iamBal <= 0 && daiBal <= 0) {
+          if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+          if (buyBtn) { buyBtn.disabled = true; buyBtn.style.opacity = '0.5'; buyBtn.style.cursor = 'not-allowed'; }
+          if (buyInput) { buyInput.disabled = true; buyInput.style.opacity = '0.5'; buyInput.style.cursor = 'not-allowed'; }
+          if (status) {
+            status.style.color = '#ff6b6b';
+            status.textContent = 'Wallet connected. Please fund your wallet with DAI to purchase IAM tokens.';
+          }
+          return;
+        }
+        
+        // If balances are not loaded yet, don't change state
+        if (balancesNotLoaded) {
+          return;
+        }
+        // If required amount is not available yet, don't change button state
+        if (!isFinite(required) || required <= 0) { return; }
+        // If IAM balance is not available yet, wait for it to load
+        if (!isFinite(iamBal)) { return; }
         if (need > 0) {
           // Insufficient balance - enable register form
           if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
@@ -66,9 +97,9 @@
             });
           }
         } else {
-          // Balance sufficient - keep form editable, just disable Register button
-          if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
-          if (status) { status.style.color = '#00ff88'; status.textContent = '✅ IAM balance is sufficient.'; }
+          // Balance sufficient - enable Register button
+          if (btn) { btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer'; }
+          if (status) { status.style.color = '#00ff88'; status.textContent = '✅ IAM balance is sufficient. You can register now.'; }
           // Disable buy controls (balance sufficient)
           if (buyInput) { buyInput.disabled = true; buyInput.style.opacity = '0.5'; buyInput.style.cursor = 'not-allowed'; }
           if (buyBtn) { buyBtn.disabled = true; buyBtn.style.opacity = '0.5'; buyBtn.style.cursor = 'not-allowed'; }
@@ -84,16 +115,20 @@
       const m = (e && e.message) || '';
       if (m.includes('getEnabledChains') || m.includes('isDefaultWallet') || m.includes('Could not establish connection') || m.includes('Internal JSON-RPC error') || m.includes('Receiving end does not exist') || m.includes('Extension context invalidated')) { 
         e.preventDefault(); 
+        e.stopPropagation();
         return false; 
       }
-    });
+    }, true); // Use capture phase
+    
     window.addEventListener('unhandledrejection', function(e){
-      const r = e && e.reason; const msg = (r && (r.message || r)) || '';
+      const r = e && e.reason; 
+      const msg = (r && (r.message || String(r))) || '';
       if (typeof msg === 'string' && (msg.includes('getEnabledChains') || msg.includes('isDefaultWallet') || msg.includes('Could not establish connection') || msg.includes('Internal JSON-RPC error') || msg.includes('Receiving end does not exist') || msg.includes('Extension context invalidated'))) { 
         e.preventDefault(); 
+        e.stopPropagation();
         return false; 
       }
-    });
+    }, true); // Use capture phase
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1713,8 +1748,8 @@
           }
         } catch(_) {}
         
-        // Calculate DAI needed with 1% buffer
-        let needDai = needIam * price * 1.01;
+        // Calculate DAI needed with 10% buffer
+        let needDai = needIam * price * 1.10;
         needDai = Math.ceil(needDai * 10000) / 10000;
         
         if (needDai > 0) {
@@ -1759,7 +1794,7 @@
               price = Number(ethers.formatUnits(p, 18)) || 1;
             }
           } catch(_) {}
-          let needDai = needIam * price * 1.01; // add 1% buffer on click as well
+          let needDai = needIam * price * 1.10; // add 10% buffer on click as well
           needDai = Math.ceil(needDai * 10000) / 10000;
           daiAmount = needDai;
         }
@@ -1876,76 +1911,194 @@
         box.style.display = 'block';
       } catch(_) {}
     }
-    // Try to connect wallet on load and report status
-    (function(){
-      document.addEventListener('DOMContentLoaded', async function(){
-        // Add a small delay to let MetaMask fully initialize
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        try {
+    // Listen for wallet connection from common auto-connect function
+    window.addEventListener('walletConnected', async function(event) {
+      const conn = event.detail;
+      if (!conn || !conn.address) return;
+      
+      console.log('✅ Wallet connected on register page:', conn.address);
+      
+      // Set new user field to connected address ONLY if user is inactive
+      try {
+        const nu = document.getElementById('new-user-address');
+        if (nu && conn.contract) {
+          let userActive = false;
+          let userIndex = null;
+          try {
+            const u = await conn.contract.users(conn.address);
+            // Support both 'index' (old) and 'num' (new contract) field names
+            const userNum = u && (u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined));
+            userActive = !!(userNum && BigInt(userNum) > 0n);
+            if (userActive) {
+              userIndex = Number(userNum);
+            }
+          } catch(_) {}
           
-          if (typeof window.connectWallet === 'function') {
-            console.log('🔗 Attempting wallet connection (register)...');
-            
-            // Add retry logic for MetaMask connection issues
-            let conn = null;
-            let retryCount = 0;
-            const maxRetries = 3;
-            
-            while (retryCount < maxRetries && !conn) {
-              try {
-                // Add a small delay before each attempt to let MetaMask stabilize
-                if (retryCount > 0) {
-                  await new Promise(resolve => setTimeout(resolve, 1000));
+          if (!userActive) {
+            nu.value = conn.address;
+            nu.setAttribute('data-full-address', conn.address);
+          } else {
+            // Always auto-fill referrer fields with connected wallet address
+            await autoFillReferrerFields(conn.address, userIndex);
+            console.log('🔗 Referrer set to connected wallet address:', conn.address);
+          }
+        }
+      } catch(_) {}
+      
+      // Fetch and show registration price
+      try {
+        const box = document.getElementById('reg-price-box');
+        const txt = document.getElementById('reg-price-text');
+        if (box && txt && conn.contract) {
+          const wei = await (window.safeGetRegPrice ? window.safeGetRegPrice(conn.contract) : null);
+          if (wei !== null && wei !== undefined) {
+            const val = (typeof ethers !== 'undefined') ? ethers.formatUnits(wei, 18) : String(wei);
+            txt.textContent = `${Number(val).toFixed(2)} IAM`;
+            box.style.display = 'block';
+          }
+        }
+      } catch(e) { console.warn('Reg price fetch failed:', e && (e.message||e)); }
+
+      // Also update required cost box now that we are connected
+      try { await updateRegistrationCost(); } catch(_) {}
+
+      // Fetch and populate balances box
+      try {
+        const mEl = document.getElementById('matic-balance');
+        const iEl = document.getElementById('IAM-balance');
+        if (mEl && iEl) {
+          const provider = conn.provider || (window.contractConfig && window.contractConfig.provider);
+          if (provider) {
+            const mBal = await provider.getBalance(conn.address);
+            const mNum = ethers.formatUnits(mBal, 18);
+            mEl.textContent = Number(mNum).toFixed(4);
+          }
+          try {
+            const c = conn.contract || (window.contractConfig && window.contractConfig.contract);
+            if (c && typeof c.balanceOf === 'function') {
+              const ib = await c.balanceOf(conn.address);
+              const iNum = ethers.formatUnits(ib, 18);
+              iEl.textContent = Number(iNum).toFixed(2);
+            }
+          } catch(_) {}
+        }
+      } catch(_) {}
+      try { await refreshBuyCardBalances(conn); } catch(_) {}
+      // Ensure button state is updated after balances are refreshed
+      setTimeout(() => {
+        try { enforceRegisterButtonState(); } catch(_) {}
+      }, 500);
+      enforceRegisterButtonState();
+    });
+    
+    // Also try to connect if already connected (for page refresh scenarios)
+    document.addEventListener('DOMContentLoaded', async function(){
+      // Check if wallet is already connected
+      if (window.contractConfig && window.contractConfig.contract && window.contractConfig.address) {
+        try {
+          const event = new CustomEvent('walletConnected', { detail: window.contractConfig });
+          window.dispatchEvent(event);
+        } catch(_) {}
+      }
+
+      // Add retry button functionality
+      const retryBtn = document.getElementById('retry-wallet-btn');
+      if (retryBtn) {
+        retryBtn.addEventListener('click', async function() {
+          console.log('🔄 Manual wallet retry requested...');
+          retryBtn.disabled = true;
+          retryBtn.textContent = '⏳ Connecting...';
+          
+          try {
+            if (typeof window.connectWallet === 'function') {
+              const conn = await window.connectWallet();
+              if (conn && conn.address) {
+                console.log('✅ Manual wallet connection successful:', conn.address);
+                const statusEl = document.getElementById('status-message');
+                const retrySection = document.getElementById('wallet-retry-section');
+                
+                if (statusEl) {
+                  statusEl.className = 'register-form-status success';
+                  statusEl.textContent = '✅ Wallet connected successfully!';
+                }
+                if (retrySection) {
+                  retrySection.style.display = 'none';
                 }
                 
-                conn = await window.connectWallet();
-                if (conn && conn.address) {
-                  break;
-                }
-              } catch (error) {
-                console.warn(`⚠️ Wallet connection attempt ${retryCount + 1} failed:`, error.message);
-                retryCount++;
-                if (retryCount < maxRetries) {
-                  console.log(`⏳ Retrying wallet connection in 2 seconds... (${retryCount}/${maxRetries})`);
-                  await new Promise(resolve => setTimeout(resolve, 2000));
-                }
+                // Trigger walletConnected event
+                const event = new CustomEvent('walletConnected', { detail: conn });
+                window.dispatchEvent(event);
+              } else {
+                throw new Error('Wallet connection failed');
               }
+            } else {
+              throw new Error('Wallet connection not available');
             }
-            
-            if (conn && conn.address) {
-              console.log('✅ Wallet connected on register:', conn.address);
-              // Set new user field to connected address ONLY if user is inactive
+          } catch (error) {
+            console.error('❌ Manual wallet retry failed:', error);
+            const statusEl = document.getElementById('status-message');
+            if (statusEl) {
+              statusEl.className = 'register-form-status error';
+              statusEl.textContent = '❌ Wallet connection failed. Please check MetaMask and try again.';
+            }
+          } finally {
+            retryBtn.disabled = false;
+            retryBtn.textContent = '🔄 Retry Wallet Connection';
+          }
+        });
+      }
+
+      // Keep new user field in sync with account changes
+      if (window.ethereum && window.ethereum.on) {
+        try {
+          window.ethereum.on('accountsChanged', async (accounts) => {
+            const addr = (accounts && accounts[0]) ? accounts[0] : null;
+            const nu = document.getElementById('new-user-address');
+            if (nu && addr) {
+              // Only fill New User if account is inactive
               try {
-                const nu = document.getElementById('new-user-address');
-                if (nu && conn.contract) {
-                  let userActive = false;
-                  let userIndex = null;
+                let contract = (window.contractConfig && window.contractConfig.contract) || null;
+                if (!contract && typeof window.connectWallet === 'function') {
+                  const c = await window.connectWallet();
+                  contract = c && c.contract ? c.contract : contract;
+                }
+                let userActive = false;
+                if (contract) {
                   try {
-                    const u = await conn.contract.users(conn.address);
+                    const u = await contract.users(addr);
                     // Support both 'index' (old) and 'num' (new contract) field names
                     const userNum = u && (u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined));
                     userActive = !!(userNum && BigInt(userNum) > 0n);
-                    if (userActive) {
-                      userIndex = Number(userNum);
+                  } catch(_) {}
+                }
+                if (!userActive) {
+                  nu.value = addr;
+                  nu.setAttribute('data-full-address', addr);
+                } else {
+                  // If user is active, update referrer fields with new wallet address
+                  try {
+                    const contract = (window.contractConfig && window.contractConfig.contract) || null;
+                    if (contract) {
+                      const u = await contract.users(addr);
+                      // Support both 'index' (old) and 'num' (new contract) field names
+                      const userNum = u && (u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined));
+                      const userIndex = userNum ? Number(userNum) : null;
+                      if (userIndex) {
+                        await autoFillReferrerFields(addr, userIndex);
+                        console.log('🔗 Referrer updated to new wallet address:', addr);
+                      }
                     }
                   } catch(_) {}
-                  
-                  if (!userActive) {
-                    nu.value = conn.address;
-                    nu.setAttribute('data-full-address', conn.address);
-                  } else {
-                    // Always auto-fill referrer fields with connected wallet address
-                    await autoFillReferrerFields(conn.address, userIndex);
-                    console.log('🔗 Referrer set to connected wallet address:', conn.address);
-                  }
                 }
               } catch(_) {}
-              // Fetch and show registration price
-              try {
+            }
+            // Refresh registration price on account change
+            try {
+              if (typeof window.connectWallet === 'function') {
+                const conn = await window.connectWallet();
                 const box = document.getElementById('reg-price-box');
                 const txt = document.getElementById('reg-price-text');
-                if (box && txt && conn.contract) {
+                if (box && txt && conn && conn.contract) {
                   const wei = await (window.safeGetRegPrice ? window.safeGetRegPrice(conn.contract) : null);
                   if (wei !== null && wei !== undefined) {
                     const val = (typeof ethers !== 'undefined') ? ethers.formatUnits(wei, 18) : String(wei);
@@ -1953,184 +2106,16 @@
                     box.style.display = 'block';
                   }
                 }
-              } catch(e) { console.warn('Reg price fetch failed:', e && (e.message||e)); }
+              }
+            } catch(_) {}
 
-              // Also update required cost box now that we are connected
-              try { await updateRegistrationCost(); } catch(_) {}
-
-              // Fetch and populate balances box
-              try {
-                const mEl = document.getElementById('matic-balance');
-                const iEl = document.getElementById('IAM-balance');
-                if (mEl && iEl) {
-                  const provider = conn.provider || (window.contractConfig && window.contractConfig.provider);
-                  if (provider) {
-                    const mBal = await provider.getBalance(conn.address);
-                    const mNum = ethers.formatUnits(mBal, 18);
-                    mEl.textContent = Number(mNum).toFixed(4);
-                  }
-                  try {
-                    const c = conn.contract || (window.contractConfig && window.contractConfig.contract);
-                    if (c && typeof c.balanceOf === 'function') {
-                      const ib = await c.balanceOf(conn.address);
-                      const iNum = ethers.formatUnits(ib, 18);
-                      iEl.textContent = Number(iNum).toFixed(2);
-                    }
-                  } catch(_) {}
-                }
-              } catch(_) {}
-              try { await refreshBuyCardBalances(conn); } catch(_) {}
-              enforceRegisterButtonState();
-            } else {
-              console.warn('⚠️ Wallet not connected on register after all retry attempts');
-              // Show user-friendly message and retry button
-              const statusEl = document.getElementById('status-message');
-              const retrySection = document.getElementById('wallet-retry-section');
-              if (statusEl) {
-                statusEl.className = 'register-form-status warning';
-                statusEl.textContent = '⚠️ Wallet connection failed. Please try again.';
-              }
-              if (retrySection) {
-                retrySection.style.display = 'block';
-              }
-            }
-          } else {
-            console.warn('⚠️ connectWallet is not available on register');
-            // Show user-friendly message
-            const statusEl = document.getElementById('status-message');
-            if (statusEl) {
-              statusEl.className = 'register-form-status error';
-              statusEl.textContent = '❌ Wallet connection not available. Please check if MetaMask is installed.';
-            }
-          }
-        } catch (e) {
-          console.warn('⚠️ Wallet connect attempt failed on register:', e && (e.message||e));
-          // Show user-friendly message
-          const statusEl = document.getElementById('status-message');
-          if (statusEl) {
-            statusEl.className = 'register-form-status error';
-            statusEl.textContent = '❌ Wallet connection failed. Please refresh the page and try again.';
-          }
-        }
-
-        // Add retry button functionality
-        const retryBtn = document.getElementById('retry-wallet-btn');
-        if (retryBtn) {
-          retryBtn.addEventListener('click', async function() {
-            console.log('🔄 Manual wallet retry requested...');
-            retryBtn.disabled = true;
-            retryBtn.textContent = '⏳ Connecting...';
-            
-            try {
-              if (typeof window.connectWallet === 'function') {
-                const conn = await window.connectWallet();
-                if (conn && conn.address) {
-                  console.log('✅ Manual wallet connection successful:', conn.address);
-                  const statusEl = document.getElementById('status-message');
-                  const retrySection = document.getElementById('wallet-retry-section');
-                  
-                  if (statusEl) {
-                    statusEl.className = 'register-form-status success';
-                    statusEl.textContent = '✅ Wallet connected successfully!';
-                  }
-                  if (retrySection) {
-                    retrySection.style.display = 'none';
-                  }
-                  
-                  // Reload the page to refresh all wallet-dependent functionality
-                  setTimeout(() => {
-                    window.location.reload();
-                  }, 2000);
-                } else {
-                  throw new Error('Wallet connection failed');
-                }
-              } else {
-                throw new Error('Wallet connection not available');
-              }
-            } catch (error) {
-              console.error('❌ Manual wallet retry failed:', error);
-              const statusEl = document.getElementById('status-message');
-              if (statusEl) {
-                statusEl.className = 'register-form-status error';
-                statusEl.textContent = '❌ Wallet connection failed. Please check MetaMask and try again.';
-              }
-            } finally {
-              retryBtn.disabled = false;
-              retryBtn.textContent = '🔄 Retry Wallet Connection';
-            }
+            // Refresh required cost box
+            try { await updateRegistrationCost(); } catch(_) {}
+            enforceRegisterButtonState();
           });
-        }
-
-        // Keep new user field in sync with account changes
-        if (window.ethereum && window.ethereum.on) {
-          try {
-            window.ethereum.on('accountsChanged', async (accounts) => {
-              const addr = (accounts && accounts[0]) ? accounts[0] : null;
-              const nu = document.getElementById('new-user-address');
-              if (nu && addr) {
-                // Only fill New User if account is inactive
-                try {
-                  let contract = (window.contractConfig && window.contractConfig.contract) || null;
-                  if (!contract && typeof window.connectWallet === 'function') {
-                    const c = await window.connectWallet();
-                    contract = c && c.contract ? c.contract : contract;
-                  }
-                  let userActive = false;
-                  if (contract) {
-                    try {
-                      const u = await contract.users(addr);
-                      // Support both 'index' (old) and 'num' (new contract) field names
-                      const userNum = u && (u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined));
-                      userActive = !!(userNum && BigInt(userNum) > 0n);
-                    } catch(_) {}
-                  }
-                  if (!userActive) {
-                    nu.value = addr;
-                    nu.setAttribute('data-full-address', addr);
-                  } else {
-                    // If user is active, update referrer fields with new wallet address
-                    try {
-                      const contract = (window.contractConfig && window.contractConfig.contract) || null;
-                      if (contract) {
-                        const u = await contract.users(addr);
-                        // Support both 'index' (old) and 'num' (new contract) field names
-                        const userNum = u && (u.num !== undefined ? u.num : (u.index !== undefined ? u.index : undefined));
-                        const userIndex = userNum ? Number(userNum) : null;
-                        if (userIndex) {
-                          await autoFillReferrerFields(addr, userIndex);
-                          console.log('🔗 Referrer updated to new wallet address:', addr);
-                        }
-                      }
-                    } catch(_) {}
-                  }
-                } catch(_) {}
-              }
-              // Refresh registration price on account change
-              try {
-                if (typeof window.connectWallet === 'function') {
-                  const conn = await window.connectWallet();
-                  const box = document.getElementById('reg-price-box');
-                  const txt = document.getElementById('reg-price-text');
-                  if (box && txt && conn && conn.contract) {
-                    const wei = await (window.safeGetRegPrice ? window.safeGetRegPrice(conn.contract) : null);
-                    if (wei !== null && wei !== undefined) {
-                      const val = (typeof ethers !== 'undefined') ? ethers.formatUnits(wei, 18) : String(wei);
-                      txt.textContent = `${Number(val).toFixed(2)} IAM`;
-                      box.style.display = 'block';
-                    }
-                  }
-                }
-              } catch(_) {}
-
-              // Refresh required cost box
-              try { await updateRegistrationCost(); } catch(_) {}
-              enforceRegisterButtonState();
-            });
-          } catch(_) {}
-        }
-
-      });
-    })();
+        } catch(_) {}
+      }
+    });
   </script>
   
   <script>
@@ -2929,30 +2914,72 @@
       registerBtn.disabled = true;
       registerBtn.style.opacity = '0.6';
       status.style.color = '#1976d2';
-      status.textContent = 'Validating information...';
+      status.textContent = 'Connecting wallet...';
       
       try {
+        // Check if MetaMask is installed
+        if (!window.ethereum) {
+          status.style.color = '#ff6b6b';
+          status.textContent = '❌ MetaMask not detected. Please install MetaMask extension first.';
+          registerBtn.disabled = false;
+          registerBtn.style.opacity = '1';
+          return;
+        }
+        
         // Ensure wallet connection and get contract instance
         let contract = null, signerAddress = null;
+        let connectionError = null;
+        
+        // Try to connect wallet first
+        status.textContent = 'Requesting wallet connection...';
         try {
           if (typeof window.connectWallet === 'function') {
             const conn = await window.connectWallet();
             if (conn && conn.contract) {
               contract = conn.contract;
               signerAddress = conn.address || (conn.signer ? await conn.signer.getAddress() : null);
+              console.log('✅ Wallet connected via connectWallet:', signerAddress);
+            } else {
+              console.warn('⚠️ connectWallet returned but no contract found');
             }
+          } else {
+            console.warn('⚠️ connectWallet function not available');
           }
+          
+          // Fallback to cached connection
           if (!contract && window.contractConfig && window.contractConfig.contract) {
             contract = window.contractConfig.contract;
+            signerAddress = window.contractConfig.address;
+            console.log('✅ Using cached contract connection:', signerAddress);
           }
-        } catch(_) {}
+        } catch (error) {
+          connectionError = error;
+          console.error('❌ Wallet connection error:', error);
+        }
+        
         if (!contract) {
           status.style.color = '#ff6b6b';
-          status.textContent = 'Registration requires wallet connection. Please connect your wallet first.';
+          let errorMsg = '❌ Wallet connection failed. Please try again.';
+          if (connectionError) {
+            if (connectionError.code === 4001) {
+              errorMsg = '❌ Wallet connection was rejected. Please try again and approve the connection in MetaMask.';
+            } else if (connectionError.message) {
+              errorMsg = '❌ Wallet connection failed: ' + connectionError.message;
+            }
+          }
+          status.textContent = errorMsg;
           registerBtn.disabled = false;
           registerBtn.style.opacity = '1';
+          // Show retry section if wallet connection failed
+          const retrySection = document.getElementById('wallet-retry-section');
+          if (retrySection) {
+            retrySection.style.display = 'block';
+          }
           return;
         }
+        
+        // Update status - wallet connected
+        status.textContent = '✅ Wallet connected. Validating information...';
 
         // Get full addresses for registration (not truncated display)
         const referrer = referrerDisplay.getAttribute('data-full-address') || referrerDisplay.value.trim();

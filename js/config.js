@@ -1860,6 +1860,59 @@ window.connectWallet = async function() {
     return window.contractConfig;
 };
 
+// Auto-connect wallet on page load (common function for all pages)
+window.autoConnectWalletOnLoad = async function() {
+    // Only run if DOM is ready or will be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', window.autoConnectWalletOnLoad);
+        return;
+    }
+    
+    try {
+        // Check if MetaMask is available
+        if (!window.ethereum) {
+            console.log('ℹ️ MetaMask not detected. Wallet connection skipped.');
+            return;
+        }
+        
+        // Check if connectWallet function is available
+        if (typeof window.connectWallet !== 'function') {
+            console.warn('⚠️ connectWallet function not available yet. Retrying in 500ms...');
+            setTimeout(window.autoConnectWalletOnLoad, 500);
+            return;
+        }
+        
+        // Try to connect wallet
+        console.log('🔗 Auto-connecting wallet on page load...');
+        try {
+            const conn = await window.connectWallet();
+            if (conn && conn.address) {
+                console.log('✅ Wallet auto-connected successfully:', conn.address.substring(0, 6) + '...' + conn.address.substring(38));
+                // Trigger custom event for pages that want to react to wallet connection
+                window.dispatchEvent(new CustomEvent('walletConnected', { detail: conn }));
+                return conn;
+            }
+        } catch (error) {
+            // Silently handle user rejection (4001) or connection errors
+            if (error.code === 4001) {
+                console.log('ℹ️ Wallet connection was rejected by user.');
+            } else {
+                console.warn('⚠️ Auto-connect wallet failed:', error.message || error);
+            }
+        }
+    } catch (error) {
+        console.warn('⚠️ Auto-connect wallet error:', error.message || error);
+    }
+};
+
+// Auto-connect wallet when DOM is ready (if not already connected)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', window.autoConnectWalletOnLoad);
+} else {
+    // DOM already loaded, run immediately
+    setTimeout(window.autoConnectWalletOnLoad, 100);
+}
+
 // Reload contract instance if ABI changes or without reconnecting wallet
 window.reloadContractWithAbi = function(newAbi) {
     if (Array.isArray(newAbi) && newAbi.length > 0) {
